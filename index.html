@@ -2403,32 +2403,35 @@ function closeRow(except){
 function openRowEl(wrap,pw){closeRow(wrap);wrap.classList.add('open');swSet(wrap,-pw);openRow=wrap;}
 function panelW(wrap){const a=wrap.querySelector('.swipe-actions');return a?a.offsetWidth:76;}
 function swDo(gi,pay){closeRow();if(pay)quickPay(gi);else openEdit(gi);}
-function swDown(e){
-  if(e.pointerType==='mouse'&&e.button!==0)return;
+function swXY(e){const t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);return t?{x:t.clientX,y:t.clientY}:{x:e.clientX,y:e.clientY};}
+function swStart(e){
+  if(e.type==='mousedown'&&e.button!==0)return;
   if(e.target.closest('.swipe-act'))return;          // toque no botão = ação
   const card=e.target.closest('.pcard'); if(!card)return;
   if(e.target.closest('.pcard-chk'))return;
   const wrap=card.closest('.swipe'); if(!wrap)return;
-  const pw=panelW(wrap);
-  SW={card,wrap,pw,x0:e.clientX,y0:e.clientY,base:wrap.classList.contains('open')?-pw:0,dx:0,decided:false,horiz:false,id:e.pointerId};
+  const p=swXY(e), pw=panelW(wrap);
+  SW={card,wrap,pw,x0:p.x,y0:p.y,base:wrap.classList.contains('open')?-pw:0,dx:0,decided:false,horiz:false};
+  if(e.type==='mousedown'){document.addEventListener('mousemove',swMove);document.addEventListener('mouseup',swEnd);}
 }
 function swMove(e){
-  if(!SW||e.pointerId!==SW.id)return;
-  const dx=e.clientX-SW.x0, dy=e.clientY-SW.y0;
+  if(!SW)return;
+  const p=swXY(e), dx=p.x-SW.x0, dy=p.y-SW.y0;
   if(!SW.decided){
     if(Math.abs(dx)<6&&Math.abs(dy)<6)return;
     SW.decided=true; SW.horiz=Math.abs(dx)>Math.abs(dy);
-    if(SW.horiz){try{SW.card.setPointerCapture(e.pointerId);}catch(_){}; SW.wrap.classList.add('dragging'); closeRow(SW.wrap);}
+    if(SW.horiz){SW.wrap.classList.add('dragging'); closeRow(SW.wrap);}
   }
   if(!SW.horiz)return;
-  e.preventDefault();
+  if(e.cancelable)e.preventDefault();
   let d=Math.max(-SW.pw,Math.min(0,SW.base+dx));
   SW.dx=d; SW.card.style.transform=`translateX(${d}px)`;
 }
-function swUp(e){
-  if(!SW||e.pointerId!==SW.id)return;
+function swEnd(e){
+  if(!SW)return;
   const s=SW; SW=null;
-  s.card.style.transition='';                         // volta a usar a transição do CSS
+  document.removeEventListener('mousemove',swMove);document.removeEventListener('mouseup',swEnd);
+  s.card.style.transition='';
   s.wrap.classList.remove('dragging');
   if(!s.decided){                                     // toque simples: alterna abrir/fechar
     if(s.wrap.classList.contains('open'))closeRow();
@@ -2441,10 +2444,11 @@ function swUp(e){
 function toggleFilters(){const p=document.getElementById('filtPanel');if(p)p.hidden=!p.hidden;}
 function initSwipe(){
   const bc=document.getElementById('baixasContainer'); if(!bc||bc._sw)return; bc._sw=1;
-  bc.addEventListener('pointerdown',swDown);
-  bc.addEventListener('pointermove',swMove);
-  bc.addEventListener('pointerup',swUp);
-  bc.addEventListener('pointercancel',swUp);
+  bc.addEventListener('touchstart',swStart,{passive:true});
+  bc.addEventListener('touchmove',swMove,{passive:false});
+  bc.addEventListener('touchend',swEnd);
+  bc.addEventListener('touchcancel',swEnd);
+  bc.addEventListener('mousedown',swStart);
 }
 
 // ── BAIXA EM LOTE ──
