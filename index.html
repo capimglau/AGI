@@ -2156,7 +2156,7 @@ function popSel(){
 
 // ── CSV ──
 function exportCSV(){
-  const rows=filtGeral({});
+  const rows=filtGeral({usePrev:true});
   const hd=['Placa','Proprietário','Cliente','Tipo','Saída','Retorno','Valor','Forma','Prev/Baixa','Status','Pago','Saldo','Obs'];
   const csv=[hd.join(';'),...rows.map(r=>[r.placa,r.dono,r.cliente,r.tipo,r.saida||'',r.retorno||'',fN(r.valor).toFixed(2),r.forma,r.prev_pgto||'',isPago(r)?'Baixado':'Pendente',fN(r.valor_pago).toFixed(2),fN(r.saldo).toFixed(2),r.obs||''].join(';'))].join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));a.download=`autogest_${curMes}.csv`;a.click();
