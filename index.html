@@ -1037,8 +1037,15 @@ details[open] summary::before { transform: rotate(90deg); }
 
   /* Painéis / cards minimalistas (sem borda, fundo branco) */
   .card { border: none; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
-  .mc { border: none; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.05); padding: 15px 16px; }
-  .mc:hover { transform: none; }
+  /* Painéis de métrica compactos e flat (iOS) */
+  .mrow { grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 16px; }
+  .mc { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); padding: 12px 13px; }
+  .mc:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+  .mc::before, .mc::after { display: none; }
+  .mc-icon { font-size: 14px; margin-bottom: 5px; }
+  .mc-label { font-size: 9.5px; letter-spacing: .04em; margin-bottom: 4px; }
+  .mc-value { font-size: 19px; letter-spacing: -.03em; }
+  .mc-sub { font-size: 10px; margin-top: 3px; }
   .pcard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
   .pcard.venc { border-left: 3px solid #ff3b30; }
   .pcard.hoje-card { border-left: 3px solid #007aff; }
@@ -1075,7 +1082,8 @@ details[open] summary::before { transform: rotate(90deg); }
 @media (max-width: 420px) {
   .header-right { flex-wrap: wrap; }
   .header-right .stat-pill { font-size: 12px; padding: 6px 8px; }
-  .mrow { grid-template-columns: 1fr; }
+  .mrow { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mc-value { font-size: 18px; }
 }
 .pcard { animation: fadeIn .15s ease both; }
 </style>
