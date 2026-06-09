@@ -1360,6 +1360,7 @@ html[data-theme="dark"] .swipe-act.edit { background: #3a475e; }
         <select id="bf-status" onchange="renderBaixas()">
           <option value="pend">Pendentes</option>
           <option value="venc">Vencidos</option>
+          <option value="pago">Pagos</option>
           <option value="todos">Todos</option>
         </select>
       </div>
@@ -2072,6 +2073,7 @@ function renderBaixas(){
   let rows=[...allMes];
   if(status==='pend') rows=rows.filter(r=>isPend(r));
   else if(status==='venc') rows=rows.filter(r=>isVenc(r));
+  else if(status==='pago') rows=rows.filter(r=>isPago(r));
   rows.sort((a,b)=>(a.prev_pgto||'9').localeCompare(b.prev_pgto||'9'));
 
   const hoje=td();
