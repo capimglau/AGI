@@ -475,7 +475,9 @@ body {
 
 /* ── SWIPE (deslizar revela os botões; tocar executa) ── */
 .swipe { position: relative; overflow: hidden; }
-.swipe .pcard { position: relative; z-index: 2; background: var(--card); touch-action: pan-y; will-change: transform; transition: transform .26s cubic-bezier(.25,.85,.3,1); }
+.swipe .pcard { position: relative; z-index: 2; background: var(--card); will-change: transform; transition: transform .26s cubic-bezier(.25,.85,.3,1); }
+/* pan-y também nos filhos: senão o Safari engole o gesto horizontal */
+.swipe .pcard, .swipe .pcard * { touch-action: pan-y; }
 .swipe.dragging .pcard { transition: none; }
 .swipe-actions { position: absolute; top: 0; right: 0; bottom: 0; display: flex; z-index: 1; }
 .swipe-act {
@@ -2399,7 +2401,7 @@ function closeRow(except){
   if(openRow!==except)openRow=null;
 }
 function openRowEl(wrap,pw){closeRow(wrap);wrap.classList.add('open');swSet(wrap,-pw);openRow=wrap;}
-function panelW(wrap){const a=wrap.querySelector('.swipe-actions');return a?a.offsetWidth:76;}
+function panelW(wrap){const n=wrap.querySelectorAll('.swipe-act').length;return (n||1)*76;}
 function swDo(gi,pay){closeRow();if(pay)quickPay(gi);else openEdit(gi);}
 function swXY(e){const t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);return t?{x:t.clientX,y:t.clientY}:{x:e.clientX,y:e.clientY};}
 function swStart(e){
