@@ -1031,7 +1031,8 @@ details[open] summary::before { transform: rotate(90deg); }
   }
   .ntab { color: #8e8e93; }
   .ntab.on { background: none; color: #007aff; }
-  .nt-ico { font-size: 22px; }
+  .nt-ico { display: block; line-height: 0; }
+  .nt-ico svg { width: 25px; height: 25px; display: block; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .nt-short { font-weight: 500; }
 
   /* Painéis / cards minimalistas (sem borda, fundo branco) */
@@ -1098,12 +1099,12 @@ details[open] summary::before { transform: rotate(90deg); }
   </div>
 
   <div class="nav-tabs">
-    <button class="ntab on" onclick="go('baixas')"><span class="nt-ico">📥</span><span class="nt-full">Recebimentos</span><span class="nt-short">Receber</span></button>
-    <button class="ntab" onclick="go('lancamentos')"><span class="nt-ico">📋</span><span class="nt-full">Lançamentos</span><span class="nt-short">Lançam.</span></button>
-    <button class="ntab" onclick="go('resumo')"><span class="nt-ico">📊</span><span class="nt-full">Resumo</span><span class="nt-short">Resumo</span></button>
-    <button class="ntab" onclick="go('proprietarios')"><span class="nt-ico">👥</span><span class="nt-full">Proprietários</span><span class="nt-short">Donos</span></button>
-    <button class="ntab" onclick="go('premissas')"><span class="nt-ico">⚙️</span><span class="nt-full">Premissas</span><span class="nt-short">Taxas</span></button>
-    <button class="ntab" onclick="go('novo')"><span class="nt-ico">➕</span><span class="nt-full">Novo</span><span class="nt-short">Novo</span></button>
+    <button class="ntab on" onclick="go('baixas')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nt-full">Recebimentos</span><span class="nt-short">Receber</span></button>
+    <button class="ntab" onclick="go('lancamentos')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nt-full">Lançamentos</span><span class="nt-short">Lançam.</span></button>
+    <button class="ntab" onclick="go('resumo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-full">Resumo</span><span class="nt-short">Resumo</span></button>
+    <button class="ntab" onclick="go('proprietarios')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-full">Proprietários</span><span class="nt-short">Donos</span></button>
+    <button class="ntab" onclick="go('premissas')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span><span class="nt-full">Premissas</span><span class="nt-short">Taxas</span></button>
+    <button class="ntab" onclick="go('novo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-full">Novo</span><span class="nt-short">Novo</span></button>
   </div>
 
   <div class="header-right">
