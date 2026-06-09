@@ -1557,7 +1557,7 @@ html[data-theme="dark"] .swipe-act.edit { background: #3a475e; }
           <div class="prem-row">
             <span class="prem-label">Prazo de recebimento</span>
             <div class="prem-input-wrap">
-              <input class="prem-input" type="number" id="prazo-credito" step="1" min="1" max="90" value="30">
+              <input class="prem-input" type="number" id="prazo-credito" step="1" min="1" max="90" value="31">
               <span class="prem-unit">dias</span>
             </div>
           </div>
@@ -2816,8 +2816,9 @@ function confirmarLote(){
 // ── PREMISSAS ──
 let PREM = {
   taxaCredito: 2.40,
-  prazoCredito: 30,
+  prazoCredito: 31,
   taxaDebito: 1.50,
+  prazoDebito: 1,
   taxaParc2: 2.99,
   taxaParc3: 3.50,
   taxaParc12: 4.20,
@@ -2826,7 +2827,7 @@ let PREM = {
 
 function salvarPremissas(){
   PREM.taxaCredito = parseFloat(document.getElementById('taxa-credito').value)||2.40;
-  PREM.prazoCredito = parseInt(document.getElementById('prazo-credito').value)||30;
+  PREM.prazoCredito = parseInt(document.getElementById('prazo-credito').value)||31;
   PREM.taxaDebito = parseFloat(document.getElementById('taxa-debito').value)||1.50;
   PREM.taxaParc2 = parseFloat(document.getElementById('taxa-parc2').value)||2.99;
   PREM.taxaParc3 = parseFloat(document.getElementById('taxa-parc3').value)||3.50;
@@ -2907,8 +2908,12 @@ function calcN(){
   const f=document.getElementById('nf-f').value;
   const fl=f.toLowerCase();
   let pp='';
+  const base=dp||s;   // cartão: referência é a data de pagamento (senão, saída)
   if(fl.includes('boleto')&&r) pp=addD(r,PREM.prazoBoleto);
-  else if(fl.includes('crédito')||fl.includes('credito')){const base=dp||s; if(base) pp=addD(base,PREM.prazoCredito);}
+  else if(fl.includes('90')&&base) pp=addD(base,90);
+  else if(fl.includes('60')&&base) pp=addD(base,60);
+  else if((fl.includes('crédito')||fl.includes('credito'))&&base) pp=addD(base,PREM.prazoCredito);
+  else if((fl.includes('débito')||fl.includes('debito'))&&base) pp=addD(base,PREM.prazoDebito);
   document.getElementById('nf-pp').value=pp;
   const v=parseFloat(document.getElementById('nf-v').value)||0;
   const taxa=getTaxaForma(f);
@@ -2989,7 +2994,10 @@ function confirmAI(){
   const fl=f.toLowerCase();
   let pp=null;
   if(fl.includes('boleto')&&r)pp=addD(r,PREM.prazoBoleto);
+  else if(fl.includes('90')&&s)pp=addD(s,90);
+  else if(fl.includes('60')&&s)pp=addD(s,60);
   else if((fl.includes('crédito')||fl.includes('credito'))&&s)pp=addD(s,PREM.prazoCredito);
+  else if((fl.includes('débito')||fl.includes('debito'))&&s)pp=addD(s,PREM.prazoDebito);
   const taxa=getTaxaForma(f);
   const _rec={placa:p,dono:d||'Indefinido',saida:s,retorno:r,cliente:c,tipo:'Locação',valor:v,forma:f,prev_pgto:pp,valor_pago:v*(1-taxa),saldo:v*taxa,obs:null};
   dbInsert(_rec).then(saved=>{NOVOS.push(saved);rNovos();popSel();renderAll();});
