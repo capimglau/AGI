@@ -16,14 +16,14 @@
   --ink: #0c0c0f;
   --ink2: #2e2e38;
   --ink3: #6b6b7a;
-  --line: #e4e2dd;
-  --surface: #f4f2ed;
-  --surface2: #eceae4;
+  --line: #e6e7eb;
+  --surface: #f3f4f6;
+  --surface2: #e9eaee;
   --card: #ffffff;
-  --blue: #1847f5;
-  --blue2: #0f35c9;
-  --blue-soft: #edf0ff;
-  --blue-mid: #c7d0ff;
+  --blue: #1f5fa8;
+  --blue2: #143f6e;
+  --blue-soft: #e8f0f9;
+  --blue-mid: #b9d2ec;
   --green: #0a6439;
   --green-soft: #e1f5eb;
   --red: #bf2518;
@@ -306,13 +306,12 @@ body {
 .fcnt { font-size: 12.5px; color: var(--ink3); }
 
 /* ─── DAY GROUP ─── */
-.day-group { margin-bottom: 6px; }
+.day-group { margin-bottom: 18px; }
 .day-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 0 8px;
-  border-bottom: 1.5px solid var(--line);
+  padding: 4px 4px 10px;
   margin-bottom: 8px;
   cursor: pointer;
   user-select: none;
@@ -432,6 +431,45 @@ body {
 }
 .pcard.done .pcard-value { color: var(--green); text-decoration: line-through; opacity: .7; }
 .pcard-actions { display: flex; gap: 6px; }
+
+/* Lista agrupada estilo iOS: um bloco branco com divisórias por dia */
+.day-items {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.day-items .pcard {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.day-items .swipe:last-child .pcard { border-bottom: none; }
+.day-items .pcard:hover { box-shadow: none; }
+
+/* ── SWIPE (deslizar p/ Baixar / Editar) ── */
+.swipe { position: relative; overflow: hidden; }
+.swipe .pcard { position: relative; z-index: 2; background: var(--card); touch-action: pan-y; will-change: transform; transition: transform .25s cubic-bezier(.25,.85,.3,1); }
+.swipe.dragging .pcard { transition: none; }
+.swipe-bg { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 13.5px; color: #fff; z-index: 1; opacity: 0; transition: opacity .12s; }
+.swipe-bg.pay { left: 0; width: 64%; justify-content: flex-start; padding-left: 22px; background: var(--green); }
+.swipe-bg.edit { right: 0; width: 64%; justify-content: flex-end; padding-right: 22px; background: #6b7280; }
+.swipe.show-pay .swipe-bg.pay { opacity: 1; }
+.swipe.show-edit .swipe-bg.edit { opacity: 1; }
+.swipe-hint { text-align: center; font-size: 11.5px; color: var(--ink3); margin: -2px 0 12px; }
+.swipe-hint b { color: var(--ink2); font-weight: 600; }
+
+/* Skeleton de carregamento */
+.sk { background: linear-gradient(90deg,#ececef 25%,#f5f5f7 37%,#ececef 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: 6px; display: block; }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+.sk-line { height: 11px; }
+.sk-val { height: 20px; width: 70%; margin: 9px 0; }
+.sk-day { padding: 8px 4px 12px; }
+.day-items.skel .sk-row { display: flex; align-items: center; gap: 12px; padding: 15px 16px; border-bottom: 1px solid var(--line); }
+.day-items.skel .sk-row:last-child { border-bottom: none; }
 
 /* TAGS */
 .tag {
@@ -655,7 +693,7 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
   font-size: 16px;
   outline: none;
 }
-.search-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,71,245,.08); }
+.search-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31,95,168,.08); }
 #searchResults { margin-top: 12px; max-height: 60vh; overflow-y: auto; }
 .srow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .srow:last-child { border-bottom: none; }
@@ -681,7 +719,7 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
   max-width: calc(100% - 32px);
 }
 .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
-.toast button { background: none; border: none; color: #4da3ff; font-weight: 700; font-size: 13.5px; cursor: pointer; padding: 0; white-space: nowrap; }
+.toast button { background: none; border: none; color: #5fa0e0; font-weight: 700; font-size: 13.5px; cursor: pointer; padding: 0; white-space: nowrap; }
 
 /* PROG */
 .prog { height: 3px; background: var(--line); border-radius: 2px; margin-top: 8px; overflow: hidden; }
@@ -772,7 +810,7 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
   outline: none;
   transition: border-color .13s, background .13s;
 }
-.prem-input:focus { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(24,71,245,.08); }
+.prem-input:focus { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(31,95,168,.08); }
 .prem-unit {
   font-size: 12px;
   color: var(--ink3);
@@ -890,7 +928,7 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
   width: 100%;
   transition: border-color .13s, box-shadow .13s;
 }
-.fp input:focus, .fp select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,71,245,.08); }
+.fp input:focus, .fp select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31,95,168,.08); }
 .fp input[readonly] { background: var(--surface); color: var(--ink3); }
 
 /* BAIXA PANEL */
@@ -1066,7 +1104,7 @@ details[open] summary::before { transform: rotate(90deg); }
     box-shadow: none;
   }
   .month-nav { background: #fff; border: none; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
-  .mn-today { background: rgba(0,122,255,.12); color: #007aff; }
+  .mn-today { background: rgba(0,122,255,.12); color: #1f5fa8; }
   .stat-pill { background: #fff; border: none; box-shadow: 0 1px 2px rgba(0,0,0,.05); border-radius: 12px; }
   .stat-pill .val.r { color: #ff3b30; }
   .stat-pill .val.g { color: #34c759; }
@@ -1081,7 +1119,7 @@ details[open] summary::before { transform: rotate(90deg); }
     padding-top: 8px;
   }
   .ntab { color: #8e8e93; }
-  .ntab.on { background: none; color: #007aff; }
+  .ntab.on { background: none; color: #1f5fa8; }
   .nt-ico { display: block; line-height: 0; }
   .nt-ico svg { width: 25px; height: 25px; display: block; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .nt-short { font-weight: 500; }
@@ -1099,12 +1137,12 @@ details[open] summary::before { transform: rotate(90deg); }
   .mc-sub { font-size: 10px; margin-top: 3px; }
   .pcard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
   .pcard.venc::before { background: #ff3b30; }
-  .pcard.hoje-card::before { background: #007aff; }
-  .pcard-value { color: #007aff; }
+  .pcard.hoje-card::before { background: #1f5fa8; }
+  .pcard-value { color: #1f5fa8; }
 
   /* Botões arredondados, cores do sistema */
   .btn { border-radius: 12px; border-color: rgba(0,0,0,.08); }
-  .btn-blue { background: #007aff; border-color: #007aff; }
+  .btn-blue { background: #1f5fa8; border-color: #1f5fa8; }
   .btn-green { background: rgba(52,199,89,.14); color: #248a3d; }
   .btn-ink { background: #1c1c1e; border-color: #1c1c1e; }
 
@@ -1664,7 +1702,7 @@ let selDono = '';
 // Estado do mês principal — começa no mês corrente de prev_pgto com mais dados
 let curMes = '2026-06';
 
-const DC = {Silvio:'#1847f5',Arnaldo:'#0d6e3e',Leandro:'#92600a',Eliana:'#c42b1c','Silvio 2':'#5b35d5',Lucélia:'#0a7272',Lorenzo:'#555'};
+const DC = {Silvio:'#1f5fa8',Arnaldo:'#0d6e3e',Leandro:'#92600a',Eliana:'#c42b1c','Silvio 2':'#5b35d5',Lucélia:'#0a7272',Lorenzo:'#555'};
 
 // Mapa placa → proprietário (apenas placas com lançamentos)
 const PLACA_DONO = {
@@ -1940,6 +1978,8 @@ function renderBaixas(){
     return;
   }
 
+  container.insertAdjacentHTML('beforeend','<div class="swipe-hint">Deslize → <b>Baixar</b>&nbsp;·&nbsp;← <b>Editar</b></div>');
+
   // Agrupar por dia
   const byDay={};
   rows.forEach(r=>{
@@ -1985,9 +2025,13 @@ function renderBaixas(){
       const vencCard=isVencDia&&isPend(r);
       const hojeCard=isHoje&&isPend(r);
 
+      const wrap=document.createElement('div');
+      wrap.className='swipe';
+      wrap.style.animationDelay=`${gi*0.04+ii*0.02}s`;
       const card=document.createElement('div');
       card.className=`pcard${pago?' done':''}${vencCard?' venc':''}${hojeCard?' hoje-card':''}`;
-      card.style.animationDelay=`${gi*0.04+ii*0.02}s`;
+      card.dataset.gi=gi2;
+      card.dataset.pend=pago?'':'1';
 
       card.innerHTML=`
         ${pago
@@ -2008,12 +2052,10 @@ function renderBaixas(){
         </div>
         <div class="pcard-right">
           <span class="pcard-value">${fR(isPago(r)?r.valor_pago:r.saldo)}</span>
-          <div class="pcard-actions">
-            ${!pago?`<button class="btn btn-green btn-xs" onclick="quickPay(${gi2})">✓ Baixar</button>`:''}
-            <button class="btn btn-xs" onclick="openEdit(${gi2})">✏</button>
-          </div>
         </div>`;
-      dayItems.appendChild(card);
+      wrap.innerHTML=`${pago?'':'<div class="swipe-bg pay">✓ Baixar</div>'}<div class="swipe-bg edit">✏ Editar</div>`;
+      wrap.appendChild(card);
+      dayItems.appendChild(wrap);
     });
     container.appendChild(grp);
   });
@@ -2105,29 +2147,29 @@ function renderResumo(){
   ]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0))}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:'#eeece8'},border:{display:false,dash:[4,4]}}}}});
   const bT={};rows.forEach(r=>{bT[r.tipo]=(bT[r.tipo]||0)+fN(r.valor);});
   const tK=Object.keys(bT).sort((a,b)=>bT[b]-bT[a]);
-  const tC={Locação:'#1847f5',Avarias:'#c42b1c',Lavagem:'#0d6e3e',Multas:'#92600a',Outros:'#aaa','Taxa Mario':'#5b35d5','Taxa Alfredo':'#5b35d5','Taxa Bruno':'#5b35d5'};
+  const tC={Locação:'#1f5fa8',Avarias:'#c42b1c',Lavagem:'#0d6e3e',Multas:'#92600a',Outros:'#aaa','Taxa Mario':'#5b35d5','Taxa Alfredo':'#5b35d5','Taxa Bruno':'#5b35d5'};
   const totTipo=tK.reduce((a,k)=>a+bT[k],0);
   mkC('cTipo',{type:'doughnut',data:{labels:tK,datasets:[{data:tK.map(k=>bT[k]),backgroundColor:tK.map(k=>tC[k]||'#aaa'),borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{center:{text:'R$'+Math.round(totTipo/1000)+'k',sub:'Total'},legend:{position:'bottom',labels:{font:{size:11.5},boxWidth:9,boxHeight:9,padding:11,usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:ctx=>{const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);const pct=tot?(ctx.raw/tot*100).toFixed(1):'0';return ' '+fR(ctx.raw)+'  ·  '+pct+'%';}}}}}});
   const bF={};rows.forEach(r=>{bF[r.forma]=(bF[r.forma]||0)+fN(r.valor);});
   const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
   const maxF=bF[fK[0]]||1;
-  const fC=['#1847f5','#0d6e3e','#92600a','#c42b1c','#5b35d5','#0a7272','#555'];
+  const fC=['#1f5fa8','#0d6e3e','#92600a','#c42b1c','#5b35d5','#0a7272','#555'];
   document.getElementById('resForma').innerHTML=fK.map((k,i)=>`<div class="rb"><div class="rb-l">${k}</div><div class="rb-bg"><div class="rb-f" style="width:${(bF[k]/maxF*100).toFixed(1)}%;background:${fC[i%fC.length]}"></div></div><div class="rb-v">${fR(bF[k])}</div></div>`).join('');
   const bV={};rows.forEach(r=>{if(!bV[r.placa])bV[r.placa]={v:0,d:r.dono};bV[r.placa].v+=fN(r.valor);});
   const sv=Object.entries(bV).sort((a,b)=>b[1].v-a[1].v).slice(0,10);
   const mx=sv[0]?sv[0][1].v:1;
-  document.getElementById('resVeic').innerHTML=sv.length?sv.map(([p,o],i)=>`<div class="rb"><div class="rb-l"><span class="rb-rank">${i+1}</span><span class="placa">${p}</span></div><div class="rb-bg"><div class="rb-f" style="width:${(o.v/mx*100).toFixed(1)}%;background:${DC[o.d]||'#1847f5'}"></div></div><div class="rb-v">${fR(o.v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
+  document.getElementById('resVeic').innerHTML=sv.length?sv.map(([p,o],i)=>`<div class="rb"><div class="rb-l"><span class="rb-rank">${i+1}</span><span class="placa">${p}</span></div><div class="rb-bg"><div class="rb-f" style="width:${(o.v/mx*100).toFixed(1)}%;background:${DC[o.d]||'#1f5fa8'}"></div></div><div class="rb-v">${fR(o.v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
   // Top 10 clientes
   const bC={};rows.forEach(r=>{const c=(r.cliente||'').trim()||'—';if(!bC[c])bC[c]=0;bC[c]+=fN(r.valor);});
   const sc=Object.entries(bC).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const mxc=sc[0]?sc[0][1]:1;
-  document.getElementById('resClientes').innerHTML=sc.length?sc.map(([c,v],i)=>`<div class="rb"><div class="rb-l" title="${c}"><span class="rb-rank">${i+1}</span>${c}</div><div class="rb-bg"><div class="rb-f" style="width:${(v/mxc*100).toFixed(1)}%;background:rgba(24,71,245,${(1-i*0.07).toFixed(2)})"></div></div><div class="rb-v">${fR(v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
+  document.getElementById('resClientes').innerHTML=sc.length?sc.map(([c,v],i)=>`<div class="rb"><div class="rb-l" title="${c}"><span class="rb-rank">${i+1}</span>${c}</div><div class="rb-bg"><div class="rb-f" style="width:${(v/mxc*100).toFixed(1)}%;background:rgba(31,95,168,${(1-i*0.07).toFixed(2)})"></div></div><div class="rb-v">${fR(v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
   const t=td(),tF=addD(t,90);
   const pendFut=allD().filter(r=>isPend(r)&&r.prev_pgto&&r.prev_pgto>=t&&r.prev_pgto<=tF&&(!selDono||r.dono===selDono));
   const sem={};
   pendFut.forEach(r=>{const dt=new Date(r.prev_pgto),tDt=new Date(t);const wk=Math.max(0,Math.floor((dt-tDt)/(7*86400000)));const ws=new Date(tDt);ws.setDate(ws.getDate()+wk*7);const key=ws.toISOString().slice(0,10);sem[key]=(sem[key]||0)+fN(r.saldo);});
   const sK=Object.keys(sem).sort();
-  mkC('cProj',{type:'bar',data:{labels:sK.map(k=>{const[y,m,d]=k.split('-');return`${d}/${m}`;}),datasets:[{data:sK.map(k=>sem[k]),backgroundColor:'#1847f520',borderColor:'#1847f5',borderWidth:2,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:'#eeece8'},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
+  mkC('cProj',{type:'bar',data:{labels:sK.map(k=>{const[y,m,d]=k.split('-');return`${d}/${m}`;}),datasets:[{data:sK.map(k=>sem[k]),backgroundColor:'#1f5fa820',borderColor:'#1f5fa8',borderWidth:2,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:'#eeece8'},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
 }
 
 // ── PROPRIETÁRIOS ──
@@ -2306,6 +2348,58 @@ function runSearch(){
   }).join('');
 }
 function searchOpen(i){closeSearch();openEdit(i);}
+
+// ── SKELETON (carregando) ──
+function showSkeleton(){
+  const m=document.getElementById('baixa-metrics');
+  if(m)m.innerHTML=Array(4).fill('<div class="mc"><span class="sk sk-line" style="width:55%"></span><span class="sk sk-val"></span><span class="sk sk-line" style="width:40%"></span></div>').join('');
+  const c=document.getElementById('baixasContainer');
+  if(c)c.innerHTML='<div class="sk-day"><span class="sk sk-line" style="width:130px;height:14px"></span></div>'+
+    '<div class="day-items skel">'+Array(5).fill('<div class="sk-row"><span style="flex:1"><span class="sk sk-line" style="width:62%"></span><span class="sk sk-line" style="width:34%;margin-top:9px"></span></span><span class="sk sk-line" style="width:62px;height:16px"></span></div>').join('')+'</div>';
+}
+
+// ── SWIPE (deslizar → Baixar / Editar) ──
+let SW=null; const SW_MAX=94, SW_TH=58;
+function swDown(e){
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  const card=e.target.closest('.pcard'); if(!card)return;
+  if(e.target.closest('.pcard-chk'))return;
+  const wrap=card.closest('.swipe'); if(!wrap)return;
+  SW={card,wrap,x0:e.clientX,y0:e.clientY,dx:0,decided:false,horiz:false,gi:+card.dataset.gi,pend:card.dataset.pend==='1',id:e.pointerId};
+}
+function swMove(e){
+  if(!SW||e.pointerId!==SW.id)return;
+  const dx=e.clientX-SW.x0, dy=e.clientY-SW.y0;
+  if(!SW.decided){
+    if(Math.abs(dx)<6&&Math.abs(dy)<6)return;
+    SW.decided=true; SW.horiz=Math.abs(dx)>Math.abs(dy);
+    if(SW.horiz){try{SW.card.setPointerCapture(e.pointerId);}catch(_){}; SW.wrap.classList.add('dragging');}
+  }
+  if(!SW.horiz)return;
+  e.preventDefault();
+  let d=dx; if(d>0&&!SW.pend)d=0;
+  d=Math.max(-SW_MAX,Math.min(SW_MAX,d));
+  SW.dx=d; SW.card.style.transform=`translateX(${d}px)`;
+  SW.wrap.classList.toggle('show-pay', d>4);
+  SW.wrap.classList.toggle('show-edit', d<-4);
+}
+function swUp(e){
+  if(!SW||e.pointerId!==SW.id)return;
+  const s=SW; SW=null;
+  s.card.style.transition='transform .25s cubic-bezier(.25,.85,.3,1)';
+  s.card.style.transform='';
+  s.wrap.classList.remove('dragging','show-pay','show-edit');
+  if(!s.horiz)return;
+  if(s.dx>=SW_TH&&s.pend) setTimeout(()=>quickPay(s.gi),130);
+  else if(s.dx<=-SW_TH) setTimeout(()=>openEdit(s.gi),130);
+}
+function initSwipe(){
+  const bc=document.getElementById('baixasContainer'); if(!bc||bc._sw)return; bc._sw=1;
+  bc.addEventListener('pointerdown',swDown);
+  bc.addEventListener('pointermove',swMove);
+  bc.addEventListener('pointerup',swUp);
+  bc.addEventListener('pointercancel',swUp);
+}
 
 // ── BAIXA EM LOTE ──
 function selTodos(){document.querySelectorAll('.chk-b').forEach(c=>c.checked=true);}
@@ -2556,10 +2650,12 @@ function go(id){
   renderAll();
 }
 
-['mEdit','mLote','mCam'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
+['mEdit','mLote','mCam','mSearch'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
 
 // ── BOOT ──
 async function boot(){
+  initSwipe();
+  showSkeleton();
   let rows = await dbLoad();
   if(ONLINE && rows.length===0){
     console.log('Tabela vazia — populando automaticamente com', DS.length, 'lançamentos...');
