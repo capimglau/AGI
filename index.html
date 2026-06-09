@@ -1007,10 +1007,10 @@ details[open] summary::before { transform: rotate(90deg); }
   body { background: #f2f2f7; color: #1c1c1e; }
 
   /* Barras translúcidas (vidro fosco) */
+  /* NÃO usar backdrop-filter aqui: criaria um containing block e jogaria
+     a tab bar fixa (filha do header) para o topo. Fundo sólido resolve. */
   .header {
-    background: rgba(255,255,255,.86);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    backdrop-filter: saturate(180%) blur(20px);
+    background: #ffffff;
     border-bottom: .5px solid rgba(0,0,0,.1);
     box-shadow: none;
   }
@@ -1625,6 +1625,8 @@ const MN = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','D
 const fR = v => v==null?'—':'R$ '+parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fN = v => parseFloat(v)||0;
 const td = () => new Date().toISOString().slice(0,10);
+// Formata 'YYYY-MM-DD' -> 'DD/MM'
+const fDM = d => (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d.slice(8,10)+'/'+d.slice(5,7) : '—';
 function addD(d,n){const dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);}
 function allD(){return[...DATA,...NOVOS];}
 
@@ -1879,7 +1881,7 @@ function renderBaixas(){
           </div>
           <div class="pcard-meta">
             <span><span class="ddot" style="background:${col}"></span>${r.dono}</span>
-            ${r.saida?`<span>saída ${r.saida}</span>`:''}
+            ${(r.saida||r.retorno)?`<span class="pcard-period">🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>`:''}
             ${r.obs?`<span>ref. ${r.obs}</span>`:''}
           </div>
         </div>
