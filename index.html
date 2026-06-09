@@ -305,6 +305,29 @@ body {
 .fbar-right { margin-left: auto; display: flex; gap: 7px; align-items: center; }
 .fcnt { font-size: 12.5px; color: var(--ink3); }
 
+/* Filtros condensados em um botão + painel */
+.filt-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); display: inline-block; margin-left: 6px; }
+.filt-panel { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin: 0 0 14px; }
+.filt-panel[hidden] { display: none; }
+.filt-panel select {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.filt-panel select:focus { outline: none; border-color: var(--blue); }
+
+/* Banners de métrica compactos (Recebimentos) */
+#baixa-metrics { gap: 8px; margin-bottom: 14px; }
+#baixa-metrics .mc { padding: 10px 13px; }
+#baixa-metrics .mc-label { margin-bottom: 3px; }
+#baixa-metrics .mc-value { font-size: 18px; }
+
 /* ─── DAY GROUP ─── */
 .day-group { margin-bottom: 18px; }
 .day-header {
@@ -1234,6 +1257,14 @@ details[open] summary::before { transform: rotate(90deg); }
     <!-- LEFT: day groups -->
     <div>
       <div class="fbar">
+        <button class="btn btn-sm" onclick="toggleFilters()">⚙ Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
+        <div class="fbar-right">
+          <span class="fcnt" id="bf-cnt"></span>
+          <button class="btn btn-sm" onclick="selTodos()">☑ Todos</button>
+          <button class="btn btn-green btn-sm" onclick="baixarSelecionados()">⬇ Baixar</button>
+        </div>
+      </div>
+      <div class="filt-panel" id="filtPanel" hidden>
         <select id="bf-dono" onchange="renderBaixas()">
           <option value="">Todos os proprietários</option>
         </select>
@@ -1245,11 +1276,6 @@ details[open] summary::before { transform: rotate(90deg); }
           <option value="venc">Vencidos</option>
           <option value="todos">Todos</option>
         </select>
-        <div class="fbar-right">
-          <span class="fcnt" id="bf-cnt"></span>
-          <button class="btn btn-sm" onclick="selTodos()">☑ Todos</button>
-          <button class="btn btn-green btn-sm" onclick="baixarSelecionados()">⬇ Baixar selecionados</button>
-        </div>
       </div>
       <div id="baixasContainer"></div>
     </div>
@@ -1968,13 +1994,16 @@ function renderBaixas(){
   const nVenc=allMes.filter(r=>isVenc(r)).length;
   const nHoje=allMes.filter(r=>isPend(r)&&r.prev_pgto===hoje).length;
 
-  // Metrics
+  // Metrics (compactos — sem 3ª linha)
   document.getElementById('baixa-metrics').innerHTML=`
-    <div class="mc amber"><div class="mc-label">A receber no mês</div><div class="mc-value">${fR(totPend)}</div><div class="mc-sub">${rows.filter(r=>isPend(r)).length} lançamentos</div></div>
-    <div class="mc green"><div class="mc-label">Recebido no mês</div><div class="mc-value">${fR(totRec)}</div><div class="mc-sub">${rows.filter(r=>isPago(r)).length} baixados</div></div>
-    <div class="mc blue"><div class="mc-label">Vencem hoje</div><div class="mc-value">${nHoje}</div><div class="mc-sub">${fR(rows.filter(r=>isPend(r)&&r.prev_pgto===hoje).reduce((a,r)=>a+fN(r.saldo),0))}</div></div>
-    <div class="mc red"><div class="mc-label">Já vencidos</div><div class="mc-value">${nVenc}</div><div class="mc-sub">${fR(rows.filter(r=>isVenc(r)).reduce((a,r)=>a+fN(r.saldo),0))}</div></div>
+    <div class="mc amber"><div class="mc-label">A receber no mês</div><div class="mc-value">${fR(totPend)}</div></div>
+    <div class="mc green"><div class="mc-label">Recebido no mês</div><div class="mc-value">${fR(totRec)}</div></div>
+    <div class="mc blue"><div class="mc-label">Vencem hoje</div><div class="mc-value">${nHoje}</div></div>
+    <div class="mc red"><div class="mc-label">Já vencidos</div><div class="mc-value">${nVenc}</div></div>
   `;
+  // Indicador de filtro ativo
+  const fdot=document.getElementById('filtDot');
+  if(fdot) fdot.style.display=(dono||forma||(status&&status!=='pend'))?'inline-block':'none';
 
   document.getElementById('bf-cnt').textContent=`${rows.length} lançamentos`;
   const container=document.getElementById('baixasContainer');
@@ -1985,8 +2014,6 @@ function renderBaixas(){
     container.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Tudo em dia!</div><div class="empty-sub">Nenhum lançamento encontrado para este filtro.</div></div>`;
     return;
   }
-
-  container.insertAdjacentHTML('beforeend','<div class="swipe-hint">Deslize ou toque um lançamento para <b>Baixar</b> ou <b>Editar</b></div>');
 
   // Agrupar por dia
   const byDay={};
@@ -2411,6 +2438,7 @@ function swUp(e){
   if(!s.horiz)return;
   if(s.dx<=-s.pw/2)openRowEl(s.wrap,s.pw); else closeRow();
 }
+function toggleFilters(){const p=document.getElementById('filtPanel');if(p)p.hidden=!p.hidden;}
 function initSwipe(){
   const bc=document.getElementById('baixasContainer'); if(!bc||bc._sw)return; bc._sw=1;
   bc.addEventListener('pointerdown',swDown);
