@@ -145,6 +145,7 @@ body {
 }
 .ntab:hover { background: var(--surface); color: var(--ink); }
 .ntab.on { background: var(--ink); color: #fff; }
+.nt-ico, .nt-short { display: none; }
 
 .header-right {
   margin-left: auto;
@@ -912,9 +913,9 @@ details[open] summary::before { transform: rotate(90deg); }
 
 /* ════════════════ MOBILE ════════════════ */
 @media (max-width: 760px) {
-  body { font-size: 15px; -webkit-text-size-adjust: 100%; }
+  body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: 72px; }
 
-  /* Header reorganiza em 3 linhas: logo+mês · cartões+câmera · abas */
+  /* Header em 2 linhas: logo+mês · cartões+câmera */
   .header {
     height: auto;
     flex-wrap: wrap;
@@ -934,18 +935,39 @@ details[open] summary::before { transform: rotate(90deg); }
   }
   .header-right .stat-pill { flex: 1; justify-content: center; padding: 7px 10px; }
   .header-right .btn-ink { flex-shrink: 0; }
+
+  /* Abas viram barra de navegação fixa embaixo (estilo app) */
   .nav-tabs {
-    order: 4;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
     width: 100%;
-    margin-left: 0;
-    gap: 6px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 2px;
-    scrollbar-width: none;
+    margin: 0;
+    display: flex;
+    gap: 0;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -2px 14px rgba(0,0,0,.07);
+    padding: 6px 4px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    z-index: 300;
   }
-  .nav-tabs::-webkit-scrollbar { display: none; }
-  .ntab { flex: 0 0 auto; padding: 9px 15px; font-size: 14px; }
+  .ntab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 2px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .ntab:hover { background: none; color: var(--ink3); }
+  .ntab.on { background: var(--blue-soft); color: var(--blue); }
+  .nt-ico { display: block; font-size: 19px; line-height: 1; }
+  .nt-full { display: none; }
+  .nt-short { display: block; font-size: 10px; font-weight: 600; letter-spacing: -.01em; }
 
   /* Conteúdo */
   .page { padding: 14px 12px; }
@@ -969,6 +991,17 @@ details[open] summary::before { transform: rotate(90deg); }
   .btn { padding: 9px 14px; }
   .btn-sm { padding: 7px 12px; font-size: 13px; }
   .mn-btn { width: 32px; height: 32px; font-size: 16px; }
+
+  /* Recebimentos: cards mais limpos e legíveis */
+  .day-header { padding: 12px 2px 8px; }
+  .day-title { font-size: 16px; }
+  .day-total { font-size: 15px; }
+  .pcard { padding: 12px 13px; gap: 11px; border-radius: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .pcard:hover { transform: none; }
+  .pcard-name { font-size: 14.5px; }
+  .pcard-meta { font-size: 12px; }
+  .pcard-value { font-size: 16px; }
+  .pcard.done { opacity: .55; }
 
   /* Modais ocupam melhor a tela */
   .overlay { padding: 10px; align-items: flex-end; }
@@ -1002,12 +1035,12 @@ details[open] summary::before { transform: rotate(90deg); }
   </div>
 
   <div class="nav-tabs">
-    <button class="ntab on" onclick="go('baixas')">Recebimentos</button>
-    <button class="ntab" onclick="go('lancamentos')">Lançamentos</button>
-    <button class="ntab" onclick="go('resumo')">Resumo</button>
-    <button class="ntab" onclick="go('proprietarios')">Proprietários</button>
-    <button class="ntab" onclick="go('premissas')">⚙ Premissas</button>
-    <button class="ntab" onclick="go('novo')">＋ Novo</button>
+    <button class="ntab on" onclick="go('baixas')"><span class="nt-ico">📥</span><span class="nt-full">Recebimentos</span><span class="nt-short">Receber</span></button>
+    <button class="ntab" onclick="go('lancamentos')"><span class="nt-ico">📋</span><span class="nt-full">Lançamentos</span><span class="nt-short">Lançam.</span></button>
+    <button class="ntab" onclick="go('resumo')"><span class="nt-ico">📊</span><span class="nt-full">Resumo</span><span class="nt-short">Resumo</span></button>
+    <button class="ntab" onclick="go('proprietarios')"><span class="nt-ico">👥</span><span class="nt-full">Proprietários</span><span class="nt-short">Donos</span></button>
+    <button class="ntab" onclick="go('premissas')"><span class="nt-ico">⚙️</span><span class="nt-full">Premissas</span><span class="nt-short">Taxas</span></button>
+    <button class="ntab" onclick="go('novo')"><span class="nt-ico">➕</span><span class="nt-full">Novo</span><span class="nt-short">Novo</span></button>
   </div>
 
   <div class="header-right">
