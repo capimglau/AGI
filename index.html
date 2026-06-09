@@ -924,17 +924,12 @@ details[open] summary::before { transform: rotate(90deg); }
     row-gap: 10px;
   }
   .logo { order: 1; margin-right: 0; font-size: 17px; }
-  .month-nav { order: 2; margin-left: auto; }
-  .mn-label { min-width: 92px; }
-  .header-right {
-    order: 3;
-    width: 100%;
-    margin-left: 0;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .header-right .stat-pill { flex: 1; justify-content: center; padding: 7px 10px; }
+  .header-right { order: 2; width: auto; margin-left: auto; gap: 8px; }
+  /* Cartões Pendente/Recebido são duplicata dos painéis — escondidos no mobile */
+  .header-right .stat-pill { display: none; }
   .header-right .btn-ink { flex-shrink: 0; }
+  .month-nav { order: 3; width: 100%; margin-left: 0; justify-content: center; }
+  .mn-label { min-width: 92px; }
 
   /* Abas viram barra de navegação fixa embaixo (estilo app) */
   .nav-tabs {
@@ -973,11 +968,13 @@ details[open] summary::before { transform: rotate(90deg); }
   .page { padding: 14px 12px; }
   .mrow { grid-template-columns: 1fr 1fr; gap: 10px; }
 
-  /* Barras de filtro empilham */
-  .fbar { flex-wrap: wrap; gap: 8px; }
-  .fbar select, .fbar input[type=text] { flex: 1 1 calc(50% - 5px); min-width: 0; font-size: 16px; }
-  .fbar-right { margin-left: 0; width: 100%; flex-wrap: wrap; gap: 8px; }
-  .fbar-right .btn { flex: 1; justify-content: center; }
+  /* Filtros compactos: 3 seletores numa linha, ações na linha de baixo */
+  .fbar { flex-wrap: wrap; gap: 7px; }
+  .fbar select { flex: 1 1 0; min-width: 0; font-size: 13.5px; padding: 9px 9px; }
+  .fbar input[type=text] { flex: 1 1 100%; font-size: 16px; }
+  .fbar-right { margin-left: 0; width: 100%; flex-wrap: nowrap; gap: 7px; align-items: center; }
+  .fbar-right .fcnt { font-size: 11px; white-space: nowrap; }
+  .fbar-right .btn { flex: 1; justify-content: center; padding: 9px 6px; font-size: 12.5px; }
 
   /* Formulários: 1 coluna e 16px (evita zoom no iOS) */
   .fg { grid-template-columns: 1fr; }
