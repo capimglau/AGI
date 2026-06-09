@@ -909,6 +909,77 @@ details[open] summary::before { transform: rotate(90deg); }
 /* ANIMATION */
 @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 .day-group { animation: fadeIn .2s ease both; }
+
+/* ════════════════ MOBILE ════════════════ */
+@media (max-width: 760px) {
+  body { font-size: 15px; -webkit-text-size-adjust: 100%; }
+
+  /* Header reorganiza em 3 linhas: logo+mês · cartões+câmera · abas */
+  .header {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    gap: 8px 10px;
+    row-gap: 10px;
+  }
+  .logo { order: 1; margin-right: 0; font-size: 17px; }
+  .month-nav { order: 2; margin-left: auto; }
+  .mn-label { min-width: 92px; }
+  .header-right {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .header-right .stat-pill { flex: 1; justify-content: center; padding: 7px 10px; }
+  .header-right .btn-ink { flex-shrink: 0; }
+  .nav-tabs {
+    order: 4;
+    width: 100%;
+    margin-left: 0;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .ntab { flex: 0 0 auto; padding: 9px 15px; font-size: 14px; }
+
+  /* Conteúdo */
+  .page { padding: 14px 12px; }
+  .mrow { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Barras de filtro empilham */
+  .fbar { flex-wrap: wrap; gap: 8px; }
+  .fbar select, .fbar input[type=text] { flex: 1 1 calc(50% - 5px); min-width: 0; font-size: 16px; }
+  .fbar-right { margin-left: 0; width: 100%; flex-wrap: wrap; gap: 8px; }
+  .fbar-right .btn { flex: 1; justify-content: center; }
+
+  /* Formulários: 1 coluna e 16px (evita zoom no iOS) */
+  .fg { grid-template-columns: 1fr; }
+  .fp input, .fp select { font-size: 16px; padding: 11px 12px; }
+
+  /* Tabelas largas rolam dentro do card */
+  .card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 540px; }
+
+  /* Botões e alvos de toque maiores */
+  .btn { padding: 9px 14px; }
+  .btn-sm { padding: 7px 12px; font-size: 13px; }
+  .mn-btn { width: 32px; height: 32px; font-size: 16px; }
+
+  /* Modais ocupam melhor a tela */
+  .overlay { padding: 10px; align-items: flex-end; }
+  .modal { padding: 18px; border-radius: 18px 18px 0 0; width: 100%; max-height: 92vh; }
+}
+
+@media (max-width: 420px) {
+  .header-right { flex-wrap: wrap; }
+  .header-right .stat-pill { font-size: 12px; padding: 6px 8px; }
+  .mrow { grid-template-columns: 1fr; }
+}
 .pcard { animation: fadeIn .15s ease both; }
 </style>
 <script id="ds" type="application/json">
@@ -923,6 +994,7 @@ details[open] summary::before { transform: rotate(90deg); }
     <div class="logo-icon">🚗</div>
     Auto<em>Gest</em>
   </div>
+  <div class="month-nav">
     <button class="mn-btn" onclick="navMes(-1)" title="Mês anterior">‹</button>
     <div class="mn-label" id="mnLabel">—</div>
     <button class="mn-btn" onclick="navMes(1)" title="Próximo mês">›</button>
