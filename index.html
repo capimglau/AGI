@@ -2908,12 +2908,12 @@ function calcN(){
   const f=document.getElementById('nf-f').value;
   const fl=f.toLowerCase();
   let pp='';
-  const base=dp||s;   // cartão: referência é a data de pagamento (senão, saída)
+  // Cartão: SEMPRE a partir da Data de pagamento (dp). Boleto: a partir do Retorno.
   if(fl.includes('boleto')&&r) pp=addD(r,PREM.prazoBoleto);
-  else if(fl.includes('90')&&base) pp=addD(base,90);
-  else if(fl.includes('60')&&base) pp=addD(base,60);
-  else if((fl.includes('crédito')||fl.includes('credito'))&&base) pp=addD(base,PREM.prazoCredito);
-  else if((fl.includes('débito')||fl.includes('debito'))&&base) pp=addD(base,PREM.prazoDebito);
+  else if(fl.includes('90')&&dp) pp=addD(dp,90);
+  else if(fl.includes('60')&&dp) pp=addD(dp,60);
+  else if((fl.includes('crédito')||fl.includes('credito'))&&dp) pp=addD(dp,PREM.prazoCredito);
+  else if((fl.includes('débito')||fl.includes('debito'))&&dp) pp=addD(dp,PREM.prazoDebito);
   document.getElementById('nf-pp').value=pp;
   const v=parseFloat(document.getElementById('nf-v').value)||0;
   const taxa=getTaxaForma(f);
