@@ -1243,7 +1243,6 @@ details[open] summary::before { transform: rotate(90deg); }
       <span class="val g" id="hRec">—</span>
     </div>
     <button class="btn" onclick="openSearch()" title="Buscar" aria-label="Buscar">🔍</button>
-    <button class="btn btn-ink" onclick="openCam()">📷 Contrato</button>
   </div>
 </div>
 
@@ -1258,11 +1257,9 @@ details[open] summary::before { transform: rotate(90deg); }
     <div>
       <div class="fbar">
         <button class="btn btn-sm" onclick="toggleFilters()">⚙ Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
-        <div class="fbar-right">
-          <span class="fcnt" id="bf-cnt"></span>
-          <button class="btn btn-sm" onclick="selTodos()">☑ Todos</button>
-          <button class="btn btn-green btn-sm" onclick="baixarSelecionados()">⬇ Baixar</button>
-        </div>
+        <button class="btn btn-sm" onclick="selTodos()">☑ Todos</button>
+        <button class="btn btn-green btn-sm" onclick="baixarSelecionados()">⬇ Baixar</button>
+        <span class="fcnt" id="bf-cnt" style="margin-left:auto"></span>
       </div>
       <div class="filt-panel" id="filtPanel" hidden>
         <select id="bf-dono" onchange="renderBaixas()">
@@ -1373,6 +1370,7 @@ details[open] summary::before { transform: rotate(90deg); }
 <!-- NOVO -->
 <div class="page" id="page-novo">
   <div style="max-width:600px">
+    <button class="btn btn-ink" style="width:100%;justify-content:center;padding:13px;margin-bottom:12px" onclick="openCam()">📷 Ler contrato com IA</button>
     <div class="card">
       <div class="card-hd">
         <div class="card-hd-icon" style="background:var(--blue-soft)">＋</div>
