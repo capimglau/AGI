@@ -450,15 +450,22 @@ body {
 .day-items .swipe:last-child .pcard { border-bottom: none; }
 .day-items .pcard:hover { box-shadow: none; }
 
-/* ── SWIPE (deslizar p/ Baixar / Editar) ── */
+/* ── SWIPE (deslizar revela os botões; tocar executa) ── */
 .swipe { position: relative; overflow: hidden; }
-.swipe .pcard { position: relative; z-index: 2; background: var(--card); touch-action: pan-y; will-change: transform; transition: transform .25s cubic-bezier(.25,.85,.3,1); }
+.swipe .pcard { position: relative; z-index: 2; background: var(--card); touch-action: pan-y; will-change: transform; transition: transform .26s cubic-bezier(.25,.85,.3,1); }
 .swipe.dragging .pcard { transition: none; }
-.swipe-bg { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 13.5px; color: #fff; z-index: 1; opacity: 0; transition: opacity .12s; }
-.swipe-bg.pay { left: 0; width: 64%; justify-content: flex-start; padding-left: 22px; background: var(--green); }
-.swipe-bg.edit { right: 0; width: 64%; justify-content: flex-end; padding-right: 22px; background: #6b7280; }
-.swipe.show-pay .swipe-bg.pay { opacity: 1; }
-.swipe.show-edit .swipe-bg.edit { opacity: 1; }
+.swipe-actions { position: absolute; top: 0; right: 0; bottom: 0; display: flex; z-index: 1; }
+.swipe-act {
+  border: none; color: #fff; cursor: pointer;
+  width: 76px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font-weight: 700; font-size: 12.5px;
+  font-family: inherit;
+}
+.swipe-act .ic { font-size: 17px; line-height: 1; }
+.swipe-act.pay { background: var(--green); }
+.swipe-act.edit { background: #6b7280; }
+.swipe-act:active { filter: brightness(.92); }
 .swipe-hint { text-align: center; font-size: 11.5px; color: var(--ink3); margin: -2px 0 12px; }
 .swipe-hint b { color: var(--ink2); font-weight: 600; }
 
@@ -1972,13 +1979,14 @@ function renderBaixas(){
   document.getElementById('bf-cnt').textContent=`${rows.length} lançamentos`;
   const container=document.getElementById('baixasContainer');
   container.innerHTML='';
+  openRow=null;
 
   if(rows.length===0){
     container.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Tudo em dia!</div><div class="empty-sub">Nenhum lançamento encontrado para este filtro.</div></div>`;
     return;
   }
 
-  container.insertAdjacentHTML('beforeend','<div class="swipe-hint">Deslize → <b>Baixar</b>&nbsp;·&nbsp;← <b>Editar</b></div>');
+  container.insertAdjacentHTML('beforeend','<div class="swipe-hint">Deslize ou toque um lançamento para <b>Baixar</b> ou <b>Editar</b></div>');
 
   // Agrupar por dia
   const byDay={};
@@ -2053,7 +2061,7 @@ function renderBaixas(){
         <div class="pcard-right">
           <span class="pcard-value">${fR(isPago(r)?r.valor_pago:r.saldo)}</span>
         </div>`;
-      wrap.innerHTML=`${pago?'':'<div class="swipe-bg pay">✓ Baixar</div>'}<div class="swipe-bg edit">✏ Editar</div>`;
+      wrap.innerHTML=`<div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="swDo(${gi2},1)"><span class="ic">✓</span>Baixar</button>`}<button class="swipe-act edit" onclick="swDo(${gi2},0)"><span class="ic">✏</span>Editar</button></div>`;
       wrap.appendChild(card);
       dayItems.appendChild(wrap);
     });
@@ -2358,14 +2366,24 @@ function showSkeleton(){
     '<div class="day-items skel">'+Array(5).fill('<div class="sk-row"><span style="flex:1"><span class="sk sk-line" style="width:62%"></span><span class="sk sk-line" style="width:34%;margin-top:9px"></span></span><span class="sk sk-line" style="width:62px;height:16px"></span></div>').join('')+'</div>';
 }
 
-// ── SWIPE (deslizar → Baixar / Editar) ──
-let SW=null; const SW_MAX=94, SW_TH=58;
+// ── SWIPE (deslizar revela os botões; tocar executa) ──
+let SW=null, openRow=null;
+function swSet(wrap,px){const c=wrap.querySelector('.pcard');c.style.transform=px?`translateX(${px}px)`:'';}
+function closeRow(except){
+  if(openRow&&openRow!==except&&openRow.isConnected){openRow.classList.remove('open');swSet(openRow,0);}
+  if(openRow!==except)openRow=null;
+}
+function openRowEl(wrap,pw){closeRow(wrap);wrap.classList.add('open');swSet(wrap,-pw);openRow=wrap;}
+function panelW(wrap){const a=wrap.querySelector('.swipe-actions');return a?a.offsetWidth:76;}
+function swDo(gi,pay){closeRow();if(pay)quickPay(gi);else openEdit(gi);}
 function swDown(e){
   if(e.pointerType==='mouse'&&e.button!==0)return;
+  if(e.target.closest('.swipe-act'))return;          // toque no botão = ação
   const card=e.target.closest('.pcard'); if(!card)return;
   if(e.target.closest('.pcard-chk'))return;
   const wrap=card.closest('.swipe'); if(!wrap)return;
-  SW={card,wrap,x0:e.clientX,y0:e.clientY,dx:0,decided:false,horiz:false,gi:+card.dataset.gi,pend:card.dataset.pend==='1',id:e.pointerId};
+  const pw=panelW(wrap);
+  SW={card,wrap,pw,x0:e.clientX,y0:e.clientY,base:wrap.classList.contains('open')?-pw:0,dx:0,decided:false,horiz:false,id:e.pointerId};
 }
 function swMove(e){
   if(!SW||e.pointerId!==SW.id)return;
@@ -2373,25 +2391,25 @@ function swMove(e){
   if(!SW.decided){
     if(Math.abs(dx)<6&&Math.abs(dy)<6)return;
     SW.decided=true; SW.horiz=Math.abs(dx)>Math.abs(dy);
-    if(SW.horiz){try{SW.card.setPointerCapture(e.pointerId);}catch(_){}; SW.wrap.classList.add('dragging');}
+    if(SW.horiz){try{SW.card.setPointerCapture(e.pointerId);}catch(_){}; SW.wrap.classList.add('dragging'); closeRow(SW.wrap);}
   }
   if(!SW.horiz)return;
   e.preventDefault();
-  let d=dx; if(d>0&&!SW.pend)d=0;
-  d=Math.max(-SW_MAX,Math.min(SW_MAX,d));
+  let d=Math.max(-SW.pw,Math.min(0,SW.base+dx));
   SW.dx=d; SW.card.style.transform=`translateX(${d}px)`;
-  SW.wrap.classList.toggle('show-pay', d>4);
-  SW.wrap.classList.toggle('show-edit', d<-4);
 }
 function swUp(e){
   if(!SW||e.pointerId!==SW.id)return;
   const s=SW; SW=null;
-  s.card.style.transition='transform .25s cubic-bezier(.25,.85,.3,1)';
-  s.card.style.transform='';
-  s.wrap.classList.remove('dragging','show-pay','show-edit');
+  s.card.style.transition='';                         // volta a usar a transição do CSS
+  s.wrap.classList.remove('dragging');
+  if(!s.decided){                                     // toque simples: alterna abrir/fechar
+    if(s.wrap.classList.contains('open'))closeRow();
+    else openRowEl(s.wrap,s.pw);
+    return;
+  }
   if(!s.horiz)return;
-  if(s.dx>=SW_TH&&s.pend) setTimeout(()=>quickPay(s.gi),130);
-  else if(s.dx<=-SW_TH) setTimeout(()=>openEdit(s.gi),130);
+  if(s.dx<=-s.pw/2)openRowEl(s.wrap,s.pw); else closeRow();
 }
 function initSwipe(){
   const bc=document.getElementById('baixasContainer'); if(!bc||bc._sw)return; bc._sw=1;
