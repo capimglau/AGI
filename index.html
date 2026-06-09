@@ -202,20 +202,22 @@ body {
 .btn-red { background: var(--red-soft); color: var(--red); border-color: transparent; }
 .btn-sm { padding: 4px 10px; font-size: 12.5px; border-radius: 7px; }
 .btn-xs { padding: 3px 8px; font-size: 11.5px; border-radius: 6px; }
-/* Botão de ícone circular minimalista (estilo iOS) */
+/* Botão de ícone circular preenchido — "liquid glass" iOS */
 .icon-btn {
   width: 40px; height: 40px; padding: 0;
   border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
-  background: transparent;
-  border: 1.5px solid rgba(0,0,0,.16);
+  background: rgba(118,118,128,.12);
+  -webkit-backdrop-filter: saturate(160%) blur(12px);
+  backdrop-filter: saturate(160%) blur(12px);
+  border: .5px solid rgba(255,255,255,.55);
   color: var(--ink);
   cursor: pointer;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
-  transition: background .15s, border-color .15s;
+  transition: background .15s;
 }
-.icon-btn:hover, .icon-btn:active { background: rgba(0,0,0,.05); }
+.icon-btn:hover, .icon-btn:active { background: rgba(118,118,128,.22); }
 .icon-btn svg { width: 19px; height: 19px; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ─── PAGES ─── */
@@ -1057,16 +1059,17 @@ details[open] summary::before { transform: rotate(90deg); }
 @media (max-width: 760px) {
   body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
 
-  /* Header em uma linha: logo (esq) · mês (centro) · lupa (dir) */
+  /* Header: logo (esq) · mês (centro absoluto) · lupa (dir) */
   .header {
+    position: relative;
     height: auto;
     flex-wrap: nowrap;
     padding: 10px 14px;
     gap: 8px;
   }
-  .logo { flex: 1; min-width: 0; margin: 0; font-size: 17px; }
-  .month-nav { flex: 0 0 auto; margin: 0; justify-content: center; }
-  .header-right { flex: 1; width: auto; margin: 0; gap: 8px; justify-content: flex-end; }
+  .logo { margin: 0; font-size: 17px; }
+  .month-nav { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); margin: 0; justify-content: center; }
+  .header-right { margin-left: auto; width: auto; gap: 8px; justify-content: flex-end; }
   /* Cartões Pendente/Recebido são duplicata dos painéis — escondidos no mobile */
   .header-right .stat-pill { display: none; }
   .mn-label { min-width: 92px; }
