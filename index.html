@@ -1732,7 +1732,38 @@ if(window.Chart){
   tt.padding=10; tt.cornerRadius=10; tt.displayColors=false;
   tt.titleFont={weight:'600',size:12}; tt.bodyFont={size:12};
   tt.titleColor='#fff'; tt.bodyColor='#fff';
-}
+  // Plugin: rótulos de valor no topo das barras (opt-in via options.plugins.barLabels)
+  Chart.register({
+    id:'barLabels',
+    afterDatasetsDraw(chart,args,opts){
+      if(!opts||!opts.display)return;
+      const ctx=chart.ctx, meta=chart.getDatasetMeta(0);
+      if(!meta||meta.hidden)return;
+      ctx.save();
+      ctx.font='600 10px "DM Sans", sans-serif';
+      ctx.fillStyle='#3a3a44'; ctx.textAlign='center';
+      meta.data.forEach((bar,i)=>{
+        const v=chart.data.datasets[0].data[i];
+        if(v==null||v===0)return;
+        ctx.fillText((opts.fmt?opts.fmt(v):v), bar.x, bar.y-6);
+      });
+      ctx.restore();
+    }
+  });
+  // Plugin: texto no centro da rosca (opt-in via options.plugins.center)
+  Chart.register({
+    id:'center',
+    afterDraw(chart,args,opts){
+      if(!opts||!opts.text)return;
+      const{ctx,chartArea}=chart;
+      const cx=(chartArea.left+chartArea.right)/2, cy=(chartArea.top+chartArea.bottom)/2;
+      ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle='#0e0e0e'; ctx.font='700 15px "DM Sans", sans-serif';
+      ctx.fillText(opts.text, cx, cy-3);
+      if(opts.sub){ ctx.fillStyle='#8e8e93'; ctx.font='500 10px "DM Sans", sans-serif'; ctx.fillText(opts.sub, cx, cy+13); }
+      ctx.restore();
+    }
+  });
 
 // ── HEADER CHIPS ──
 function updateHeader(){
@@ -1989,11 +2020,12 @@ function renderResumo(){
   const baseRows=allD().filter(r=>(!selDono||r.dono===selDono));
   const bM={};baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)bM[m]=(bM[m]||0)+fN(r.valor);});
   const mK=Object.keys(bM).sort();
-  mkC('cMes',{type:'bar',data:{labels:mK.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+'/'+y.slice(2);}),datasets:[{data:mK.map(k=>bM[k]),backgroundColor:mK.map(k=>k===curMes?'#1847f5':'#c7d0ff'),borderRadius:6,borderSkipped:false,maxBarThickness:48}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>items[0].label,label:ctx=>' '+fR(ctx.raw)}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:'#eeece8'},border:{display:false,dash:[4,4]}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}}}}});
+  mkC('cMes',{type:'bar',data:{labels:mK.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+'/'+y.slice(2);}),datasets:[{data:mK.map(k=>bM[k]),backgroundColor:mK.map(k=>k===curMes?'#1847f5':'#c7d0ff'),borderRadius:6,borderSkipped:false,maxBarThickness:48}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{callbacks:{title:items=>items[0].label,label:ctx=>' '+fR(ctx.raw)}}},scales:{y:{beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:'#eeece8'},border:{display:false,dash:[4,4]}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}}}}});
   const bT={};rows.forEach(r=>{bT[r.tipo]=(bT[r.tipo]||0)+fN(r.valor);});
   const tK=Object.keys(bT).sort((a,b)=>bT[b]-bT[a]);
   const tC={Locação:'#1847f5',Avarias:'#c42b1c',Lavagem:'#0d6e3e',Multas:'#92600a',Outros:'#aaa','Taxa Mario':'#5b35d5','Taxa Alfredo':'#5b35d5','Taxa Bruno':'#5b35d5'};
-  mkC('cTipo',{type:'doughnut',data:{labels:tK,datasets:[{data:tK.map(k=>bT[k]),backgroundColor:tK.map(k=>tC[k]||'#aaa'),borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{legend:{position:'bottom',labels:{font:{size:11.5},boxWidth:9,boxHeight:9,padding:11,usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:ctx=>{const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);const pct=tot?(ctx.raw/tot*100).toFixed(1):'0';return ' '+fR(ctx.raw)+'  ·  '+pct+'%';}}}}}});
+  const totTipo=tK.reduce((a,k)=>a+bT[k],0);
+  mkC('cTipo',{type:'doughnut',data:{labels:tK,datasets:[{data:tK.map(k=>bT[k]),backgroundColor:tK.map(k=>tC[k]||'#aaa'),borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{center:{text:'R$'+Math.round(totTipo/1000)+'k',sub:'Total'},legend:{position:'bottom',labels:{font:{size:11.5},boxWidth:9,boxHeight:9,padding:11,usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:ctx=>{const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);const pct=tot?(ctx.raw/tot*100).toFixed(1):'0';return ' '+fR(ctx.raw)+'  ·  '+pct+'%';}}}}}});
   const bF={};rows.forEach(r=>{bF[r.forma]=(bF[r.forma]||0)+fN(r.valor);});
   const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
   const maxF=bF[fK[0]]||1;
