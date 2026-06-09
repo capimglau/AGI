@@ -1388,6 +1388,15 @@ async function dbLoad(){
   if(error){console.error(error);alert('Erro ao carregar do Supabase: '+error.message);return DS.map(r=>({...r}));}
   return data;
 }
+// Popula a tabela automaticamente na primeira vez (quando está vazia).
+async function dbSeed(){
+  const recs=DS.map(_clean);
+  for(let i=0;i<recs.length;i+=100){
+    const {error}=await SB.from('lancamentos').insert(recs.slice(i,i+100));
+    if(error){console.error(error);alert('Erro ao popular os dados: '+error.message);return false;}
+  }
+  return true;
+}
 async function dbInsert(rec){
   if(!SB) return rec;
   const {data,error}=await SB.from('lancamentos').insert(_clean(rec)).select().single();
@@ -2176,7 +2185,13 @@ function go(id){
 
 // ── BOOT ──
 async function boot(){
-  DATA = (await dbLoad()).map(r=>({...r}));
+  let rows = await dbLoad();
+  if(ONLINE && rows.length===0){
+    console.log('Tabela vazia — populando automaticamente com', DS.length, 'lançamentos...');
+    const ok = await dbSeed();
+    if(ok) rows = await dbLoad();
+  }
+  DATA = rows.map(r=>({...r}));
   popSel();
   updateMesLabel();
   renderAll();
