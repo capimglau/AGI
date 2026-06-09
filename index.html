@@ -369,30 +369,36 @@ body {
 /* ─── PAYMENT CARD ─── */
 .pcard {
   display: grid;
-  grid-template-columns: 22px 1fr auto;
+  grid-template-columns: 20px 1fr auto;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r);
-  padding: 13px 16px;
-  margin-bottom: 6px;
-  transition: all .15s;
-  box-shadow: var(--shadow-sm);
+  border-radius: 14px;
+  padding: 12px 14px 12px 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  transition: border-color .15s, box-shadow .15s;
+  position: relative;
+  overflow: hidden;
 }
-.pcard:hover { border-color: #c4c0b8; box-shadow: var(--shadow-md); transform: translateY(-1px); }
-.pcard.done {
-  background: #fafaf8;
-  border-color: var(--line);
-  opacity: .6;
-  box-shadow: none;
+.pcard:hover { border-color: #d7d3cb; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+/* faixa de status à esquerda — padroniza o visual de todos os cards */
+.pcard::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--line);
 }
-.pcard.venc { border-left: 3px solid var(--red); background: #fffafa; }
-.pcard.hoje-card { border-left: 3px solid var(--blue); background: #fafbff; }
+.pcard.venc::before { background: var(--red); }
+.pcard.hoje-card::before { background: var(--blue); }
+.pcard.done::before { background: var(--green); }
+.pcard.done { opacity: .6; }
 .pcard-chk {
-  width: 18px; height: 18px;
+  width: 19px; height: 19px;
   cursor: pointer;
-  accent-color: var(--blue);
+  accent-color: var(--green);
   flex-shrink: 0;
 }
 .pcard-done-icon {
@@ -404,31 +410,28 @@ body {
   color: var(--green);
   flex-shrink: 0;
 }
-.pcard-body { min-width: 0; }
-.pcard-top {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-  margin-bottom: 3px;
-}
-.pcard-name { font-weight: 600; font-size: 13.5px; }
-.pcard-meta { font-size: 11.5px; color: var(--ink3); margin-top: 1px; display: flex; gap: 8px; flex-wrap: wrap; }
+.pcard-body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.pcard-top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.pcard-name { font-weight: 600; font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcard-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pcard-meta { font-size: 11.5px; color: var(--ink3); display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.pcard-meta > span { display: inline-flex; align-items: center; }
 .pcard-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 5px;
+  gap: 8px;
   flex-shrink: 0;
 }
 .pcard-value {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: -.02em;
   color: var(--blue);
+  white-space: nowrap;
 }
 .pcard.done .pcard-value { color: var(--green); text-decoration: line-through; opacity: .7; }
-.pcard-actions { display: flex; gap: 5px; }
+.pcard-actions { display: flex; gap: 6px; }
 
 /* TAGS */
 .tag {
@@ -1044,7 +1047,7 @@ details[open] summary::before { transform: rotate(90deg); }
   .day-header { padding: 12px 2px 8px; }
   .day-title { font-size: 16px; }
   .day-total { font-size: 15px; }
-  .pcard { padding: 12px 13px; gap: 11px; border-radius: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .pcard { padding: 12px 13px 12px 16px; gap: 11px; border-radius: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
   .pcard:hover { transform: none; }
   .pcard-name { font-size: 14.5px; }
   .pcard-meta { font-size: 12px; }
@@ -1095,8 +1098,8 @@ details[open] summary::before { transform: rotate(90deg); }
   .mc-value { font-size: 19px; letter-spacing: -.03em; }
   .mc-sub { font-size: 10px; margin-top: 3px; }
   .pcard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-  .pcard.venc { border-left: 3px solid #ff3b30; }
-  .pcard.hoje-card { border-left: 3px solid #007aff; }
+  .pcard.venc::before { background: #ff3b30; }
+  .pcard.hoje-card::before { background: #007aff; }
   .pcard-value { color: #007aff; }
 
   /* Botões arredondados, cores do sistema */
@@ -1993,13 +1996,15 @@ function renderBaixas(){
         <div class="pcard-body">
           <div class="pcard-top">
             <span class="placa">${r.placa}</span>
-            <span class="pcard-name">${r.cliente}</span>
+            <span class="pcard-name">${r.cliente||'—'}</span>
+          </div>
+          <div class="pcard-tags">
             ${tipTag(r.tipo)}
             <span class="tag tag-forma">${r.forma}</span>
           </div>
           <div class="pcard-meta">
             <span><span class="ddot" style="background:${col}"></span>${r.dono}</span>
-            ${(r.saida||r.retorno)?`<span class="pcard-period">🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>`:''}
+            <span class="pcard-period">🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
             ${r.obs?`<span>ref. ${r.obs}</span>`:''}
           </div>
         </div>
