@@ -1040,7 +1040,7 @@ details[open] summary::before { transform: rotate(90deg); }
 
 /* ════════════════ MOBILE ════════════════ */
 @media (max-width: 760px) {
-  body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: 72px; }
+  body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
 
   /* Header em 2 linhas: logo+mês · cartões+câmera */
   .header {
@@ -1061,16 +1061,17 @@ details[open] summary::before { transform: rotate(90deg); }
   /* Abas viram barra de navegação fixa embaixo (estilo app) */
   .nav-tabs {
     position: fixed;
-    left: 0; right: 0; bottom: 0;
-    width: 100%;
+    left: 12px; right: 12px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    width: auto;
     margin: 0;
     display: flex;
     gap: 0;
     background: var(--card);
-    border-top: 1px solid var(--line);
-    box-shadow: 0 -2px 14px rgba(0,0,0,.07);
-    padding: 6px 4px;
-    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    border: .5px solid rgba(0,0,0,.07);
+    border-radius: 24px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.16);
+    padding: 7px 6px;
     z-index: 300;
   }
   .ntab {
@@ -1144,19 +1145,18 @@ details[open] summary::before { transform: rotate(90deg); }
   .stat-pill .val.r { color: #ff3b30; }
   .stat-pill .val.g { color: #34c759; }
 
-  /* Tab bar inferior estilo iOS: tingida, sem bloco */
+  /* Dock flutuante estilo iOS: vidro fosco, tingido, sem bloco */
   .nav-tabs {
-    background: rgba(255,255,255,.82);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    backdrop-filter: saturate(180%) blur(20px);
-    border-top: .5px solid rgba(0,0,0,.12);
-    box-shadow: none;
-    padding-top: 8px;
+    background: rgba(255,255,255,.78);
+    -webkit-backdrop-filter: saturate(180%) blur(22px);
+    backdrop-filter: saturate(180%) blur(22px);
+    border: .5px solid rgba(0,0,0,.06);
+    box-shadow: 0 8px 28px rgba(0,0,0,.16);
   }
   .ntab { color: #8e8e93; }
   .ntab.on { background: none; color: #1f5fa8; }
   .nt-ico { display: block; line-height: 0; }
-  .nt-ico svg { width: 25px; height: 25px; display: block; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .nt-ico svg { width: 22px; height: 22px; display: block; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .nt-short { font-weight: 500; }
 
   /* Painéis / cards minimalistas (sem borda, fundo branco) */
