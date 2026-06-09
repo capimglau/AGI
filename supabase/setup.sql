@@ -353,7 +353,7 @@ insert into public.lancamentos (placa, dono, saida, retorno, cliente, tipo, valo
   ('GIX9J42', 'Silvio', '2026-03-11', '2026-04-10', 'ZCON', 'Locação', 3016.0, 'Boleto', '2026-04-15', 3016.0, 0.0, NULL),
   ('GIX9J42', 'Silvio', '2026-02-09', '2026-03-11', 'ZCON', 'Locação', 3016.0, 'Boleto', '2026-03-16', 3016.0, 0.0, NULL),
   ('GIX9J42', 'Silvio', '2026-01-10', '2026-02-09', 'ZCON', 'Locação', 3016.0, 'Boleto', '2026-02-16', 3016.0, 0.0, NULL),
-  ('GIX9J42', 'Silvio', '2025-12-11', '26-10-01', 'ZCON', 'Locação', 3016.0, 'Boleto', '2026-01-16', 3016.0, 0.0, NULL),
+  ('GIX9J42', 'Silvio', '2025-12-11', '2026-01-11', 'ZCON', 'Locação', 3016.0, 'Boleto', '2026-01-16', 3016.0, 0.0, NULL),
   ('GEY6J43', 'Eliana', '2025-12-02', '2026-01-01', 'Sisvetor', 'Locação', 2286.0, 'Boleto', '2026-01-02', 2286.0, 0.0, NULL),
   ('GEY6J43', 'Eliana', '2026-01-01', '2026-01-31', 'Sisvetor', 'Locação', 2286.0, 'Boleto', '2026-02-02', 2286.0, 0.0, NULL),
   ('TKS9A76', 'Silvio', '2025-12-07', '2026-01-06', 'Sisvetor', 'Locação', 2307.0, 'Boleto', '2026-01-23', 2307.0, 0.0, NULL),
