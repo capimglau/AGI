@@ -628,6 +628,8 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rb-bg { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
 .rb-f { height: 100%; border-radius: 3px; transition: width .6s ease; }
 .rb-v { font-size: 12.5px; font-weight: 600; width: 90px; text-align: right; flex-shrink: 0; }
+#resClientes .rb-l { width: 150px; }
+.rb-rank { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 5px; background: var(--surface); font-size: 10px; font-weight: 700; color: var(--ink3); margin-right: 6px; flex-shrink: 0; }
 
 /* PROG */
 .prog { height: 3px; background: var(--line); border-radius: 2px; margin-top: 8px; overflow: hidden; }
@@ -1227,6 +1229,10 @@ details[open] summary::before { transform: rotate(90deg); }
     </div>
   </div>
   <div class="card">
+    <div class="card-hd">Top 10 clientes</div>
+    <div id="resClientes"></div>
+  </div>
+  <div class="card">
     <div class="card-hd">Projeção — próximos 90 dias</div>
     <div class="cw" style="height:180px"><canvas id="cProj" role="img" aria-label="projeção"></canvas></div>
   </div>
@@ -1713,6 +1719,20 @@ function filtGeral(o={}){
 
 const CH={};
 function mkC(id,cfg){if(CH[id])CH[id].destroy();const c=document.getElementById(id);if(!c)return;CH[id]=new Chart(c,cfg);}
+// Qualidade/identidade visual padrão dos gráficos
+if(window.Chart){
+  Chart.defaults.font.family="'DM Sans', -apple-system, sans-serif";
+  Chart.defaults.font.size=11;
+  Chart.defaults.color='#6b6b7a';
+  Chart.defaults.devicePixelRatio=Math.max(2, window.devicePixelRatio||1);
+  Chart.defaults.animation.duration=650;
+  Chart.defaults.animation.easing='easeOutQuart';
+  const tt=Chart.defaults.plugins.tooltip;
+  tt.backgroundColor='rgba(12,12,15,.92)';
+  tt.padding=10; tt.cornerRadius=10; tt.displayColors=false;
+  tt.titleFont={weight:'600',size:12}; tt.bodyFont={size:12};
+  tt.titleColor='#fff'; tt.bodyColor='#fff';
+}
 
 // ── HEADER CHIPS ──
 function updateHeader(){
@@ -1965,13 +1985,15 @@ function renderResumo(){
     <div class="mc red"><div class="mc-label">A receber</div><div class="mc-value">${fR(totS)}</div><div class="mc-sub">${rows.filter(r=>isPend(r)).length} pendentes</div></div>
     <div class="mc amber"><div class="mc-label">Veículos</div><div class="mc-value">${new Set(rows.map(r=>r.placa)).size}</div><div class="mc-sub">placas únicas</div></div>
   `;
-  const bM={};rows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)bM[m]=(bM[m]||0)+fN(r.valor);});
+  // Tendência: todos os meses (respeitando o filtro de proprietário), mês atual em destaque
+  const baseRows=allD().filter(r=>(!selDono||r.dono===selDono));
+  const bM={};baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)bM[m]=(bM[m]||0)+fN(r.valor);});
   const mK=Object.keys(bM).sort();
-  mkC('cMes',{type:'bar',data:{labels:mK.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+' '+y.slice(2);}),datasets:[{data:mK.map(k=>bM[k]),backgroundColor:mK.map(k=>k===curMes?'#1847f5':'#1847f530'),borderColor:mK.map(k=>k===curMes?'#1847f5':'#1847f560'),borderWidth:1,borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:'#eeece8'},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
+  mkC('cMes',{type:'bar',data:{labels:mK.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+'/'+y.slice(2);}),datasets:[{data:mK.map(k=>bM[k]),backgroundColor:mK.map(k=>k===curMes?'#1847f5':'#c7d0ff'),borderRadius:6,borderSkipped:false,maxBarThickness:48}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>items[0].label,label:ctx=>' '+fR(ctx.raw)}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:'#eeece8'},border:{display:false,dash:[4,4]}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}}}}});
   const bT={};rows.forEach(r=>{bT[r.tipo]=(bT[r.tipo]||0)+fN(r.valor);});
   const tK=Object.keys(bT).sort((a,b)=>bT[b]-bT[a]);
   const tC={Locação:'#1847f5',Avarias:'#c42b1c',Lavagem:'#0d6e3e',Multas:'#92600a',Outros:'#aaa','Taxa Mario':'#5b35d5','Taxa Alfredo':'#5b35d5','Taxa Bruno':'#5b35d5'};
-  mkC('cTipo',{type:'doughnut',data:{labels:tK,datasets:[{data:tK.map(k=>bT[k]),backgroundColor:tK.map(k=>tC[k]||'#aaa'),borderWidth:0,hoverBorderWidth:2,hoverBorderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:12},boxWidth:12,padding:12}}},cutout:'62%'}});
+  mkC('cTipo',{type:'doughnut',data:{labels:tK,datasets:[{data:tK.map(k=>bT[k]),backgroundColor:tK.map(k=>tC[k]||'#aaa'),borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{legend:{position:'bottom',labels:{font:{size:11.5},boxWidth:9,boxHeight:9,padding:11,usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:ctx=>{const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);const pct=tot?(ctx.raw/tot*100).toFixed(1):'0';return ' '+fR(ctx.raw)+'  ·  '+pct+'%';}}}}}});
   const bF={};rows.forEach(r=>{bF[r.forma]=(bF[r.forma]||0)+fN(r.valor);});
   const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
   const maxF=bF[fK[0]]||1;
@@ -1980,7 +2002,12 @@ function renderResumo(){
   const bV={};rows.forEach(r=>{if(!bV[r.placa])bV[r.placa]={v:0,d:r.dono};bV[r.placa].v+=fN(r.valor);});
   const sv=Object.entries(bV).sort((a,b)=>b[1].v-a[1].v).slice(0,10);
   const mx=sv[0]?sv[0][1].v:1;
-  document.getElementById('resVeic').innerHTML=sv.map(([p,o])=>`<div class="rb"><div class="rb-l"><span class="placa">${p}</span></div><div class="rb-bg"><div class="rb-f" style="width:${(o.v/mx*100).toFixed(1)}%;background:${DC[o.d]||'#1847f5'}"></div></div><div class="rb-v">${fR(o.v)}</div></div>`).join('');
+  document.getElementById('resVeic').innerHTML=sv.length?sv.map(([p,o],i)=>`<div class="rb"><div class="rb-l"><span class="rb-rank">${i+1}</span><span class="placa">${p}</span></div><div class="rb-bg"><div class="rb-f" style="width:${(o.v/mx*100).toFixed(1)}%;background:${DC[o.d]||'#1847f5'}"></div></div><div class="rb-v">${fR(o.v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
+  // Top 10 clientes
+  const bC={};rows.forEach(r=>{const c=(r.cliente||'').trim()||'—';if(!bC[c])bC[c]=0;bC[c]+=fN(r.valor);});
+  const sc=Object.entries(bC).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const mxc=sc[0]?sc[0][1]:1;
+  document.getElementById('resClientes').innerHTML=sc.length?sc.map(([c,v],i)=>`<div class="rb"><div class="rb-l" title="${c}"><span class="rb-rank">${i+1}</span>${c}</div><div class="rb-bg"><div class="rb-f" style="width:${(v/mxc*100).toFixed(1)}%;background:rgba(24,71,245,${(1-i*0.07).toFixed(2)})"></div></div><div class="rb-v">${fR(v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
   const t=td(),tF=addD(t,90);
   const pendFut=allD().filter(r=>isPend(r)&&r.prev_pgto&&r.prev_pgto>=t&&r.prev_pgto<=tF&&(!selDono||r.dono===selDono));
   const sem={};
