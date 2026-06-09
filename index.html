@@ -309,6 +309,9 @@ body {
 .filt-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); display: inline-block; margin-left: 6px; }
 .filt-panel { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin: 0 0 14px; }
 .filt-panel[hidden] { display: none; }
+/* Barra de ações dos Recebimentos: botões espaçados lateral e verticalmente */
+.fbar-baixas { gap: 12px; margin: 6px 0 18px; }
+.fbar-baixas .btn { flex: 1; justify-content: center; padding: 11px 12px; }
 .filt-panel select {
   width: 100%;
   padding: 9px 10px;
@@ -1259,11 +1262,10 @@ details[open] summary::before { transform: rotate(90deg); }
 
     <!-- LEFT: day groups -->
     <div>
-      <div class="fbar">
-        <button class="btn btn-sm" onclick="toggleFilters()">⚙ Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
-        <button class="btn btn-sm" onclick="selTodos()">☑ Todos</button>
-        <button class="btn btn-green btn-sm" onclick="baixarSelecionados()">⬇ Baixar</button>
-        <span class="fcnt" id="bf-cnt" style="margin-left:auto"></span>
+      <div class="fbar fbar-baixas">
+        <button class="btn" onclick="toggleFilters()">⚙ Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
+        <button class="btn" onclick="selTodos()">☑ Todos</button>
+        <button class="btn btn-green" onclick="baixarSelecionados()">⬇ Baixar</button>
       </div>
       <div class="filt-panel" id="filtPanel" hidden>
         <select id="bf-dono" onchange="renderBaixas()">
@@ -2007,7 +2009,6 @@ function renderBaixas(){
   const fdot=document.getElementById('filtDot');
   if(fdot) fdot.style.display=(dono||forma||(status&&status!=='pend'))?'inline-block':'none';
 
-  document.getElementById('bf-cnt').textContent=`${rows.length} lançamentos`;
   const container=document.getElementById('baixasContainer');
   container.innerHTML='';
   openRow=null;
