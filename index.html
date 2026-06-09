@@ -779,13 +779,47 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .prog-f { height: 100%; border-radius: 2px; transition: width .5s ease; }
 
 /* OWNER CARD */
-.oc { background: var(--card); border: 1px solid var(--line); border-radius: var(--rl); padding: 18px; box-shadow: var(--shadow-sm); }
+.oc { background: var(--card); border: 1px solid var(--line); border-radius: var(--rl); padding: 18px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
+.oc:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); border-color: var(--blue); }
+.oc:active { transform: translateY(0); }
+.oc-more { font-size: 11px; color: var(--blue); font-weight: 700; margin-top: 12px; display: flex; align-items: center; gap: 4px; }
 .oc-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .oc-av { width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
 .oc-g { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .oc-s { background: var(--surface); border-radius: 10px; padding: 10px 12px; }
 .oc-sl { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
 .oc-sv { font-size: 15px; font-weight: 700; margin-top: 3px; letter-spacing: -.02em; }
+
+/* EXTRATO DO DONO (modal) */
+.dn-mesnav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; font-weight: 700; font-size: 14px; }
+.dn-mesnav .btn { padding: 4px 12px; }
+.dn-kpis { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.dn-kpi { background: var(--surface); border-radius: 12px; padding: 12px 14px; }
+.dn-kpi-l { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; color: var(--ink3); }
+.dn-kpi-v { font-size: 18px; font-weight: 700; margin-top: 4px; letter-spacing: -.02em; }
+.dn-extrato { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.dn-col { background: var(--surface); border-radius: 14px; padding: 13px; display: flex; flex-direction: column; min-height: 170px; }
+.dn-col-hd { font-size: 12px; font-weight: 700; margin-bottom: 11px; display: flex; justify-content: space-between; align-items: center; }
+.dn-hd-green { color: var(--green); }
+.dn-hd-red { color: var(--red); }
+.dn-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 280px; }
+.dn-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; }
+.dn-row .r-main { font-weight: 600; }
+.dn-row .r-sub { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+.dn-row .r-val { font-weight: 700; white-space: nowrap; }
+.dn-del { border: none; background: none; color: var(--ink3); cursor: pointer; font-size: 13px; padding: 0 2px; line-height: 1; }
+.dn-del:hover { color: var(--red); }
+.dn-add { display: flex; flex-direction: column; gap: 6px; margin-bottom: 11px; padding-bottom: 11px; border-bottom: 1px dashed var(--line); }
+.dn-add .dn-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.dn-add select, .dn-add input { font-size: 13px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--ink); width: 100%; }
+.dn-add select:focus, .dn-add input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31,95,168,.08); outline: none; }
+.dn-empty { font-size: 12px; color: var(--ink3); text-align: center; padding: 20px 6px; }
+@media (max-width: 680px) {
+  .dn-extrato { grid-template-columns: 1fr; }
+  .dn-kpis { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .dn-kpi-v { font-size: 15px; }
+  .dn-add .dn-row2 { grid-template-columns: 1fr; }
+}
 
 /* ─── PREMISSAS PAGE ─── */
 .prem-grid {
@@ -1772,6 +1806,56 @@ html[data-theme="dark"] .swipe-act.edit { background: #3a475e; }
   </div>
 </div>
 
+<!-- ─── EXTRATO DO DONO ─── -->
+<div class="overlay" id="mDono">
+  <div class="modal" style="max-width:860px">
+    <div class="mhd">
+      <span style="display:flex;align-items:center;gap:11px">
+        <span class="oc-av" id="dnAv"></span>
+        <span><span id="dnName" style="font-size:16px">Dono</span><span id="dnSub" style="display:block;font-size:11.5px;font-weight:500;color:var(--ink3)"></span></span>
+      </span>
+      <button class="mcl" onclick="closeDono()">✕</button>
+    </div>
+
+    <div class="dn-mesnav">
+      <button class="btn btn-sm" onclick="donoNavMes(-1)">‹</button>
+      <span id="dnMes">—</span>
+      <button class="btn btn-sm" onclick="donoNavMes(1)">›</button>
+    </div>
+
+    <div class="dn-kpis">
+      <div class="dn-kpi"><div class="dn-kpi-l">Receitas previstas</div><div class="dn-kpi-v" id="dnRec" style="color:var(--green)">—</div></div>
+      <div class="dn-kpi"><div class="dn-kpi-l">Despesas</div><div class="dn-kpi-v" id="dnDesp" style="color:var(--red)">—</div></div>
+      <div class="dn-kpi"><div class="dn-kpi-l">Resultado</div><div class="dn-kpi-v" id="dnRes">—</div></div>
+    </div>
+
+    <div class="dn-extrato">
+      <div class="dn-col">
+        <div class="dn-col-hd dn-hd-green"><span>▲ Receitas previstas do mês</span><span id="dnRecCt"></span></div>
+        <div class="dn-list" id="dnRecList"></div>
+      </div>
+      <div class="dn-col">
+        <div class="dn-col-hd dn-hd-red"><span>▼ Despesas operacionais</span><span id="dnDespCt"></span></div>
+        <div class="dn-add">
+          <select id="dn-cat" onchange="dnCatChange()"></select>
+          <div class="dn-row2">
+            <input type="number" id="dn-val" placeholder="Valor (R$)" step="0.01" inputmode="decimal">
+            <input type="date" id="dn-data">
+          </div>
+          <input type="text" id="dn-desc" placeholder="Descrição / observação (opcional)">
+          <button class="btn btn-blue btn-sm" style="justify-content:center" onclick="addDespesa()">＋ Adicionar despesa</button>
+        </div>
+        <div class="dn-list" id="dnDespList"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">Comparativo mês a mês — receitas × despesas</div>
+      <div class="cw" style="height:240px"><canvas id="cDono" role="img" aria-label="comparativo receitas despesas"></canvas></div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script>
@@ -1813,6 +1897,38 @@ async function dbDelete(id){
   if(!SB||id==null) return;
   const {error}=await SB.from('lancamentos').delete().eq('id',id);
   if(error){console.error(error);alert('Erro ao excluir no Supabase: '+error.message);}
+}
+
+// ─── DESPESAS (camada de dados) ───
+// Persiste no Supabase (tabela 'despesas') quando disponível; senão usa localStorage.
+let DESPESAS = [];
+let despBackend = 'ls';           // 'sb' (Supabase) ou 'ls' (localStorage)
+const DESP_LS_KEY = 'agi-despesas';
+const DESP_COLS = ['dono','mes','categoria','descricao','valor','data'];
+function _despClean(r){const o={};DESP_COLS.forEach(k=>o[k]=(r[k]===undefined||r[k]==='')?null:r[k]);return o;}
+function despLSsave(){try{localStorage.setItem(DESP_LS_KEY,JSON.stringify(DESPESAS));}catch(e){}}
+async function despLoad(){
+  if(SB){
+    const {data,error}=await SB.from('despesas').select('*').order('data',{ascending:true});
+    if(!error){despBackend='sb';return data;}
+    console.warn('Tabela "despesas" indisponível ('+error.message+'). Usando armazenamento local. Rode supabase/schema.sql para sincronizar.');
+  }
+  despBackend='ls';
+  try{return JSON.parse(localStorage.getItem(DESP_LS_KEY)||'[]');}catch(e){return [];}
+}
+async function despAdd(rec){
+  if(despBackend==='sb'){
+    const {data,error}=await SB.from('despesas').insert(_despClean(rec)).select().single();
+    if(!error){DESPESAS.push(data);return data;}
+    console.error(error);alert('Erro ao salvar despesa: '+error.message);return null;
+  }
+  rec.id='ls_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  DESPESAS.push(rec);despLSsave();return rec;
+}
+async function despDel(id){
+  DESPESAS=DESPESAS.filter(d=>String(d.id)!==String(id));
+  if(despBackend==='sb'){const {error}=await SB.from('despesas').delete().eq('id',id);if(error)console.error(error);}
+  else despLSsave();
 }
 
 let DATA = DS.map(r => ({...r}));
@@ -2311,7 +2427,8 @@ function renderProp(){
     const pct=totG>0?((tv/totG)*100).toFixed(1):'0';
     const col=DC[d]||'#888';
     const ini=d.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    return`<div class="oc">
+    const tDesp=DESPESAS.filter(x=>x.dono===d&&x.mes===curMes).reduce((a,x)=>a+fN(x.valor),0);
+    return`<div class="oc" onclick="openDono('${d.replace(/'/g,"\\'")}')" role="button" tabindex="0" title="Ver extrato de ${d}">
       <div class="oc-hd">
         <div class="oc-av" style="background:${col}18;color:${col}">${ini}</div>
         <div><div style="font-weight:700;font-size:14px;letter-spacing:-.01em">${d}</div><div style="font-size:11.5px;color:var(--ink3)">${np} veículos · ${dr.length} lançamentos</div></div>
@@ -2320,14 +2437,125 @@ function renderProp(){
         <div class="oc-s"><div class="oc-sl">Faturado</div><div class="oc-sv" style="color:${col}">${fR(tv)}</div></div>
         <div class="oc-s"><div class="oc-sl">Recebido</div><div class="oc-sv" style="color:var(--green)">${fR(tp)}</div></div>
         <div class="oc-s"><div class="oc-sl">Pendente</div><div class="oc-sv" style="color:var(--red)">${fR(ts)}</div></div>
-        <div class="oc-s"><div class="oc-sl">% do total</div><div class="oc-sv">${pct}%</div></div>
+        <div class="oc-s"><div class="oc-sl">Despesas</div><div class="oc-sv" style="color:var(--red)">${fR(tDesp)}</div></div>
       </div>
       <div class="prog"><div class="prog-f" style="width:${pct}%;background:${col}"></div></div>
+      <div class="oc-more">Ver extrato (receitas × despesas) →</div>
     </div>`;
   }).join('');
   const meses=[...new Set(rows.map(r=>(r.prev_pgto||'').slice(0,7)).filter(Boolean))].sort();
   mkC('cEvo',{type:'line',data:{labels:meses.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+' '+y.slice(2);}),datasets:donos.map(d=>({label:d,data:meses.map(m=>rows.filter(r=>r.dono===d&&(r.prev_pgto||'').startsWith(m)).reduce((a,r)=>a+fN(r.valor),0)),borderColor:DC[d]||'#888',backgroundColor:(DC[d]||'#888')+'18',tension:.4,fill:true,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#fff',pointBorderWidth:2}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:12,family:'DM Sans'},boxWidth:10,padding:16,usePointStyle:true}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
 }
+
+// ── EXTRATO DO DONO (receitas × despesas) ──
+// Seletor completo de despesas operacionais de frota; "Outros" exige descrição livre.
+const DESP_CATS = ['Lavagem','Troca de óleo','Combustível','Pneus','Alinhamento / Balanceamento','Revisão / Manutenção','Mecânica','Elétrica','Funilaria / Pintura','Avarias / Sinistro','Documentação / Licenciamento','IPVA','Seguro','Multas','Guincho / Reboque','Estacionamento / Pedágio','Rastreador / Telemetria','Comissão','Pátio / Diária','Outros'];
+let donoAberto = null;
+
+function openDono(dono){
+  donoAberto = dono;
+  const sel = document.getElementById('dn-cat');
+  sel.innerHTML = '<option value="">Categoria da despesa…</option>' + DESP_CATS.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('dn-data').value = td();
+  document.getElementById('dn-val').value = '';
+  document.getElementById('dn-desc').value = '';
+  dnCatChange();
+  renderDonoModal();
+  document.getElementById('mDono').classList.add('on');
+}
+function closeDono(){document.getElementById('mDono').classList.remove('on');donoAberto=null;}
+function donoNavMes(d){navMes(d);if(donoAberto)renderDonoModal();}
+function dnCatChange(){
+  const cat = document.getElementById('dn-cat').value;
+  const desc = document.getElementById('dn-desc');
+  if(cat==='Outros'){desc.placeholder='Descreva a despesa (obrigatório)…';desc.style.borderColor='var(--blue)';}
+  else{desc.placeholder='Descrição / observação (opcional)';desc.style.borderColor='';}
+}
+
+function renderDonoModal(){
+  const d = donoAberto; if(!d) return;
+  const col = DC[d]||'#888';
+  const ini = d.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const av = document.getElementById('dnAv');
+  av.textContent=ini; av.style.background=col+'18'; av.style.color=col;
+  document.getElementById('dnName').textContent=d;
+  const [y,m]=curMes.split('-');
+  document.getElementById('dnMes').textContent=`${MF[parseInt(m)-1]} ${y}`;
+
+  // RECEITAS previstas do mês (automáticas a partir dos lançamentos)
+  const rec=allD().filter(r=>r.dono===d && (r.prev_pgto||'').startsWith(curMes))
+                  .sort((a,b)=>(a.prev_pgto||'').localeCompare(b.prev_pgto||''));
+  const totRec=rec.reduce((a,r)=>a+fN(r.valor),0);
+  document.getElementById('dnSub').textContent=`${new Set(rec.map(r=>r.placa)).size} veículos · ${rec.length} lançamentos`;
+  document.getElementById('dnRecCt').textContent=fR(totRec);
+  document.getElementById('dnRecList').innerHTML = rec.length ? rec.map(r=>`
+    <div class="dn-row">
+      <div><div class="r-main">${r.cliente||'—'}</div><div class="r-sub">${r.placa} · ${r.tipo||'—'} · ${fDM(r.prev_pgto)}</div></div>
+      <div class="r-val" style="color:var(--green)">${fR(r.valor)}</div>
+    </div>`).join('') : '<div class="dn-empty">Sem receitas previstas neste mês.</div>';
+
+  // DESPESAS lançadas no mês
+  const desp=DESPESAS.filter(x=>x.dono===d && x.mes===curMes)
+                     .sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  const totDesp=desp.reduce((a,x)=>a+fN(x.valor),0);
+  document.getElementById('dnDespCt').textContent=fR(totDesp);
+  document.getElementById('dnDespList').innerHTML = desp.length ? desp.map(x=>`
+    <div class="dn-row">
+      <div><div class="r-main">${x.categoria||'Despesa'}</div><div class="r-sub">${x.descricao?escHtml(x.descricao)+' · ':''}${fDM(x.data)}</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="r-val" style="color:var(--red)">${fR(x.valor)}</span><button class="dn-del" onclick="delDespesa('${x.id}')" title="Excluir">🗑</button></div>
+    </div>`).join('') : '<div class="dn-empty">Nenhuma despesa lançada.<br>Use o seletor acima para adicionar.</div>';
+
+  // KPIs
+  document.getElementById('dnRec').textContent=fR(totRec);
+  document.getElementById('dnDesp').textContent=fR(totDesp);
+  const res=totRec-totDesp;
+  const resEl=document.getElementById('dnRes');
+  resEl.textContent=fR(res);
+  resEl.style.color=res>=0?'var(--green)':'var(--red)';
+
+  renderDonoChart(d);
+}
+
+async function addDespesa(){
+  const d=donoAberto; if(!d) return;
+  const cat=document.getElementById('dn-cat').value;
+  const val=parseFloat(document.getElementById('dn-val').value);
+  const data=document.getElementById('dn-data').value||td();
+  const desc=document.getElementById('dn-desc').value.trim();
+  if(!cat){alert('Selecione a categoria da despesa.');return;}
+  if(!val||val<=0){alert('Informe um valor válido para a despesa.');return;}
+  if(cat==='Outros'&&!desc){alert('Para a categoria "Outros", descreva a despesa.');return;}
+  const rec={dono:d,mes:data.slice(0,7),categoria:cat,descricao:desc||null,valor:val,data:data};
+  const saved=await despAdd(rec);
+  if(!saved) return;
+  document.getElementById('dn-cat').value='';
+  document.getElementById('dn-val').value='';
+  document.getElementById('dn-desc').value='';
+  dnCatChange();
+  if(rec.mes!==curMes){curMes=rec.mes;updateMesLabel();}
+  renderDonoModal();
+  renderProp();
+}
+async function delDespesa(id){
+  if(!confirm('Excluir esta despesa?'))return;
+  await despDel(id);
+  renderDonoModal();renderProp();
+}
+
+function renderDonoChart(d){
+  const recM={},despM={};
+  allD().filter(r=>r.dono===d).forEach(r=>{const k=(r.prev_pgto||'').slice(0,7);if(k)recM[k]=(recM[k]||0)+fN(r.valor);});
+  DESPESAS.filter(x=>x.dono===d).forEach(x=>{const k=x.mes;if(k)despM[k]=(despM[k]||0)+fN(x.valor);});
+  let meses=[...new Set([...Object.keys(recM),...Object.keys(despM)])].sort();
+  if(meses.length>12) meses=meses.slice(-12);
+  const lbl=meses.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+'/'+y.slice(2);});
+  mkC('cDono',{type:'bar',data:{labels:lbl,datasets:[
+    {label:'Receitas',data:meses.map(k=>recM[k]||0),backgroundColor:'rgba(52,199,89,.8)',borderRadius:6},
+    {label:'Despesas',data:meses.map(k=>despM[k]||0),backgroundColor:'rgba(255,59,48,.8)',borderRadius:6}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:12,family:'DM Sans'},boxWidth:10,padding:14,usePointStyle:true}},tooltip:{mode:'index',callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>{const r=items.find(i=>i.dataset.label==='Receitas'); const e=items.find(i=>i.dataset.label==='Despesas'); return 'Resultado: '+fR((r?r.raw:0)-(e?e.raw:0));}}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
+}
+
+function escHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 // ── MODAL EDIT/BAIXA ──
 function openEdit(idx){
@@ -2811,7 +3039,7 @@ function go(id){
   renderAll();
 }
 
-['mEdit','mLote','mCam','mSearch'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
+['mEdit','mLote','mCam','mSearch','mDono'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
 
 // ── BOOT ──
 async function boot(){
@@ -2825,6 +3053,7 @@ async function boot(){
     if(ok) rows = await dbLoad();
   }
   DATA = rows.map(r=>({...r}));
+  DESPESAS = await despLoad();
   popSel();
   updateMesLabel();
   renderAll();
