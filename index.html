@@ -246,10 +246,10 @@ body {
 .mc:hover { box-shadow: 0 4px 20px rgba(0,0,0,.10); transform: translateY(-1px); }
 .mc::before { display: none; }
 .mc::after { display: none; }
-.mc.blue  { background: #eef3ff; }
-.mc.green { background: #edfaf3; }
-.mc.red   { background: #fff1f0; }
-.mc.amber { background: #fff8ec; }
+.mc.blue  { background: #ffffff; }
+.mc.green { background: #ffffff; }
+.mc.red   { background: #ffffff; }
+.mc.amber { background: #ffffff; }
 .mc-icon {
   font-size: 18px;
   margin-bottom: 10px;
@@ -2000,6 +2000,13 @@ const MN = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','D
 const fR = v => v==null?'—':'R$ '+parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fN = v => parseFloat(v)||0;
 const td = () => new Date().toISOString().slice(0,10);
+const fFormaLabel = f => {
+  if(!f) return '—';
+  const fl = f.toLowerCase();
+  if(fl==='crédito 2x'||fl==='credito 2x') return 'Crédito 2x';
+  if(fl==='crédito 3x'||fl==='credito 3x') return 'Crédito 3x';
+  return f;
+};
 // Formata 'YYYY-MM-DD' -> 'DD/MM'
 const fDM = d => (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d.slice(8,10)+'/'+d.slice(5,7) : '—';
 function addD(d,n){const dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);}
@@ -2313,7 +2320,7 @@ function renderBaixas(){
           </div>
           <div class="pcard-tags">
             ${tipTag(r.tipo)}
-            <span class="tag tag-forma">${r.forma}</span>
+            <span class="tag tag-forma">${fFormaLabel(r.forma)}</span>
             ${r.obs?`<span class="tag" style="background:var(--surface);color:var(--ink3);font-size:10.5px;font-style:italic;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.obs}">📝 ${r.obs}</span>`:''}
           </div>
           <div class="pcard-meta">
@@ -2366,7 +2373,7 @@ function renderLanc(){
       <td>${r.cliente}</td>
       <td>${tipTag(r.tipo)}</td>
       <td style="font-size:12px;color:var(--ink3)">${r.saida||'—'}</td>
-      <td><span class="tag tag-forma">${r.forma}</span></td>
+      <td><span class="tag tag-forma">${fFormaLabel(r.forma)}</span></td>
       <td class="nr b">${fR(r.valor)}</td>
       <td style="font-size:12px;color:var(--ink3)">${r.prev_pgto||'—'}</td>
       <td>${stTag(r)}</td>
@@ -2599,7 +2606,7 @@ function openEdit(idx){
       <span class="placa">${r.placa}</span>
       <span><span class="ddot" style="background:${col}"></span><strong>${r.dono}</strong></span>
       ${tipTag(r.tipo)}
-      <span class="tag tag-forma">${r.forma}</span>
+      <span class="tag tag-forma">${fFormaLabel(r.forma)}</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:13px">
       <div><span style="color:var(--ink3)">Saída</span> <strong>${r.saida||'—'}</strong></div>
@@ -2655,7 +2662,8 @@ function saveEdit(){
   r.forma=document.getElementById('e-f').value;
   r.saida=document.getElementById('e-s').value||null;
   r.retorno=document.getElementById('e-r').value||null;
-  r.prev_pgto=document.getElementById('e-pp').value||null;
+  const _pp=document.getElementById('e-pp').value||null;
+  r.prev_pgto=_pp?proxUtil(_pp):null;
   r.valor=parseFloat(document.getElementById('e-v').value)||0;
   r.valor_pago=parseFloat(document.getElementById('e-vp').value)||null;
   r.saldo=parseFloat(document.getElementById('e-sl').value)||0;
@@ -2964,7 +2972,8 @@ function addN(){
   const s=document.getElementById('nf-s').value||null;
   const rr=document.getElementById('nf-r').value||null;
   const v=parseFloat(document.getElementById('nf-v').value)||0;
-  const pp=document.getElementById('nf-pp').value||null;
+  const _ppRaw=document.getElementById('nf-pp').value||null;
+  const pp=_ppRaw?proxUtil(_ppRaw):null;
   const vp=parseFloat(document.getElementById('nf-vp').value)||0;
   const obs=document.getElementById('nf-obs').value||null;
   if(!p||!d||!c||!v){document.getElementById('nMsg').innerHTML='<span style="color:var(--red)">Preencha placa, proprietário, cliente e valor.</span>';return;}
@@ -2981,7 +2990,7 @@ function rNovos(){
   document.getElementById('novosBody').innerHTML=NOVOS.map((r,i)=>`<tr>
     <td><span class="placa">${r.placa}</span></td><td>${r.dono}</td><td>${r.cliente}</td>
     <td style="font-size:12px">${r.saida||'—'}</td>
-    <td class="nr">${fR(r.valor)}</td><td><span class="tag tag-forma">${r.forma}</span></td>
+    <td class="nr">${fR(r.valor)}</td><td><span class="tag tag-forma">${fFormaLabel(r.forma)}</span></td>
     <td style="font-size:12px">${r.prev_pgto||'—'}</td>
     <td><button class="btn btn-xs" style="color:var(--red)" onclick="NOVOS.splice(${i},1);rNovos();renderAll()">✕</button></td>
   </tr>`).join('');
