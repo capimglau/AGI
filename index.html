@@ -2904,8 +2904,8 @@ function renderPremissas(){
 function getTaxaForma(forma){
   const fl = forma.toLowerCase();
   if(fl.includes('débito')||fl.includes('debito')) return PREM.taxaDebito/100;
-  if(fl.includes('crédito 60')||fl.includes('credito 60')) return PREM.taxaParc2/100;
-  if(fl.includes('crédito 90')||fl.includes('credito 90')) return PREM.taxaParc3/100;
+  if(fl.includes('crédito 2x')||fl.includes('credito 2x')||fl.includes('crédito 60')||fl.includes('credito 60')) return PREM.taxaParc2/100;
+  if(fl.includes('crédito 3x')||fl.includes('credito 3x')||fl.includes('crédito 90')||fl.includes('credito 90')) return PREM.taxaParc3/100;
   if(fl.includes('crédito')||fl.includes('credito')) return PREM.taxaCredito/100;
   return 0;
 }
