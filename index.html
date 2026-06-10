@@ -198,6 +198,8 @@ body {
 .btn-blue:hover { background: #1239d4; }
 .btn-green { background: var(--green-soft); color: var(--green); border-color: transparent; }
 .btn-green:hover { background: #d0eddc; }
+.btn-baixar { background: var(--surface); color: var(--ink2); border-color: transparent; }
+.btn-baixar:hover { background: var(--border); }
 .btn-amber { background: var(--amber-soft); color: var(--amber); border-color: transparent; }
 .btn-amber:hover { background: #fde8bc; }
 .btn-red { background: var(--red-soft); color: var(--red); border-color: transparent; }
@@ -246,10 +248,10 @@ body {
 .mc:hover { box-shadow: 0 4px 20px rgba(0,0,0,.10); transform: translateY(-1px); }
 .mc::before { display: none; }
 .mc::after { display: none; }
-.mc.blue  { background: #eef3ff; }
-.mc.green { background: #edfaf3; }
-.mc.red   { background: #fff1f0; }
-.mc.amber { background: #fff8ec; }
+.mc.blue  { background: var(--card); }
+.mc.green { background: var(--card); }
+.mc.red   { background: var(--card); }
+.mc.amber { background: var(--card); }
 .mc-icon {
   font-size: 18px;
   margin-bottom: 10px;
@@ -1293,10 +1295,10 @@ html[data-theme="dark"] .day-items,
 html[data-theme="dark"] .modal,
 html[data-theme="dark"] .owner-pills { background: var(--card); border-color: var(--line); }
 html[data-theme="dark"] .mc { border: none; box-shadow: 0 2px 12px rgba(0,0,0,.25); }
-html[data-theme="dark"] .mc.blue  { background: #1a2540; }
-html[data-theme="dark"] .mc.green { background: #112820; }
-html[data-theme="dark"] .mc.red   { background: #2a1518; }
-html[data-theme="dark"] .mc.amber { background: #261e0e; }
+html[data-theme="dark"] .mc.blue  { background: var(--card); }
+html[data-theme="dark"] .mc.green { background: var(--card); }
+html[data-theme="dark"] .mc.red   { background: var(--card); }
+html[data-theme="dark"] .mc.amber { background: var(--card); }
 html[data-theme="dark"] .pcard,
 html[data-theme="dark"] .swipe .pcard { background: var(--card); }
 html[data-theme="dark"] .pcard:hover,
@@ -1363,9 +1365,9 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
     <!-- LEFT: day groups -->
     <div>
       <div class="fbar fbar-baixas">
-        <button class="btn" onclick="toggleFilters()">⚙ Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
-        <button class="btn" onclick="selTodos()">☑ Todos</button>
-        <button class="btn btn-green" onclick="baixarSelecionados()">⬇ Baixar</button>
+        <button class="btn" onclick="toggleFilters()">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
+        <button class="btn" onclick="selTodos()">Todos</button>
+        <button class="btn btn-baixar" onclick="baixarSelecionados()">Baixar</button>
       </div>
       <div class="filt-panel" id="filtPanel" hidden>
         <select id="bf-dono" onchange="renderBaixas()">
@@ -1500,7 +1502,7 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
         <div class="fp"><label>Tipo</label>
           <select id="nf-t"><option>Locação</option><option>Avarias</option><option>Lavagem</option><option>Multas</option><option>Outros</option></select></div>
         <div class="fp"><label>Forma</label>
-          <select id="nf-f" onchange="calcN()"><option>Crédito</option><option>Crédito 90 dias</option><option>Crédito 60 dias</option><option>Débito</option><option>Boleto</option><option>Depósito</option><option>Dinheiro</option></select></div>
+          <select id="nf-f" onchange="calcN()"><option>Crédito</option><option>Crédito 3x</option><option>Crédito 2x</option><option>Débito</option><option>Boleto</option><option>Depósito</option><option>Dinheiro</option></select></div>
         <div class="fp"><label>Saída</label><input type="date" id="nf-s" onchange="calcN()"></div>
         <div class="fp"><label>Retorno</label><input type="date" id="nf-r" onchange="calcN()"></div>
         <div class="fp"><label>Data de pagamento</label><input type="date" id="nf-dp" onchange="calcN()"></div>
@@ -1744,7 +1746,7 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
         <div class="fp"><label>Tipo</label>
           <select id="e-t"><option>Locação</option><option>Avarias</option><option>Lavagem</option><option>Multas</option><option>Taxa Mario</option><option>Taxa Alfredo</option><option>Taxa Bruno</option><option>Outros</option></select></div>
         <div class="fp"><label>Forma</label>
-          <select id="e-f"><option>Crédito</option><option>Crédito 90 dias</option><option>Crédito 60 dias</option><option>Débito</option><option>Boleto</option><option>Depósito</option><option>Dinheiro</option></select></div>
+          <select id="e-f"><option>Crédito</option><option>Crédito 3x</option><option>Crédito 2x</option><option>Débito</option><option>Boleto</option><option>Depósito</option><option>Dinheiro</option></select></div>
         <div class="fp"><label>Saída</label><input type="date" id="e-s"></div>
         <div class="fp"><label>Retorno</label><input type="date" id="e-r"></div>
         <div class="fp"><label>Valor</label><input type="number" id="e-v" step="0.01"></div>
@@ -2902,8 +2904,8 @@ function renderPremissas(){
 function getTaxaForma(forma){
   const fl = forma.toLowerCase();
   if(fl.includes('débito')||fl.includes('debito')) return PREM.taxaDebito/100;
-  if(fl.includes('crédito 60')||fl.includes('credito 60')) return PREM.taxaParc2/100;
-  if(fl.includes('crédito 90')||fl.includes('credito 90')) return PREM.taxaParc3/100;
+  if(fl.includes('crédito 2x')||fl.includes('credito 2x')||fl.includes('crédito 60')||fl.includes('credito 60')) return PREM.taxaParc2/100;
+  if(fl.includes('crédito 3x')||fl.includes('credito 3x')||fl.includes('crédito 90')||fl.includes('credito 90')) return PREM.taxaParc3/100;
   if(fl.includes('crédito')||fl.includes('credito')) return PREM.taxaCredito/100;
   return 0;
 }
