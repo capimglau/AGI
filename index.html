@@ -3365,14 +3365,23 @@ async function handleImg(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=async e=>{
-    const b64=e.target.result.split(',')[1];
     _aiImg=e.target.result;
     document.getElementById('prevImg').src=e.target.result;document.getElementById('prevImg').style.display='block';
-    const st=document.getElementById('aiSt');
-    st.style.display='block';st.className='ai-st load';st.textContent='⏳ Analisando contrato...';
+    const st=document.getElementById('aiSt');st.style.display='block';
+    const cfg=window.AUTOGEST_CONFIG||{};
+    const proxy=cfg.aiProxy;
+    // Sem proxy configurado: leitura por IA indisponível → preenchimento manual (sem erro)
+    if(!proxy){
+      st.className='ai-st';st.textContent='📷 Foto carregada. Preencha os dados abaixo. (Leitura automática por IA ainda não está ativada.)';
+      document.getElementById('aiForm').style.display='grid';
+      return;
+    }
+    const b64=e.target.result.split(',')[1];
+    st.className='ai-st load';st.textContent='⏳ Analisando contrato...';
     document.getElementById('aiForm').style.display='none';
     try{
-      const resp=await fetch((window.AUTOGEST_CONFIG&&window.AUTOGEST_CONFIG.aiProxy)||'https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'Analise este contrato de locadora brasileira. Responda APENAS JSON puro sem markdown: {"placa":"","cliente":"","saida":"YYYY-MM-DD","retorno":"YYYY-MM-DD","valor":0,"forma":"Crédito"}'}]}]})});
+      const resp=await fetch(proxy,{method:'POST',headers:{'Content-Type':'application/json','apikey':cfg.key||'','Authorization':'Bearer '+(cfg.key||'')},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'Analise este contrato de locadora brasileira. Responda APENAS JSON puro sem markdown: {"placa":"","cliente":"","saida":"YYYY-MM-DD","retorno":"YYYY-MM-DD","valor":0,"forma":"Crédito"}'}]}]})});
+      if(!resp.ok)throw new Error('HTTP '+resp.status);
       const data=await resp.json();
       const txt=data.content?.[0]?.text||'{}';
       let p={};try{p=JSON.parse(txt.replace(/```json?|```/g,'').trim());}catch(e){}
@@ -3384,9 +3393,9 @@ async function handleImg(input){
         document.getElementById('ai-r').value=p.retorno||'';
         document.getElementById('ai-v').value=p.valor||'';
         if(p.forma){const s=document.getElementById('ai-f');[...s.options].forEach(o=>{if(o.value===p.forma)s.value=o.value;});}
-      } else {st.className='ai-st err';st.textContent='⚠ Não identificado. Preencha manualmente.';}
+      } else {st.className='ai-st err';st.textContent='⚠ Não identificado na foto. Preencha manualmente.';}
       document.getElementById('aiForm').style.display='grid';
-    }catch(e){document.getElementById('aiSt').className='ai-st err';document.getElementById('aiSt').textContent='⚠ Erro na IA.';document.getElementById('aiForm').style.display='grid';}
+    }catch(e){document.getElementById('aiSt').className='ai-st err';document.getElementById('aiSt').textContent='⚠ Não foi possível ler pela IA ('+e.message+'). Preencha manualmente.';document.getElementById('aiForm').style.display='grid';}
   };reader.readAsDataURL(file);
 }
 function confirmAI(){
