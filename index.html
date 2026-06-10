@@ -484,6 +484,7 @@ body {
 .pcard-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .pcard-meta { font-size: 11.5px; color: var(--ink3); display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .pcard-meta > span { display: inline-flex; align-items: center; }
+.pcard-contrato { color: var(--blue); font-weight: 600; background: var(--blue-soft); padding: 1px 8px; border-radius: 20px; font-size: 10.5px; }
 .pcard-right {
   display: flex;
   flex-direction: column;
@@ -1517,6 +1518,7 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
           <option value="todos">Todos</option>
         </select>
       </div>
+      <div class="swipe-hint">Deslize um card para <b>baixar/editar</b> · segure para ver o <b>📎 contrato</b></div>
       <div id="baixasContainer"></div>
     </div>
 
@@ -1940,6 +1942,14 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
   </div>
 </div>
 
+<!-- ─── MODAL CONTRATO (foto escaneada · long-press no card) ─── -->
+<div class="overlay" id="mContrato">
+  <div class="modal" style="width:min(620px,100%)">
+    <div class="mhd">📎 Contrato <button class="mcl" onclick="closeContrato()">✕</button></div>
+    <div id="contratoBody"></div>
+  </div>
+</div>
+
 <!-- BUSCA GLOBAL -->
 <div class="overlay" id="mSearch">
   <div class="modal" style="max-width:520px">
@@ -2096,6 +2106,68 @@ const PLACA_DONO = {
   'UFR2H17':'Arnaldo','TKE2F18':'Eliana','UGE4E68':'Eliana',
   'TKAS':'Silvio 2','UDOS':'Silvio 2',
 };
+
+// ─── CONTRATOS (imagem escaneada do contrato) ───
+// Guarda a foto do contrato lida pela IA. Primeiro tenta o Supabase Storage
+// (bucket 'contratos', cross-device); sempre mantém uma cópia comprimida no
+// localStorage como reserva — assim a imagem fica salva mesmo em modo demo
+// ou se o bucket não existir.
+const CONTRATO_LS_KEY = 'agi-contratos';
+let CONTRATOS = {};                          // { chave: dataURL | httpURL }
+function contratosLoad(){ try{ CONTRATOS = JSON.parse(localStorage.getItem(CONTRATO_LS_KEY)||'{}'); }catch(e){ CONTRATOS={}; } }
+function contratosPersist(){ try{ localStorage.setItem(CONTRATO_LS_KEY, JSON.stringify(CONTRATOS)); }catch(e){ console.warn('Armazenamento local cheio — contrato não salvo localmente.', e); } }
+function contratoKey(r){ if(!r) return null; if(r.id!=null) return 'id'+r.id; if(!r._cid) r._cid='cid'+Date.now()+Math.random().toString(36).slice(2,6); return r._cid; }
+// Reduz a foto (lado máx. ~1400px, JPEG) para caber no armazenamento.
+function comprimeImg(dataURL, maxLado=1400, q=.72){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.naturalWidth, h=img.naturalHeight;
+      if(Math.max(w,h)>maxLado){ const s=maxLado/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+      try{ const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); res(c.toDataURL('image/jpeg',q)); }
+      catch(e){ res(dataURL); }
+    };
+    img.onerror=()=>res(dataURL);
+    img.src=dataURL;
+  });
+}
+async function contratoSave(r, dataURL){
+  if(!r || !dataURL) return;
+  const key=contratoKey(r);
+  const small=await comprimeImg(dataURL);
+  // melhor-esforço: sobe pro Supabase Storage (não bloqueia em caso de falha)
+  if(SB){
+    try{
+      const blob=await (await fetch(small)).blob();
+      const path=key+'.jpg';
+      const {error}=await SB.storage.from('contratos').upload(path, blob, {upsert:true, contentType:'image/jpeg'});
+      if(!error){
+        const {data}=SB.storage.from('contratos').getPublicUrl(path);
+        if(data&&data.publicUrl){ CONTRATOS[key]=data.publicUrl; contratosPersist(); return; }
+      }
+    }catch(e){ /* segue para o localStorage */ }
+  }
+  CONTRATOS[key]=small; contratosPersist();
+}
+function contratoGet(r){ const k=contratoKey(r); return k?(CONTRATOS[k]||null):null; }
+function contratoDel(r){
+  const k=contratoKey(r); if(!k) return;
+  if(CONTRATOS[k]){ delete CONTRATOS[k]; contratosPersist(); }
+  if(SB){ try{ SB.storage.from('contratos').remove([k+'.jpg']); }catch(e){} }
+}
+// Visualizador (aberto por long-press no card de baixa)
+function abrirContrato(r){
+  const src=contratoGet(r);
+  const cont=document.getElementById('contratoBody');
+  if(src){
+    cont.innerHTML=`<img src="${src}" alt="Contrato" style="width:100%;border-radius:12px;display:block">
+      <a href="${src}" target="_blank" rel="noopener" class="btn btn-blue" style="width:100%;justify-content:center;margin-top:12px;text-decoration:none">Abrir em tamanho real</a>`;
+  } else {
+    cont.innerHTML=`<div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Sem contrato salvo</div><div class="empty-sub">A foto fica disponível quando o lançamento é criado pela leitura de contrato com IA (📷).</div></div>`;
+  }
+  document.getElementById('mContrato').classList.add('on');
+}
+function closeContrato(){ document.getElementById('mContrato').classList.remove('on'); }
 
 function autoFillDono(placaId, donoSelectId) {
   const placa = document.getElementById(placaId);
@@ -2456,6 +2528,7 @@ function renderBaixas(){
           </div>
           <div class="pcard-meta">
             <span class="pcard-period">🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
+            ${contratoGet(r)?`<span class="pcard-contrato" title="Segure para ver o contrato">📎 contrato</span>`:''}
           </div>
         </div>
         <div class="pcard-right">
@@ -2897,7 +2970,15 @@ function swStart(e){
   if(e.target.closest('.pcard-chk'))return;
   const wrap=card.closest('.swipe'); if(!wrap)return;
   const p=swXY(e), pw=panelW(wrap);
-  SW={card,wrap,pw,x0:p.x,y0:p.y,base:wrap.classList.contains('open')?-pw:0,dx:0,decided:false,horiz:false};
+  SW={card,wrap,pw,x0:p.x,y0:p.y,base:wrap.classList.contains('open')?-pw:0,dx:0,decided:false,horiz:false,longPressed:false};
+  // long-press: abre a foto do contrato escaneado
+  SW.lpTimer=setTimeout(()=>{
+    if(!SW||SW.decided)return;
+    SW.longPressed=true;
+    const rec=allD()[+SW.card.dataset.gi];
+    if(navigator.vibrate)navigator.vibrate(12);
+    abrirContrato(rec);
+  },500);
   if(e.type==='mousedown'){document.addEventListener('mousemove',swMove);document.addEventListener('mouseup',swEnd);}
 }
 function swMove(e){
@@ -2906,6 +2987,7 @@ function swMove(e){
   if(!SW.decided){
     if(Math.abs(dx)<6&&Math.abs(dy)<6)return;
     SW.decided=true; SW.horiz=Math.abs(dx)>Math.abs(dy);
+    clearTimeout(SW.lpTimer);                          // movimento cancela o long-press
     if(SW.horiz){SW.wrap.classList.add('dragging'); closeRow(SW.wrap);}
   }
   if(!SW.horiz)return;
@@ -2916,9 +2998,11 @@ function swMove(e){
 function swEnd(e){
   if(!SW)return;
   const s=SW; SW=null;
+  clearTimeout(s.lpTimer);
   document.removeEventListener('mousemove',swMove);document.removeEventListener('mouseup',swEnd);
   s.card.style.transition='';
   s.wrap.classList.remove('dragging');
+  if(s.longPressed)return;                            // long-press já abriu o contrato
   if(!s.decided){                                     // toque simples: alterna abrir/fechar
     if(s.wrap.classList.contains('open'))closeRow();
     else openRowEl(s.wrap,s.pw);
@@ -3130,12 +3214,14 @@ function rNovos(){
 // ── CÂMERA ──
 function openCam(){document.getElementById('mCam').classList.add('on');}
 function closeCam(){document.getElementById('mCam').classList.remove('on');}
-function clearAI(){['aiForm','aiSt','prevImg'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('fi').value='';}
+let _aiImg=null;   // dataURL da foto do contrato lida pela IA (salva ao confirmar)
+function clearAI(){['aiForm','aiSt','prevImg'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('fi').value='';_aiImg=null;}
 async function handleImg(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=async e=>{
     const b64=e.target.result.split(',')[1];
+    _aiImg=e.target.result;
     document.getElementById('prevImg').src=e.target.result;document.getElementById('prevImg').style.display='block';
     const st=document.getElementById('aiSt');
     st.style.display='block';st.className='ai-st load';st.textContent='⏳ Analisando contrato...';
@@ -3176,7 +3262,8 @@ function confirmAI(){
   else if((fl.includes('débito')||fl.includes('debito'))&&s)pp=addDUtil(s,PREM.prazoDebito);
   const taxa=getTaxaForma(f);
   const _rec={placa:p,dono:d||'Indefinido',saida:s,retorno:r,cliente:c,tipo:'Locação',valor:v,forma:f,prev_pgto:pp,valor_pago:v*(1-taxa),saldo:v*taxa,obs:null};
-  dbInsert(_rec).then(saved=>{NOVOS.push(saved);rNovos();popSel();renderAll();});
+  const _img=_aiImg;
+  dbInsert(_rec).then(saved=>{NOVOS.push(saved);if(_img)contratoSave(saved,_img).then(renderAll);rNovos();popSel();renderAll();});
   closeCam();go('novo');
 }
 const dz=document.getElementById('dz');
@@ -3225,7 +3312,7 @@ function go(id){
   renderAll();
 }
 
-['mEdit','mLote','mCam','mSearch','mDono'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
+['mEdit','mLote','mCam','mSearch','mDono','mContrato'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
 
 // ── BOOT ──
 async function boot(){
@@ -3240,6 +3327,7 @@ async function boot(){
   }
   DATA = rows.map(r=>({...r}));
   normalizaFimDeSemana();
+  contratosLoad();
   DESPESAS = await despLoad();
   popSel();
   updateMesLabel();
