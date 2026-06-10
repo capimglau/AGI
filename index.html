@@ -427,10 +427,30 @@ body {
 .pcard.done::before { background: var(--green); }
 .pcard.done { opacity: .6; }
 .pcard-chk {
-  width: 19px; height: 19px;
+  width: 16px; height: 16px;
   cursor: pointer;
-  accent-color: var(--green);
   flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  transition: background .15s, border-color .15s;
+  position: relative;
+}
+.pcard-chk:checked {
+  background: var(--green);
+  border-color: var(--green);
+}
+.pcard-chk:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px; top: 1px;
+  width: 5px; height: 8px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
 }
 .pcard-done-icon {
   width: 18px; height: 18px;
@@ -2800,7 +2820,13 @@ function initSwipe(){
 }
 
 // ── BAIXA EM LOTE ──
-function selTodos(){document.querySelectorAll('.chk-b').forEach(c=>c.checked=true);}
+let _todosOn=false;
+function selTodos(){
+  _todosOn=!_todosOn;
+  document.querySelectorAll('.chk-b').forEach(c=>c.checked=_todosOn);
+  const btn=document.querySelector('[onclick="selTodos()"]');
+  if(btn)btn.style.background=_todosOn?'var(--green-soft)':'';
+}
 function baixarSelecionados(){
   const sels=[...document.querySelectorAll('.chk-b:checked')];
   if(!sels.length){alert('Selecione ao menos um lançamento.');return;}
@@ -2866,8 +2892,8 @@ function renderPremissas(){
   const p3 = addD(today, 90);
 
   const rows = [
-    ['Crédito 2x', PREM.taxaParc2, fmt(p1), fmt(p2), '—', `R$ ${(1000*(1-PREM.taxaParc2/100)).toFixed(2)}`],
-    ['Crédito 3x', PREM.taxaParc3, fmt(p1), fmt(p2), fmt(p3), `R$ ${(1000*(1-PREM.taxaParc3/100)).toFixed(2)}`],
+    ['Crédito 2x (2×)', PREM.taxaParc2, fmt(p1), fmt(p2), '—', `R$ ${(1000*(1-PREM.taxaParc2/100)).toFixed(2)}`],
+    ['Crédito 3x (3×)', PREM.taxaParc3, fmt(p1), fmt(p2), fmt(p3), `R$ ${(1000*(1-PREM.taxaParc3/100)).toFixed(2)}`],
     ['Crédito parcelado (4-12×)', PREM.taxaParc12, fmt(p1), fmt(p2), fmt(p3)+'+', `R$ ${(1000*(1-PREM.taxaParc12/100)).toFixed(2)}`],
   ];
 
@@ -2904,8 +2930,8 @@ function renderPremissas(){
 function getTaxaForma(forma){
   const fl = forma.toLowerCase();
   if(fl.includes('débito')||fl.includes('debito')) return PREM.taxaDebito/100;
-  if(fl.includes('crédito 2x')||fl.includes('credito 2x')||fl.includes('crédito 60')||fl.includes('credito 60')) return PREM.taxaParc2/100;
-  if(fl.includes('crédito 3x')||fl.includes('credito 3x')||fl.includes('crédito 90')||fl.includes('credito 90')) return PREM.taxaParc3/100;
+  if(fl.includes('crédito 60')||fl.includes('credito 60')) return PREM.taxaParc2/100;
+  if(fl.includes('crédito 90')||fl.includes('credito 90')) return PREM.taxaParc3/100;
   if(fl.includes('crédito')||fl.includes('credito')) return PREM.taxaCredito/100;
   return 0;
 }
