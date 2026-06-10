@@ -1977,7 +1977,7 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 <div class="overlay" id="mSearch">
   <div class="modal" style="max-width:520px">
     <div class="mhd">Buscar lançamento <button class="mcl" onclick="closeSearch()">✕</button></div>
-    <input id="searchInput" class="search-input" type="text" placeholder="Placa ou cliente…" autocomplete="off" oninput="runSearch()">
+    <input id="searchInput" class="search-input" type="text" placeholder="Placa, cliente, proprietário, valor, referência…" autocomplete="off" oninput="runSearch()">
     <div id="searchResults"></div>
   </div>
 </div>
@@ -2971,20 +2971,32 @@ function openSearch(){
   setTimeout(()=>i.focus(),120);
 }
 function closeSearch(){document.getElementById('mSearch').classList.remove('on');}
+// Texto pesquisável de um lançamento: TODOS os campos, inclusive
+// obs/referência bancária, datas e valores.
+function searchHaystack(r){
+  return [r.placa,r.cliente,r.dono,r.tipo,r.forma,r.obs,
+          r.saida,r.retorno,r.prev_pgto,
+          r.valor,r.valor_pago,r.saldo]
+    .map(v=>v==null?'':String(v)).join(' ').toLowerCase();
+}
 function runSearch(){
-  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  const raw=document.getElementById('searchInput').value.trim().toLowerCase();
   const box=document.getElementById('searchResults');
-  if(!q){box.innerHTML='<div class="srow-empty">Digite uma placa ou nome de cliente.</div>';return;}
+  if(!raw){box.innerHTML='<div class="srow-empty">Busque por placa, cliente, proprietário, valor, referência bancária…</div>';return;}
+  const terms=raw.split(/\s+/).filter(Boolean);   // todos os termos devem casar
   const all=allD();
   const res=[];
-  for(let i=0;i<all.length;i++){const r=all[i];if((r.placa||'').toLowerCase().includes(q)||(r.cliente||'').toLowerCase().includes(q))res.push({r,i});if(res.length>=40)break;}
+  for(let i=0;i<all.length;i++){
+    const hay=searchHaystack(all[i]);
+    if(terms.every(t=>hay.includes(t))){res.push({r:all[i],i});if(res.length>=60)break;}
+  }
   if(!res.length){box.innerHTML='<div class="srow-empty">Nada encontrado.</div>';return;}
   box.innerHTML=res.map(({r,i})=>{
     const col=DC[r.dono]||'#888',pago=isPago(r);
     return `<div class="srow" onclick="searchOpen(${i})">
       <div style="min-width:0">
         <div style="display:flex;gap:7px;align-items:center"><span class="placa">${r.placa}</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.cliente||'—'}</span></div>
-        <div style="font-size:11.5px;color:var(--ink3);margin-top:2px"><span class="ddot" style="background:${col}"></span>${r.dono} · ${fDM(r.saida)}→${fDM(r.retorno)}</div>
+        <div style="font-size:11.5px;color:var(--ink3);margin-top:2px"><span class="ddot" style="background:${col}"></span>${r.dono} · ${fDM(r.saida)}→${fDM(r.retorno)}${r.obs?` · <span title="Referência">📎 ${escHtml(r.obs)}</span>`:''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-weight:700;color:${pago?'var(--green)':'var(--blue)'}">${fR(r.valor)}</div>
