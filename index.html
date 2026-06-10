@@ -1108,8 +1108,8 @@ details[open] summary::before { transform: rotate(90deg); }
     gap: 8px;
   }
   .logo { margin: 0; font-size: 17px; }
-  .month-nav { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); margin: 0; justify-content: center; }
-  .header-right { margin-left: auto; width: auto; gap: 8px; justify-content: flex-end; }
+  .month-nav { position: static; transform: none; margin-left: auto; }
+  .header-right { width: auto; gap: 8px; justify-content: flex-end; }
   /* Cartões Pendente/Recebido são duplicata dos painéis — escondidos no mobile */
   .header-right .stat-pill { display: none; }
   .mn-label { min-width: 92px; }
@@ -1296,6 +1296,7 @@ html[data-theme="dark"] {
   background: #131c2c;
 }
 html[data-theme="dark"] body { background: #131c2c; color: var(--ink); }
+html[data-theme="dark"] .logo-img { mix-blend-mode: screen; }
 html[data-theme="dark"] .header { background: rgba(20,28,44,.86); border-bottom-color: rgba(255,255,255,.07); }
 html[data-theme="dark"] .month-nav { background: var(--surface2); box-shadow: none; }
 html[data-theme="dark"] .mn-btn { background: transparent; color: var(--ink2); }
