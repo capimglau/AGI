@@ -332,8 +332,8 @@ body {
 .fbar-baixas .btn { flex: 1; justify-content: center; padding: 11px 12px; border-radius: 999px; font-weight: 600; }
 
 /* Seletor segmentado (Resumo / Lançamentos / Premissas) — estilo iOS */
-.subnav { display: flex; gap: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin-bottom: 16px; }
-.subnav-btn { flex: 1; border: none; background: none; padding: 8px 6px; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink3); cursor: pointer; transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); -webkit-tap-highlight-color: transparent; }
+.subnav { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin-bottom: 16px; }
+.subnav-btn { flex: 1; min-width: 0; border: none; background: none; padding: 8px 3px; border-radius: 9px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--ink3); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); -webkit-tap-highlight-color: transparent; }
 .subnav-btn.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
 .filt-panel select {
   width: 100%;
@@ -1583,7 +1583,9 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 <div class="page" id="page-lancamentos">
   <div class="subnav">
     <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
-    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançamentos</button>
+    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
+    <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
+    <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
     <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
   </div>
   <div class="fbar">
@@ -1619,6 +1621,13 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 
 <!-- BOLETOS A FAZER -->
 <div class="page" id="page-boletos">
+  <div class="subnav">
+    <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
+    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
+    <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
+    <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
+    <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
+  </div>
   <div class="page-back">
     <h2 class="page-title">📄 Boletos</h2>
   </div>
@@ -1635,7 +1644,9 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 <div class="page" id="page-resumo">
   <div class="subnav">
     <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
-    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançamentos</button>
+    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
+    <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
+    <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
     <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
   </div>
   <div class="mrow" id="res-m"></div>
@@ -1671,6 +1682,13 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 
 <!-- PROPRIETÁRIOS -->
 <div class="page" id="page-proprietarios">
+  <div class="subnav">
+    <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
+    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
+    <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
+    <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
+    <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
+  </div>
   <div class="g3" id="propCards" style="margin-bottom:16px"></div>
   <div class="card">
     <div class="card-hd">Evolução mensal</div>
@@ -1723,7 +1741,9 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
   <div style="max-width:900px">
     <div class="subnav">
       <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
-      <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançamentos</button>
+      <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
+      <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
+      <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
       <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
     </div>
 
@@ -3500,10 +3520,10 @@ function go(id){
   curPage=id;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
-  // Lançamentos e Premissas vivem dentro de Resumo: dock mantém "Resumo" ativo
-  const dockId=(id==='lancamentos'||id==='premissas')?'resumo':id;
+  // Lançamentos, Boletos, Donos e Premissas vivem dentro de Resumo: dock mantém "Resumo" ativo
+  const dockId=['lancamentos','premissas','boletos','proprietarios'].includes(id)?'resumo':id;
   document.querySelectorAll('.ntab').forEach(t=>t.classList.toggle('on', t.getAttribute('onclick')===`go('${dockId}')`));
-  document.querySelectorAll('.subnav-btn').forEach(b=>b.classList.toggle('on', b.dataset.pg===id));
+  document.querySelectorAll('.subnav-btn[data-pg]').forEach(b=>b.classList.toggle('on', b.dataset.pg===id));
   renderAll();
 }
 
@@ -3541,8 +3561,6 @@ boot();
 <div class="nav-tabs">
   <button class="ntab on" onclick="go('baixas')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nt-full">Recebimentos</span><span class="nt-short">Receber</span></button>
   <button class="ntab" onclick="go('resumo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-full">Resumo</span><span class="nt-short">Resumo</span></button>
-  <button class="ntab" onclick="go('boletos')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="13.5" y1="9" x2="13.5" y2="15"/><line x1="17" y1="9" x2="17" y2="15"/></svg></span><span class="nt-full">Boletos</span><span class="nt-short">Boletos</span></button>
-  <button class="ntab" onclick="go('proprietarios')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-full">Proprietários</span><span class="nt-short">Donos</span></button>
   <button class="ntab" onclick="go('novo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-full">Novo</span><span class="nt-short">Novo</span></button>
   <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-full">Buscar</span><span class="nt-short">Buscar</span></button>
 </div>
