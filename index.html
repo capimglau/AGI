@@ -1143,6 +1143,49 @@ details[open] summary::before { transform: rotate(90deg); }
 .subnav-btn:active { transform: scale(.96); }
 .swipe-act:active { transform: scale(.97); }
 
+/* ════════════════ iOS 26 · LIQUID GLASS ════════════════ */
+/* Barra superior translúcida com desfoque e saturação (vidro líquido) */
+.header {
+  background: rgba(255,255,255,.72);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: .5px solid rgba(255,255,255,.5);
+}
+/* Brilho especular nas bordas dos cartões de vidro */
+.mc { box-shadow: 0 2px 14px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.04), inset 0 .5px 0 rgba(255,255,255,.9); }
+.day-items, .card, .owner-pills, .oc, .prem-card { box-shadow: 0 2px 12px rgba(0,0,0,.07), inset 0 .5px 0 rgba(255,255,255,.6); }
+/* Botões pílula com leve brilho de vidro no topo */
+.btn, .stat-pill, .month-nav, .mn-today {
+  box-shadow: inset 0 .5px 0 rgba(255,255,255,.65), 0 1px 2px rgba(0,0,0,.05);
+}
+
+/* Pop com física de mola no marcar como recebido */
+@keyframes chkPop { 0% { transform: scale(.8); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.pcard-chk:checked { animation: chkPop var(--t-mid) var(--ease-spring); }
+
+/* Entrada escalonada dos itens da lista (efeito cascata iOS) */
+@keyframes listIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.day-items .swipe { animation: listIn var(--t-mid) var(--ease-out) both; }
+.day-items .swipe:nth-child(1){animation-delay:.02s}
+.day-items .swipe:nth-child(2){animation-delay:.05s}
+.day-items .swipe:nth-child(3){animation-delay:.08s}
+.day-items .swipe:nth-child(4){animation-delay:.11s}
+.day-items .swipe:nth-child(5){animation-delay:.14s}
+.day-items .swipe:nth-child(6){animation-delay:.17s}
+.day-items .swipe:nth-child(n+7){animation-delay:.2s}
+
+/* Cartões de métrica entram em cascata suave */
+.mrow .mc, #res-m .mc { animation: listIn var(--t-mid) var(--ease-out) both; }
+.mrow .mc:nth-child(2){animation-delay:.04s}
+.mrow .mc:nth-child(3){animation-delay:.08s}
+.mrow .mc:nth-child(4){animation-delay:.12s}
+
+/* Painel de filtros expande com suavidade */
+.filt-panel:not([hidden]) { animation: fadeIn var(--t-mid) var(--ease-out) both; }
+
+/* Chevron e indicador de dia animam com mola */
+.day-chevron { transition: transform var(--t-mid) var(--ease-spring); }
+
 /* ════════════════ MOBILE ════════════════ */
 @media (max-width: 760px) {
   body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
@@ -1235,11 +1278,13 @@ details[open] summary::before { transform: rotate(90deg); }
   body { background: #f2f2f7; color: #1c1c1e; }
 
   /* Barras translúcidas (vidro fosco) */
-  /* NÃO usar backdrop-filter aqui: criaria um containing block e jogaria
-     a tab bar fixa (filha do header) para o topo. Fundo sólido resolve. */
+  /* Vidro líquido (iOS 26): o dock vive fora do header, então o
+     backdrop-filter aqui não afeta a barra inferior fixa. */
   .header {
-    background: #ffffff;
-    border-bottom: .5px solid rgba(0,0,0,.1);
+    background: rgba(255,255,255,.72);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: .5px solid rgba(255,255,255,.5);
     box-shadow: none;
   }
   .month-nav { background: #fff; border: none; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
@@ -1253,11 +1298,11 @@ details[open] summary::before { transform: rotate(90deg); }
     background: rgba(255,255,255,.78);
     -webkit-backdrop-filter: saturate(180%) blur(22px);
     backdrop-filter: saturate(180%) blur(22px);
-    border: .5px solid rgba(0,0,0,.06);
-    box-shadow: 0 8px 28px rgba(0,0,0,.16);
+    border: .5px solid rgba(255,255,255,.6);
+    box-shadow: 0 8px 28px rgba(0,0,0,.16), inset 0 .5px 0 rgba(255,255,255,.8);
   }
   .ntab { color: #55555a; }
-  .ntab.on { background: none; color: #1f5fa8; }
+  .ntab.on { background: rgba(0,122,255,.1); color: #1f5fa8; }
   .nt-ico { display: block; line-height: 0; }
   .nt-ico svg { width: 25px; height: 25px; display: block; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .nt-short { font-weight: 500; }
@@ -2083,6 +2128,21 @@ const fDM = d => (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d.slice(8,10)+'/'+d.slic
 function addD(d,n){const dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);}
 function proxUtil(d){const dt=new Date(d+'T12:00:00');const wd=dt.getDay();if(wd===6)dt.setDate(dt.getDate()+2);else if(wd===0)dt.setDate(dt.getDate()+1);return dt.toISOString().slice(0,10);}
 function addDUtil(d,n){return proxUtil(addD(d,n));}
+// Vencimentos que caem em sábado/domingo são movidos para a segunda-feira.
+// Roda no carregamento sobre os dados existentes (seed/legado) e persiste a correção.
+function normalizaFimDeSemana(){
+  const mudou=[];
+  DATA.forEach(r=>{
+    if(!r.prev_pgto) return;
+    const novo=proxUtil(r.prev_pgto);
+    if(novo!==r.prev_pgto){ r.prev_pgto=novo; mudou.push(r); }
+  });
+  if(mudou.length){
+    console.log(`${mudou.length} vencimento(s) em fim de semana movido(s) para segunda-feira.`);
+    if(ONLINE) mudou.forEach(r=>dbUpdate(r));
+  }
+  return mudou.length;
+}
 function allD(){return[...DATA,...NOVOS];}
 
 const isPago = r => fN(r.valor_pago) > 0;
@@ -3179,6 +3239,7 @@ async function boot(){
     if(ok) rows = await dbLoad();
   }
   DATA = rows.map(r=>({...r}));
+  normalizaFimDeSemana();
   DESPESAS = await despLoad();
   popSel();
   updateMesLabel();
