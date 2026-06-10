@@ -1146,6 +1146,21 @@ details[open] summary::before { transform: rotate(90deg); }
 .lote-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--line); border-radius: 9px; padding: 10px; margin-bottom: 12px; }
 .lote-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
 .lote-item:last-child { border-bottom: none; }
+/* ── Boletos modal ── */
+.mb-group { margin-bottom: 6px; }
+.mb-group-hd { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; padding: 8px 14px 4px; }
+.mb-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .12s; }
+.mb-row:last-child { border-bottom: none; }
+.mb-row:active { background: var(--blue-soft); }
+.mb-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; font-size: 13px; }
+.mb-check.done { background: var(--green); border-color: var(--green); color: #fff; }
+.mb-info { flex: 1; min-width: 0; }
+.mb-tipo { font-size: 11px; color: var(--ink3); }
+.mb-cliente { font-size: 13px; font-weight: 600; color: var(--ink1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mb-val { font-size: 13px; font-weight: 700; color: var(--blue); white-space: nowrap; }
+.mb-val.pago { color: var(--green); }
+.mb-val.venc { color: var(--red); }
+.mb-placa { font-size: 10px; background: var(--bg2); color: var(--ink2); border-radius: 5px; padding: 1px 6px; font-weight: 700; letter-spacing: .04em; }
 
 /* EMPTY STATE */
 .empty { text-align: center; padding: 48px 20px; color: var(--ink3); }
@@ -1178,7 +1193,7 @@ details[open] summary::before { transform: rotate(90deg); }
   /* Abas viram barra de navegação fixa embaixo (estilo app) */
   .nav-tabs {
     position: fixed;
-    left: 16px; right: 16px;
+    left: calc(5vw + 16px); right: calc(5vw + 16px);
     bottom: calc(16px + env(safe-area-inset-bottom));
     width: auto;
     margin: 0;
@@ -1264,7 +1279,7 @@ details[open] summary::before { transform: rotate(90deg); }
 
   /* Dock flutuante estilo iOS: vidro fosco, tingido, sem bloco */
   .nav-tabs {
-    background: rgba(255,255,255,.78);
+    background: rgba(255,255,255,.52);
     -webkit-backdrop-filter: saturate(180%) blur(22px);
     backdrop-filter: saturate(180%) blur(22px);
     border: .5px solid rgba(0,0,0,.06);
@@ -1363,7 +1378,7 @@ html[data-theme="dark"] .month-nav { background: var(--surface2); box-shadow: no
 html[data-theme="dark"] .mn-btn { background: transparent; color: var(--ink2); }
 html[data-theme="dark"] .mn-btn:hover { background: rgba(255,255,255,.06); color: var(--ink); }
 html[data-theme="dark"] .mn-label { color: var(--ink); }
-html[data-theme="dark"] .nav-tabs { background: rgba(23,32,50,.80); border-color: rgba(255,255,255,.07); }
+html[data-theme="dark"] .nav-tabs { background: rgba(23,32,50,.55); border-color: rgba(255,255,255,.07); }
 html[data-theme="dark"] .ntab { color: #93a1b8; }
 html[data-theme="dark"] .ntab.on { color: var(--blue); background: none; }
 html[data-theme="dark"] .stat-pill { background: var(--surface2); }
@@ -1870,6 +1885,20 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
         <button class="btn btn-red" onclick="deleteRow()">🗑 Excluir</button>
       </div>
     </details>
+  </div>
+</div>
+
+<!-- ─── MODAL GESTÃO DE BOLETOS ─── -->
+<div class="overlay" id="mBoletos">
+  <div class="modal" style="max-width:560px;max-height:88vh;display:flex;flex-direction:column">
+    <div class="mhd" style="flex-shrink:0">
+      <span>Boletos do Mês</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="mbResume" style="font-size:11px;font-weight:600;color:var(--ink3)"></span>
+        <button class="mcl" onclick="document.getElementById('mBoletos').classList.remove('on')">✕</button>
+      </div>
+    </div>
+    <div id="mBoletosBody" style="overflow-y:auto;flex:1;padding:2px 0 8px"></div>
   </div>
 </div>
 
@@ -3027,12 +3056,12 @@ function renderBoletosBanner(){
   const bn = document.getElementById('boletosBanner');
   if(bn) bn.style.display = 'flex';
 
-  const feitos   = boletos.filter(r => isPago(r));
-  const aFazer   = boletos.filter(r => isPend(r) && r.prev_pgto >= hoje);
-  const vencidos = boletos.filter(r => isVenc(r));
+  const feitos   = boletos.filter(r => r.boleto_feito);
+  const aFazer   = boletos.filter(r => !r.boleto_feito);
+  const vencidos = boletos.filter(r => isVenc(r) && !r.boleto_feito);
 
   const totFazer  = aFazer.reduce((a,r)=>a+fN(r.saldo),0);
-  const totFeitos = feitos.reduce((a,r)=>a+fN(r.valor_pago),0);
+  const totFeitos = feitos.reduce((a,r)=>a+fN(r.valor),0);
   const totVenc   = vencidos.reduce((a,r)=>a+fN(r.saldo),0);
   const totGeral  = boletos.reduce((a,r)=>a+fN(r.valor),0);
 
@@ -3047,15 +3076,72 @@ function renderBoletosBanner(){
   el('bnChips').innerHTML = chips.join('');
 }
 function filtrarBoletos(){
-  // Mostra todos os boletos do mês (feitos + a fazer + vencidos)
-  const selForma = document.getElementById('bf-forma');
-  const selStatus = document.getElementById('bf-status');
-  if(!selForma) return;
-  const filtPanel = document.getElementById('filtPanel');
-  if(filtPanel) filtPanel.removeAttribute('hidden');
-  selForma.value = 'Boleto';
-  if(selStatus) selStatus.value = ''; // sem filtro de status — exibe todos
-  renderBaixas();
+  abrirModalBoletos();
+}
+
+function abrirModalBoletos(){
+  const modal = document.getElementById('mBoletos');
+  if(!modal) return;
+  renderModalBoletos();
+  modal.classList.add('on');
+}
+
+function toggleBoletoFeito(idx){
+  const r = allD()[idx];
+  if(!r) return;
+  r.boleto_feito = !r.boleto_feito;
+  dbUpdate(r);
+  renderModalBoletos();
+  renderBoletosBanner();
+}
+
+function renderModalBoletos(){
+  const hoje = td();
+  const boletos = filtBaixas({}).filter(r => (r.forma||'').toLowerCase() === 'boleto');
+  boletos.sort((a,b)=>(a.cliente||'').localeCompare(b.cliente||''));
+
+  // Agrupar por cliente
+  const grupos = {};
+  boletos.forEach(r => {
+    const c = r.cliente || 'Sem cliente';
+    if(!grupos[c]) grupos[c] = [];
+    grupos[c].push(r);
+  });
+
+  const feitos = boletos.filter(r => r.boleto_feito);
+  const total  = boletos.length;
+
+  const resumeEl = document.getElementById('mbResume');
+  if(resumeEl) resumeEl.textContent = feitos.length + '/' + total + ' feitos';
+
+  const body = document.getElementById('mBoletosBody');
+  if(!body) return;
+
+  let html = '';
+  Object.keys(grupos).sort().forEach(cliente => {
+    const items = grupos[cliente];
+    html += '<div class="mb-group">';
+    html += '<div class="mb-group-hd">' + cliente + '</div>';
+    items.forEach(r => {
+      const gi = allD().indexOf(r);
+      const feito = !!r.boleto_feito;
+      const pago  = isPago(r);
+      const venc  = isVenc(r);
+      let valCls  = pago ? 'pago' : venc ? 'venc' : '';
+      let statusTxt = pago ? ' · Pago' : venc ? ' · Vencido' : '';
+      html += '<div class="mb-row" onclick="toggleBoletoFeito(' + gi + ')">';
+      html += '<div class="mb-check' + (feito ? ' done' : '') + '">' + (feito ? '✓' : '') + '</div>';
+      html += '<div class="mb-info">';
+      html += '<div class="mb-tipo"><span class="mb-placa">' + (r.placa||'') + '</span> ' + (r.tipo||'') + (r.prev_pgto ? ' · ' + r.prev_pgto.split('-').reverse().join('/') : '') + statusTxt + '</div>';
+      html += '</div>';
+      html += '<div class="mb-val ' + valCls + '">' + fR(pago ? r.valor_pago : r.saldo) + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  if(!html) html = '<div style="padding:24px;text-align:center;color:var(--ink3);font-size:13px">Nenhum boleto no mês</div>';
+  body.innerHTML = html;
 }
 
 function selTodos(){
@@ -3346,7 +3432,7 @@ function go(id){
   renderAll();
 }
 
-['mEdit','mLote','mCam','mSearch','mDono'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
+['mEdit','mLote','mCam','mSearch','mDono','mBoletos'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
 
 // ── BOOT ──
 async function boot(){
