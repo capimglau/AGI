@@ -1150,6 +1150,36 @@ details[open] summary::before { transform: rotate(90deg); }
 .page-hint { font-size: 12.5px; color: var(--ink3); margin-bottom: 16px; }
 #bol-metrics { grid-template-columns: 1fr 1fr; }
 
+/* Cards informativos de boleto (tela "Boletos a fazer") */
+#boletosContainer { display: flex; flex-direction: column; gap: 10px; }
+.bol-card {
+  display: flex; align-items: stretch; gap: 12px;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.07), inset 0 .5px 0 rgba(255,255,255,.6);
+  position: relative; overflow: hidden;
+  animation: listIn var(--t-mid) var(--ease-out) both;
+}
+.bol-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--amber); }
+.bol-card.venc::before { background: var(--red); }
+.bol-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.bol-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bol-cli { font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bol-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink3); }
+.bol-meta > span { display: inline-flex; align-items: center; }
+.bol-data { font-size: 12.5px; color: var(--amber); font-weight: 600; }
+.bol-data b { color: var(--ink); }
+.bol-data.venc { color: var(--red); }
+.bol-data.venc b { color: var(--red); }
+.bol-side { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 10px; flex-shrink: 0; }
+.bol-val { font-size: 16px; font-weight: 700; letter-spacing: -.02em; color: var(--blue); white-space: nowrap; }
+.bol-acts { display: flex; gap: 6px; }
+@media (max-width: 760px){
+  .bol-card { border-radius: 14px; }
+  .bol-meta { gap: 8px; }
+}
+
 /* Press tátil nos cartões e itens de lista */
 .mc:active, .oc:active, .pcard:active { transform: scale(.985); }
 .subnav-btn:active { transform: scale(.96); }
@@ -1592,7 +1622,6 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
   </div>
   <p class="page-hint">Boletos lançados deste mês em diante e ainda não baixados.</p>
   <div class="mrow" id="bol-metrics"></div>
-  <div class="swipe-hint">Deslize um card para <b>baixar/editar</b> · segure para ver o <b>📎 contrato</b></div>
   <div id="boletosContainer"></div>
 </div>
 
@@ -2190,6 +2219,22 @@ function abrirContrato(r){
 }
 function closeContrato(){ document.getElementById('mContrato').classList.remove('on'); }
 
+// ─── BOLETOS FEITOS (controle de emissão — independente do pagamento) ───
+// Marcar "Feito" = o boleto já foi gerado/enviado; some da lista de "a fazer".
+// Não altera valor_pago/saldo: o recebimento continua sendo baixado normalmente.
+const BOLETOS_FEITOS_KEY = 'agi-boletos-feitos';
+let BOLETOS_FEITOS = {};
+function feitosLoad(){ try{ BOLETOS_FEITOS = JSON.parse(localStorage.getItem(BOLETOS_FEITOS_KEY)||'{}'); }catch(e){ BOLETOS_FEITOS={}; } }
+function feitosPersist(){ try{ localStorage.setItem(BOLETOS_FEITOS_KEY, JSON.stringify(BOLETOS_FEITOS)); }catch(e){} }
+function boletoFeito(r){ const k=contratoKey(r); return k?!!BOLETOS_FEITOS[k]:false; }
+function marcarBoletoFeito(key){
+  if(!key) return;
+  BOLETOS_FEITOS[key]=Date.now(); feitosPersist(); renderAll();
+  showToast('✓ Boleto marcado como feito','Desfazer',()=>{
+    delete BOLETOS_FEITOS[key]; feitosPersist(); renderAll();
+  });
+}
+
 function autoFillDono(placaId, donoSelectId) {
   const placa = document.getElementById(placaId);
   const donoSel = document.getElementById(donoSelectId);
@@ -2575,23 +2620,59 @@ function toggleDay(hd){
 }
 
 // ── BOLETOS A FAZER ──
-// Tudo lançado como boleto, do mês atual em diante e ainda não baixado.
+// Lista informativa (não é a tela de baixa): boletos lançados do mês atual em
+// diante, ainda não baixados e ainda não marcados como "feitos".
+// Cada item mostra dados do pedido + a data do boleto; ao clicar em "Feito"
+// ele sai da lista (controle de emissão, sem mexer no pagamento).
+function fBoletoData(d){
+  if(!d) return '—';
+  const dt=new Date(d+'T12:00:00');
+  const sem=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()];
+  return `${sem}, ${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+}
 function renderBoletos(){
   const mesIni=mesAtualIni();
-  let rows=allD().filter(r=>ehBoleto(r)&&isPend(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'')>=mesIni);
+  let rows=allD().filter(r=>ehBoleto(r)&&isPend(r)&&!boletoFeito(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'')>=mesIni);
   rows.sort((a,b)=>(a.prev_pgto||'9').localeCompare(b.prev_pgto||'9'));
   const tot=rows.reduce((a,r)=>a+fN(r.saldo),0);
-  const t=td();
   document.getElementById('bol-metrics').innerHTML=`
     <div class="mc amber"><div class="mc-label">Boletos a fazer</div><div class="mc-value">${rows.length}</div></div>
     <div class="mc blue"><div class="mc-label">Valor total</div><div class="mc-value">${fR(tot)}</div></div>`;
   const container=document.getElementById('boletosContainer');
-  container.innerHTML=''; openRow=null;
   if(rows.length===0){
-    container.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Nenhum boleto a fazer</div><div class="empty-sub">Boletos pendentes deste mês em diante aparecem aqui.</div></div>`;
+    container.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Nenhum boleto a fazer</div><div class="empty-sub">Boletos pendentes deste mês em diante aparecem aqui. Marque "Feito" e eles saem da lista.</div></div>`;
     return;
   }
-  renderDayGroups(container, rows, t);
+  const hoje=td();
+  container.innerHTML=rows.map(r=>{
+    const gi=allD().indexOf(r);
+    const key=contratoKey(r);
+    const col=DC[r.dono]||'#888';
+    const venc=(r.prev_pgto||'')<hoje;
+    const temContrato=!!contratoGet(r);
+    return `<div class="bol-card${venc?' venc':''}">
+      <div class="bol-body">
+        <div class="bol-top">
+          <span class="placa">${r.placa}</span>
+          <span class="bol-cli">${r.cliente||'—'}</span>
+        </div>
+        <div class="bol-meta">
+          <span><span class="ddot" style="background:${col}"></span>${r.dono}</span>
+          <span class="tag tag-forma">${fFormaLabel(r.forma)}</span>
+          <span>🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
+          ${r.obs?`<span title="Referência">📎 ${escHtml(r.obs)}</span>`:''}
+        </div>
+        <div class="bol-data ${venc?'venc':''}">📅 Boleto vence em <b>${fBoletoData(r.prev_pgto)}</b>${venc?' · <b>vencido</b>':''}</div>
+      </div>
+      <div class="bol-side">
+        <span class="bol-val">${fR(r.saldo)}</span>
+        <div class="bol-acts">
+          ${temContrato?`<button class="btn btn-sm" title="Ver contrato" onclick="abrirContrato(allD()[${gi}])">📎</button>`:''}
+          <button class="btn btn-green btn-sm" onclick="marcarBoletoFeito('${key}')">✓ Feito</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── LANÇAMENTOS ──
@@ -2650,7 +2731,7 @@ function renderResumo(){
   const vencVal=rows.filter(r=>isVenc(r)).reduce((a,r)=>a+fN(r.saldo),0);
   const inad=totV>0?(vencVal/totV*100):0;
   // Boletos a fazer: lançados como boleto, deste mês em diante e ainda não baixados
-  const boletosFazer=allD().filter(r=>ehBoleto(r)&&isPend(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'')>=mesAtualIni());
+  const boletosFazer=allD().filter(r=>ehBoleto(r)&&isPend(r)&&!boletoFeito(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'')>=mesAtualIni());
   const nBol=boletosFazer.length, vBol=boletosFazer.reduce((a,r)=>a+fN(r.saldo),0);
   // Comparativo vs. mês anterior (faturamento)
   const baseRows=allD().filter(r=>(!selDono||r.dono===selDono));
@@ -3096,7 +3177,7 @@ function toggleTheme(){
   renderAll();
 }
 function initSwipe(){
-  ['baixasContainer','boletosContainer'].forEach(id=>{
+  ['baixasContainer'].forEach(id=>{
     const bc=document.getElementById(id); if(!bc||bc._sw)return; bc._sw=1;
     bc.addEventListener('touchstart',swStart,{passive:true});
     bc.addEventListener('touchmove',swMove,{passive:false});
@@ -3393,6 +3474,7 @@ async function boot(){
   DATA = rows.map(r=>({...r}));
   normalizaFimDeSemana();
   contratosLoad();
+  feitosLoad();
   DESPESAS = await despLoad();
   popSel();
   updateMesLabel();
