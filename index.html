@@ -382,8 +382,8 @@ body {
 .boletos-banner-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .boletos-banner-val { font-size: 20px; font-weight: 800; color: var(--blue); letter-spacing: -.02em; }
 .boletos-banner-sub { font-size: 12px; color: var(--ink3); }
-.boletos-banner-chips { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
-.boletos-banner-chip { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; }
+.boletos-banner-chips { display: flex; gap: 4px; margin-top: 5px; flex-wrap: nowrap; overflow: hidden; }
+.boletos-banner-chip { font-size: 10.5px; font-weight: 600; padding: 3px 7px; border-radius: 99px; white-space: nowrap; flex: 1; text-align: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .boletos-chip-feito { background: var(--green-soft); color: var(--green); }
 .boletos-chip-fazer { background: rgba(31,95,168,0.12); color: var(--blue); }
 .boletos-chip-venc  { background: var(--red-soft); color: var(--red); }
@@ -1449,7 +1449,6 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 <div class="page on" id="page-baixas">
   <div class="mrow" id="baixa-metrics"></div>
   <div class="boletos-banner" id="boletosBanner" onclick="filtrarBoletos()">
-    <div class="boletos-banner-icon">🧾</div>
     <div class="boletos-banner-body">
       <div class="boletos-banner-title">Boletos do mês</div>
       <div class="boletos-banner-row">
@@ -3042,9 +3041,9 @@ function renderBoletosBanner(){
   el('bnTotalSub').textContent = `${boletos.length} boleto${boletos.length>1?'s':''} · ${feitos.length} pago${feitos.length!==1?'s':''}`;
 
   const chips = [];
-  if(feitos.length)   chips.push(`<span class="boletos-banner-chip boletos-chip-feito">✓ ${feitos.length} feito${feitos.length>1?'s':''} · ${fR(totFeitos)}</span>`);
-  if(aFazer.length)   chips.push(`<span class="boletos-banner-chip boletos-chip-fazer">📋 ${aFazer.length} a fazer · ${fR(totFazer)}</span>`);
-  if(vencidos.length) chips.push(`<span class="boletos-banner-chip boletos-chip-venc">⚠ ${vencidos.length} vencido${vencidos.length>1?'s':''} · ${fR(totVenc)}</span>`);
+  chips.push(`<span class="boletos-banner-chip boletos-chip-feito">${feitos.length} feito${feitos.length>1?'s':''} · ${fR(totFeitos)}</span>`);
+  chips.push(`<span class="boletos-banner-chip boletos-chip-fazer">${aFazer.length} a fazer · ${fR(totFazer)}</span>`);
+  chips.push(`<span class="boletos-banner-chip boletos-chip-venc">${vencidos.length} vencido${vencidos.length>1?'s':''} · ${fR(totVenc)}</span>`);
   el('bnChips').innerHTML = chips.join('');
 }
 function filtrarBoletos(){
