@@ -2002,9 +2002,9 @@ const fN = v => parseFloat(v)||0;
 const td = () => new Date().toISOString().slice(0,10);
 const fFormaLabel = f => {
   if(!f) return '—';
-  const fl = f.toLowerCase();
-  if(fl==='crédito 2x'||fl==='credito 2x') return 'Crédito 2x';
-  if(fl==='crédito 3x'||fl==='credito 3x') return 'Crédito 3x';
+  const fl = f.toLowerCase().replace(/\s+/g,' ').trim();
+  if(fl==='crédito 2x'||fl==='credito 2x'||fl==='crédito 60 dias'||fl==='credito 60 dias'||fl==='crédito 2×'||fl==='crédito parcelado 2x') return 'Crédito 2x';
+  if(fl==='crédito 3x'||fl==='credito 3x'||fl==='crédito 90 dias'||fl==='credito 90 dias'||fl==='crédito 3×'||fl==='crédito parcelado 3x') return 'Crédito 3x';
   return f;
 };
 // Formata 'YYYY-MM-DD' -> 'DD/MM'
@@ -2938,8 +2938,8 @@ function renderPremissas(){
 function getTaxaForma(forma){
   const fl = forma.toLowerCase();
   if(fl.includes('débito')||fl.includes('debito')) return PREM.taxaDebito/100;
-  if(fl.includes('crédito 60')||fl.includes('credito 60')) return PREM.taxaParc2/100;
-  if(fl.includes('crédito 90')||fl.includes('credito 90')) return PREM.taxaParc3/100;
+  if(fl.includes('crédito 60')||fl.includes('credito 60')||fl.includes('crédito 2x')||fl.includes('credito 2x')) return PREM.taxaParc2/100;
+  if(fl.includes('crédito 90')||fl.includes('credito 90')||fl.includes('crédito 3x')||fl.includes('credito 3x')) return PREM.taxaParc3/100;
   if(fl.includes('crédito')||fl.includes('credito')) return PREM.taxaCredito/100;
   return 0;
 }
@@ -2954,8 +2954,8 @@ function calcN(){
   let pp='';
   // Cartão: SEMPRE a partir da Data de pagamento (dp). Boleto: a partir do Retorno.
   if(fl.includes('boleto')&&r) pp=addDUtil(r,PREM.prazoBoleto);
-  else if(fl.includes('90')&&dp) pp=addDUtil(dp,90);
-  else if(fl.includes('60')&&dp) pp=addDUtil(dp,60);
+  else if((fl.includes('90')||fl.includes('3x'))&&dp) pp=addDUtil(dp,90);
+  else if((fl.includes('60')||fl.includes('2x'))&&dp) pp=addDUtil(dp,60);
   else if((fl.includes('crédito')||fl.includes('credito'))&&dp) pp=addDUtil(dp,PREM.prazoCredito);
   else if((fl.includes('débito')||fl.includes('debito'))&&dp) pp=addDUtil(dp,PREM.prazoDebito);
   document.getElementById('nf-pp').value=pp;
@@ -3039,8 +3039,8 @@ function confirmAI(){
   const fl=f.toLowerCase();
   let pp=null;
   if(fl.includes('boleto')&&r)pp=addDUtil(r,PREM.prazoBoleto);
-  else if(fl.includes('90')&&s)pp=addDUtil(s,90);
-  else if(fl.includes('60')&&s)pp=addDUtil(s,60);
+  else if((fl.includes('90')||fl.includes('3x'))&&s)pp=addDUtil(s,90);
+  else if((fl.includes('60')||fl.includes('2x'))&&s)pp=addDUtil(s,60);
   else if((fl.includes('crédito')||fl.includes('credito'))&&s)pp=addDUtil(s,PREM.prazoCredito);
   else if((fl.includes('débito')||fl.includes('debito'))&&s)pp=addDUtil(s,PREM.prazoDebito);
   const taxa=getTaxaForma(f);
