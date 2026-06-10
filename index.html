@@ -1097,7 +1097,7 @@ details[open] summary::before { transform: rotate(90deg); }
 
 /* ════════════════ MOBILE ════════════════ */
 @media (max-width: 760px) {
-  body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: calc(102px + env(safe-area-inset-bottom)); }
+  body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
 
   /* Header: logo (esq) · mês (centro absoluto) · lupa (dir) */
   .header {
@@ -1117,17 +1117,17 @@ details[open] summary::before { transform: rotate(90deg); }
   /* Abas viram barra de navegação fixa embaixo (estilo app) */
   .nav-tabs {
     position: fixed;
-    left: 20px; right: 20px;
-    bottom: calc(20px + env(safe-area-inset-bottom));
+    left: 16px; right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
     width: auto;
     margin: 0;
     display: flex;
     gap: 0;
     background: var(--card);
     border: .5px solid rgba(0,0,0,.07);
-    border-radius: 22px;
-    box-shadow: 0 8px 28px rgba(0,0,0,.16);
-    padding: 6px 6px;
+    border-radius: 28px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.18);
+    padding: 4px 5px;
     z-index: 300;
   }
   .ntab {
@@ -1136,15 +1136,15 @@ details[open] summary::before { transform: rotate(90deg); }
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    padding: 8px 2px;
-    border-radius: 12px;
+    gap: 2px;
+    padding: 6px 2px;
+    border-radius: 20px;
     font-size: 10px;
     font-weight: 500;
   }
   .ntab:hover { background: none; color: var(--ink3); }
   .ntab.on { background: var(--blue-soft); color: var(--blue); }
-  .nt-ico { display: block; font-size: 19px; line-height: 1; }
+  .nt-ico { display: block; font-size: 18px; line-height: 1; }
   .nt-full { display: none; }
   .nt-short { display: block; font-size: 10px; font-weight: 600; letter-spacing: -.01em; }
 
@@ -1359,6 +1359,7 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
     <button class="ntab" onclick="go('resumo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-full">Resumo</span><span class="nt-short">Resumo</span></button>
     <button class="ntab" onclick="go('proprietarios')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-full">Proprietários</span><span class="nt-short">Donos</span></button>
     <button class="ntab" onclick="go('novo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-full">Novo</span><span class="nt-short">Novo</span></button>
+    <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-full">Buscar</span><span class="nt-short">Buscar</span></button>
   </div>
 
   <div class="header-right">
@@ -1370,8 +1371,7 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
       <span class="lbl">Recebido</span>
       <span class="val g" id="hRec">—</span>
     </div>
-    <button class="icon-btn" onclick="toggleTheme()" title="Tema" aria-label="Tema" id="themeBtn"></button>
-    <button class="icon-btn" onclick="openSearch()" title="Buscar" aria-label="Buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></button>
+
   </div>
 </div>
 
@@ -1720,6 +1720,15 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
       <button class="prem-save-btn" onclick="salvarPremissas()">✓ Salvar premissas</button>
       <span class="prem-save-ok" id="prem-ok">✓ Premissas salvas e aplicadas!</span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:14px;margin-bottom:24px">
+      <span style="font-size:18px">🌙</span>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:var(--ink)">Modo Noturno</div>
+        <div style="font-size:12px;color:var(--ink3)">Alterna entre tema claro e escuro</div>
+      </div>
+      <button class="icon-btn" onclick="toggleTheme()" title="Tema" aria-label="Tema" id="themeBtn" style="width:40px;height:24px;border-radius:12px;padding:0;position:relative;flex-shrink:0"></button>
     </div>
 
   </div>
@@ -2305,6 +2314,7 @@ function renderBaixas(){
           <div class="pcard-tags">
             ${tipTag(r.tipo)}
             <span class="tag tag-forma">${r.forma}</span>
+            ${r.obs?`<span class="tag" style="background:var(--surface);color:var(--ink3);font-size:10.5px;font-style:italic;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.obs}">📝 ${r.obs}</span>`:''}
           </div>
           <div class="pcard-meta">
             <span class="pcard-period">🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
