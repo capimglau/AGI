@@ -1139,6 +1139,17 @@ details[open] summary::before { transform: rotate(90deg); }
 @keyframes pageIn { from { opacity:0; transform:translateY(10px) scale(.995); } to { opacity:1; transform:none; } }
 .page.on { animation: pageIn var(--t-mid) var(--ease-out) both; }
 
+/* Cartão de métrica clicável (abre os boletos a fazer) */
+.mc-tap { cursor: pointer; }
+.mc-tap:hover { box-shadow: 0 4px 22px rgba(0,0,0,.12); transform: translateY(-1px); }
+.mc-tap:active { transform: scale(.985); }
+
+/* Cabeçalho de página com voltar (Boletos a fazer) */
+.page-back { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.page-title { font-size: 19px; font-weight: 700; letter-spacing: -.03em; }
+.page-hint { font-size: 12.5px; color: var(--ink3); margin-bottom: 16px; }
+#bol-metrics { grid-template-columns: 1fr 1fr; }
+
 /* Press tátil nos cartões e itens de lista */
 .mc:active, .oc:active, .pcard:active { transform: scale(.985); }
 .subnav-btn:active { transform: scale(.96); }
@@ -1573,6 +1584,18 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
       </table>
     </div>
   </div>
+</div>
+
+<!-- BOLETOS A FAZER -->
+<div class="page" id="page-boletos">
+  <div class="page-back">
+    <button class="btn btn-sm" onclick="go('resumo')">‹ Resumo</button>
+    <h2 class="page-title">📄 Boletos a fazer</h2>
+  </div>
+  <p class="page-hint">Boletos lançados deste mês em diante e ainda não baixados.</p>
+  <div class="mrow" id="bol-metrics"></div>
+  <div class="swipe-hint">Deslize um card para <b>baixar/editar</b> · segure para ver o <b>📎 contrato</b></div>
+  <div id="boletosContainer"></div>
 </div>
 
 <!-- RESUMO -->
@@ -2220,6 +2243,8 @@ function allD(){return[...DATA,...NOVOS];}
 const isPago = r => fN(r.valor_pago) > 0;
 const isPend = r => fN(r.valor_pago) === 0;
 const isVenc = r => isPend(r) && r.prev_pgto && r.prev_pgto < td();
+const ehBoleto = r => (r.forma||'').toLowerCase().includes('boleto');
+const mesAtualIni = () => td().slice(0,7)+'-01';   // 1º dia do mês corrente
 
 function tipTag(t){
   const m={Locação:'loc',Avarias:'ava',Lavagem:'lav',Multas:'mul',Outros:'out','Taxa Mario':'tax','Taxa Alfredo':'tax','Taxa Bruno':'tax'};
@@ -2459,7 +2484,11 @@ function renderBaixas(){
     return;
   }
 
-  // Agrupar por dia
+  renderDayGroups(container, rows, hoje);
+}
+
+// Renderiza os cards agrupados por dia — compartilhado por Recebimentos e Boletos
+function renderDayGroups(container, rows, hoje){
   const byDay={};
   rows.forEach(r=>{
     const d=r.prev_pgto||'Sem data';
@@ -2547,6 +2576,26 @@ function toggleDay(hd){
   grp.classList.toggle('collapsed');
 }
 
+// ── BOLETOS A FAZER ──
+// Tudo lançado como boleto, do mês atual em diante e ainda não baixado.
+function renderBoletos(){
+  const mesIni=mesAtualIni();
+  let rows=allD().filter(r=>ehBoleto(r)&&isPend(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'')>=mesIni);
+  rows.sort((a,b)=>(a.prev_pgto||'9').localeCompare(b.prev_pgto||'9'));
+  const tot=rows.reduce((a,r)=>a+fN(r.saldo),0);
+  const t=td();
+  document.getElementById('bol-metrics').innerHTML=`
+    <div class="mc amber"><div class="mc-label">Boletos a fazer</div><div class="mc-value">${rows.length}</div></div>
+    <div class="mc blue"><div class="mc-label">Valor total</div><div class="mc-value">${fR(tot)}</div></div>`;
+  const container=document.getElementById('boletosContainer');
+  container.innerHTML=''; openRow=null;
+  if(rows.length===0){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Nenhum boleto a fazer</div><div class="empty-sub">Boletos pendentes deste mês em diante aparecem aqui.</div></div>`;
+    return;
+  }
+  renderDayGroups(container, rows, t);
+}
+
 // ── LANÇAMENTOS ──
 function renderLanc(){
   const q=document.getElementById('lf-q').value;
@@ -2602,6 +2651,9 @@ function renderResumo(){
   const ticket=nL?totV/nL:0;
   const vencVal=rows.filter(r=>isVenc(r)).reduce((a,r)=>a+fN(r.saldo),0);
   const inad=totV>0?(vencVal/totV*100):0;
+  // Boletos a fazer: lançados como boleto, deste mês em diante e ainda não baixados
+  const boletosFazer=allD().filter(r=>ehBoleto(r)&&isPend(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'')>=mesAtualIni());
+  const nBol=boletosFazer.length, vBol=boletosFazer.reduce((a,r)=>a+fN(r.saldo),0);
   // Comparativo vs. mês anterior (faturamento)
   const baseRows=allD().filter(r=>(!selDono||r.dono===selDono));
   const bM={};baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)bM[m]=(bM[m]||0)+fN(r.valor);});
@@ -2615,7 +2667,7 @@ function renderResumo(){
     <div class="mc green"><div class="mc-label">Total recebido</div><div class="mc-value">${fR(totP)}</div><div class="mc-sub">${totV>0?((totP/totV)*100).toFixed(1):'0'}% do faturado</div></div>
     <div class="mc amber"><div class="mc-label">A receber</div><div class="mc-value">${fR(totS)}</div><div class="mc-sub">${nPend} pendentes</div></div>
     <div class="mc blue"><div class="mc-label">Ticket médio</div><div class="mc-value">${fR(ticket)}</div><div class="mc-sub">por lançamento</div></div>
-    <div class="mc red"><div class="mc-label">Inadimplência</div><div class="mc-value">${inad.toFixed(1)}%</div><div class="mc-sub">${fR(vencVal)} vencido</div></div>
+    <div class="mc blue mc-tap" onclick="go('boletos')" title="Ver boletos a fazer"><div class="mc-label">Boletos a fazer</div><div class="mc-value">${nBol}</div><div class="mc-sub">${fR(vBol)} · toque para abrir ›</div></div>
     <div class="mc amber"><div class="mc-label">Veículos</div><div class="mc-value">${new Set(rows.map(r=>r.placa)).size}</div><div class="mc-sub">placas únicas</div></div>
   `;
   const mK=Object.keys(bM).sort();
@@ -3034,12 +3086,14 @@ function toggleTheme(){
   renderAll();
 }
 function initSwipe(){
-  const bc=document.getElementById('baixasContainer'); if(!bc||bc._sw)return; bc._sw=1;
-  bc.addEventListener('touchstart',swStart,{passive:true});
-  bc.addEventListener('touchmove',swMove,{passive:false});
-  bc.addEventListener('touchend',swEnd);
-  bc.addEventListener('touchcancel',swEnd);
-  bc.addEventListener('mousedown',swStart);
+  ['baixasContainer','boletosContainer'].forEach(id=>{
+    const bc=document.getElementById(id); if(!bc||bc._sw)return; bc._sw=1;
+    bc.addEventListener('touchstart',swStart,{passive:true});
+    bc.addEventListener('touchmove',swMove,{passive:false});
+    bc.addEventListener('touchend',swEnd);
+    bc.addEventListener('touchcancel',swEnd);
+    bc.addEventListener('mousedown',swStart);
+  });
 }
 
 // ── BAIXA EM LOTE ──
@@ -3298,6 +3352,7 @@ function renderAll(){
   if(curPage==='baixas')renderBaixas();
   else if(curPage==='lancamentos')renderLanc();
   else if(curPage==='resumo')renderResumo();
+  else if(curPage==='boletos')renderBoletos();
   else if(curPage==='proprietarios')renderProp();
   else if(curPage==='premissas')renderPremissas();
 }
@@ -3305,8 +3360,8 @@ function go(id){
   curPage=id;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
-  // Lançamentos e Premissas vivem dentro de Resumo: dock mantém "Resumo" ativo
-  const dockId=(id==='lancamentos'||id==='premissas')?'resumo':id;
+  // Lançamentos, Premissas e Boletos vivem dentro de Resumo: dock mantém "Resumo" ativo
+  const dockId=(id==='lancamentos'||id==='premissas'||id==='boletos')?'resumo':id;
   document.querySelectorAll('.ntab').forEach(t=>t.classList.toggle('on', t.getAttribute('onclick')===`go('${dockId}')`));
   document.querySelectorAll('.subnav-btn').forEach(b=>b.classList.toggle('on', b.dataset.pg===id));
   renderAll();
