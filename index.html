@@ -1163,6 +1163,8 @@ details[open] summary::before { transform: rotate(90deg); }
 }
 .bol-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--amber); }
 .bol-card.venc::before { background: var(--red); }
+.bol-card.done::before { background: var(--green); }
+.bol-card.done { opacity: .72; }
 .bol-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 .bol-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .bol-cli { font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1618,9 +1620,13 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 <!-- BOLETOS A FAZER -->
 <div class="page" id="page-boletos">
   <div class="page-back">
-    <h2 class="page-title">📄 Boletos a fazer</h2>
+    <h2 class="page-title">📄 Boletos</h2>
   </div>
-  <p class="page-hint">Boletos lançados deste mês em diante e ainda não baixados.</p>
+  <div class="subnav" id="bolViewNav" style="max-width:360px">
+    <button class="subnav-btn on" data-v="fazer" onclick="setBolView('fazer')">A fazer</button>
+    <button class="subnav-btn" data-v="feitos" onclick="setBolView('feitos')">Feitos</button>
+  </div>
+  <p class="page-hint" id="bol-hint">Boletos lançados deste mês em diante e ainda não baixados.</p>
   <div class="mrow" id="bol-metrics"></div>
   <div id="boletosContainer"></div>
 </div>
@@ -2226,13 +2232,32 @@ const BOLETOS_FEITOS_KEY = 'agi-boletos-feitos';
 let BOLETOS_FEITOS = {};
 function feitosLoad(){ try{ BOLETOS_FEITOS = JSON.parse(localStorage.getItem(BOLETOS_FEITOS_KEY)||'{}'); }catch(e){ BOLETOS_FEITOS={}; } }
 function feitosPersist(){ try{ localStorage.setItem(BOLETOS_FEITOS_KEY, JSON.stringify(BOLETOS_FEITOS)); }catch(e){} }
-function boletoFeito(r){ const k=contratoKey(r); return k?!!BOLETOS_FEITOS[k]:false; }
+// "Feito" persiste no Supabase (coluna boleto_feito) quando disponível; localStorage é reserva.
+function boletoFeito(r){
+  if(r && Object.prototype.hasOwnProperty.call(r,'boleto_feito') && r.boleto_feito!=null) return !!r.boleto_feito;
+  const k=contratoKey(r); return k?!!BOLETOS_FEITOS[k]:false;
+}
+async function setFeito(r, val){
+  if(!r) return;
+  const k=contratoKey(r);
+  if(val) BOLETOS_FEITOS[k]=Date.now(); else delete BOLETOS_FEITOS[k];
+  feitosPersist();
+  r.boleto_feito=val;
+  renderAll();
+  if(SB && r.id!=null){
+    const {error}=await SB.from('lancamentos').update({boleto_feito:val}).eq('id',r.id);
+    if(error) console.warn('boleto_feito não salvo no Supabase (rode o SQL da coluna):', error.message);
+  }
+}
 function marcarBoletoFeito(key){
-  if(!key) return;
-  BOLETOS_FEITOS[key]=Date.now(); feitosPersist(); renderAll();
-  showToast('✓ Boleto marcado como feito','Desfazer',()=>{
-    delete BOLETOS_FEITOS[key]; feitosPersist(); renderAll();
-  });
+  const r=allD().find(x=>contratoKey(x)===key); if(!r) return;
+  setFeito(r,true);
+  showToast('✓ Boleto marcado como feito','Desfazer',()=>setFeito(r,false));
+}
+function desfazerBoletoFeito(key){
+  const r=allD().find(x=>contratoKey(x)===key); if(!r) return;
+  setFeito(r,false);
+  showToast('↩ Boleto voltou para "a fazer"');
 }
 
 function autoFillDono(placaId, donoSelectId) {
@@ -2630,17 +2655,30 @@ function fBoletoData(d){
   const sem=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()];
   return `${sem}, ${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
 }
+let bolView='fazer';
+function setBolView(v){
+  bolView=v;
+  document.querySelectorAll('#bolViewNav .subnav-btn').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  const h=document.getElementById('bol-hint');
+  if(h) h.textContent = v==='feitos' ? 'Boletos já gerados/enviados (marcados como feitos).' : 'Boletos lançados deste mês em diante e ainda não baixados.';
+  renderBoletos();
+}
 function renderBoletos(){
   const mesIni=mesAtualIni();
-  let rows=allD().filter(r=>ehBoleto(r)&&isPend(r)&&!boletoFeito(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'')>=mesIni);
+  const feitos = bolView==='feitos';
+  let rows = feitos
+    ? allD().filter(r=>ehBoleto(r)&&boletoFeito(r)&&(!selDono||r.dono===selDono))
+    : allD().filter(r=>ehBoleto(r)&&isPend(r)&&!boletoFeito(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'')>=mesIni);
   rows.sort((a,b)=>(a.prev_pgto||'9').localeCompare(b.prev_pgto||'9'));
   const tot=rows.reduce((a,r)=>a+fN(r.saldo),0);
   document.getElementById('bol-metrics').innerHTML=`
-    <div class="mc amber"><div class="mc-label">Boletos a fazer</div><div class="mc-value">${rows.length}</div></div>
+    <div class="mc ${feitos?'green':'amber'}"><div class="mc-label">${feitos?'Boletos feitos':'Boletos a fazer'}</div><div class="mc-value">${rows.length}</div></div>
     <div class="mc blue"><div class="mc-label">Valor total</div><div class="mc-value">${fR(tot)}</div></div>`;
   const container=document.getElementById('boletosContainer');
   if(rows.length===0){
-    container.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Nenhum boleto a fazer</div><div class="empty-sub">Boletos pendentes deste mês em diante aparecem aqui. Marque "Feito" e eles saem da lista.</div></div>`;
+    container.innerHTML=feitos
+      ?`<div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Nenhum boleto feito</div><div class="empty-sub">Os boletos que você marcar como "Feito" aparecem aqui.</div></div>`
+      :`<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Nenhum boleto a fazer</div><div class="empty-sub">Boletos pendentes deste mês em diante aparecem aqui. Marque "Feito" e eles saem da lista.</div></div>`;
     return;
   }
   const hoje=td();
@@ -2650,7 +2688,7 @@ function renderBoletos(){
     const col=DC[r.dono]||'#888';
     const venc=(r.prev_pgto||'')<hoje;
     const temContrato=!!contratoGet(r);
-    return `<div class="bol-card${venc?' venc':''}">
+    return `<div class="bol-card${(!feitos&&venc)?' venc':''}${feitos?' done':''}">
       <div class="bol-body">
         <div class="bol-top">
           <span class="placa">${r.placa}</span>
@@ -2662,13 +2700,15 @@ function renderBoletos(){
           <span>🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
           ${r.obs?`<span title="Referência">📎 ${escHtml(r.obs)}</span>`:''}
         </div>
-        <div class="bol-data ${venc?'venc':''}">📅 Boleto vence em <b>${fBoletoData(r.prev_pgto)}</b>${venc?' · <b>vencido</b>':''}</div>
+        <div class="bol-data ${(!feitos&&venc)?'venc':''}">📅 Boleto vence em <b>${fBoletoData(r.prev_pgto)}</b>${(!feitos&&venc)?' · <b>vencido</b>':''}</div>
       </div>
       <div class="bol-side">
         <span class="bol-val">${fR(r.saldo)}</span>
         <div class="bol-acts">
           ${temContrato?`<button class="btn btn-sm" title="Ver contrato" onclick="abrirContrato(allD()[${gi}])">📎</button>`:''}
-          <button class="btn btn-green btn-sm" onclick="marcarBoletoFeito('${key}')">✓ Feito</button>
+          ${feitos
+            ?`<button class="btn btn-sm" onclick="desfazerBoletoFeito('${key}')">↩ Desfazer</button>`
+            :`<button class="btn btn-green btn-sm" onclick="marcarBoletoFeito('${key}')">✓ Feito</button>`}
         </div>
       </div>
     </div>`;
