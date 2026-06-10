@@ -3047,12 +3047,14 @@ function renderBoletosBanner(){
   el('bnChips').innerHTML = chips.join('');
 }
 function filtrarBoletos(){
-  // Filtra a lista principal por forma=Boleto ao clicar no banner
-  const sel = document.getElementById('bf-forma');
-  if(!sel) return;
+  // Mostra todos os boletos do mês (feitos + a fazer + vencidos)
+  const selForma = document.getElementById('bf-forma');
+  const selStatus = document.getElementById('bf-status');
+  if(!selForma) return;
   const filtPanel = document.getElementById('filtPanel');
   if(filtPanel) filtPanel.removeAttribute('hidden');
-  sel.value = 'Boleto';
+  selForma.value = 'Boleto';
+  if(selStatus) selStatus.value = ''; // sem filtro de status — exibe todos
   renderBaixas();
 }
 
