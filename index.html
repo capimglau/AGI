@@ -335,6 +335,23 @@ body {
 .subnav { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin-bottom: 16px; }
 .subnav-btn { flex: 1; min-width: 0; border: none; background: none; padding: 8px 3px; border-radius: 9px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--ink3); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease); -webkit-tap-highlight-color: transparent; }
 .subnav-btn.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+
+/* Barra de seções do Resumo — aparece logo acima do dock */
+.subdock {
+  position: fixed;
+  left: 16px; right: 16px;
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  display: flex; gap: 2px;
+  background: var(--card);
+  border: .5px solid rgba(0,0,0,.07);
+  border-radius: 18px;
+  box-shadow: 0 6px 22px rgba(0,0,0,.16);
+  padding: 4px;
+  z-index: 299;
+}
+.subdock[hidden] { display: none; }
+.subtab { flex: 1; min-width: 0; border: none; background: none; padding: 9px 4px; border-radius: 14px; font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--ink3); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-tap-highlight-color: transparent; }
+.subtab.on { background: var(--blue-soft); color: var(--blue); }
 .filt-panel select {
   width: 100%;
   padding: 9px 10px;
@@ -1233,6 +1250,7 @@ details[open] summary::before { transform: rotate(90deg); }
 /* ════════════════ MOBILE ════════════════ */
 @media (max-width: 760px) {
   body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  body.subdock-on { padding-bottom: calc(146px + env(safe-area-inset-bottom)); }
 
   /* Header: logo (esq) · mês (dir) */
   .header {
@@ -1444,6 +1462,7 @@ html[data-theme="dark"] .mn-btn { background: transparent; color: var(--ink2); }
 html[data-theme="dark"] .mn-btn:hover { background: rgba(255,255,255,.06); color: var(--ink); }
 html[data-theme="dark"] .mn-label { color: var(--ink); }
 html[data-theme="dark"] .nav-tabs { background: rgba(23,32,50,.80); border-color: rgba(255,255,255,.07); }
+html[data-theme="dark"] .subdock { background: var(--surface2); border-color: rgba(255,255,255,.07); }
 html[data-theme="dark"] .ntab { color: #93a1b8; }
 html[data-theme="dark"] .ntab.on { color: var(--blue); background: none; }
 html[data-theme="dark"] .stat-pill { background: var(--surface2); }
@@ -1581,13 +1600,6 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 
 <!-- LANÇAMENTOS -->
 <div class="page" id="page-lancamentos">
-  <div class="subnav">
-    <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
-    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
-    <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
-    <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
-    <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
-  </div>
   <div class="fbar">
     <input type="text" id="lf-q" placeholder="Buscar cliente, placa..." oninput="renderLanc()">
     <select id="lf-tipo" onchange="renderLanc()"><option value="">Todos os tipos</option></select>
@@ -1621,13 +1633,6 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 
 <!-- BOLETOS A FAZER -->
 <div class="page" id="page-boletos">
-  <div class="subnav">
-    <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
-    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
-    <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
-    <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
-    <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
-  </div>
   <div class="page-back">
     <h2 class="page-title">📄 Boletos</h2>
   </div>
@@ -1642,13 +1647,6 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 
 <!-- RESUMO -->
 <div class="page" id="page-resumo">
-  <div class="subnav">
-    <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
-    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
-    <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
-    <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
-    <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
-  </div>
   <div class="mrow" id="res-m"></div>
   <div class="g2">
     <div class="card">
@@ -1682,13 +1680,6 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 
 <!-- PROPRIETÁRIOS -->
 <div class="page" id="page-proprietarios">
-  <div class="subnav">
-    <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
-    <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
-    <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
-    <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
-    <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
-  </div>
   <div class="g3" id="propCards" style="margin-bottom:16px"></div>
   <div class="card">
     <div class="card-hd">Evolução mensal</div>
@@ -1739,13 +1730,6 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
 <!-- PREMISSAS -->
 <div class="page" id="page-premissas">
   <div style="max-width:900px">
-    <div class="subnav">
-      <button class="subnav-btn" data-pg="resumo" onclick="go('resumo')">Resumo</button>
-      <button class="subnav-btn" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
-      <button class="subnav-btn" data-pg="boletos" onclick="go('boletos')">Boletos</button>
-      <button class="subnav-btn" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
-      <button class="subnav-btn" data-pg="premissas" onclick="go('premissas')">Premissas</button>
-    </div>
 
     <div class="prem-grid">
 
@@ -3520,10 +3504,14 @@ function go(id){
   curPage=id;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
-  // Lançamentos, Boletos, Donos e Premissas vivem dentro de Resumo: dock mantém "Resumo" ativo
-  const dockId=['lancamentos','premissas','boletos','proprietarios'].includes(id)?'resumo':id;
+  // Resumo e suas seções: dock mantém "Resumo" ativo e exibe a barra de seções
+  const sections=['resumo','lancamentos','boletos','proprietarios','premissas'];
+  const inResumo=sections.includes(id);
+  const dockId=inResumo?'resumo':id;
   document.querySelectorAll('.ntab').forEach(t=>t.classList.toggle('on', t.getAttribute('onclick')===`go('${dockId}')`));
-  document.querySelectorAll('.subnav-btn[data-pg]').forEach(b=>b.classList.toggle('on', b.dataset.pg===id));
+  const sd=document.getElementById('subDock');
+  if(sd){ sd.hidden=!inResumo; sd.querySelectorAll('.subtab').forEach(b=>b.classList.toggle('on', b.dataset.pg===id)); }
+  document.body.classList.toggle('subdock-on', inResumo);
   renderAll();
 }
 
@@ -3563,6 +3551,15 @@ boot();
   <button class="ntab" onclick="go('resumo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-full">Resumo</span><span class="nt-short">Resumo</span></button>
   <button class="ntab" onclick="go('novo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-full">Novo</span><span class="nt-short">Novo</span></button>
   <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-full">Buscar</span><span class="nt-short">Buscar</span></button>
+</div>
+
+<!-- Barra de seções do Resumo (aparece junto ao dock ao entrar em Resumo) -->
+<div class="subdock" id="subDock" hidden>
+  <button class="subtab" data-pg="resumo" onclick="go('resumo')">Resumo</button>
+  <button class="subtab" data-pg="lancamentos" onclick="go('lancamentos')">Lançam.</button>
+  <button class="subtab" data-pg="boletos" onclick="go('boletos')">Boletos</button>
+  <button class="subtab" data-pg="proprietarios" onclick="go('proprietarios')">Donos</button>
+  <button class="subtab" data-pg="premissas" onclick="go('premissas')">Premissas</button>
 </div>
 </body>
 </html>
