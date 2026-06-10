@@ -1099,9 +1099,8 @@ details[open] summary::before { transform: rotate(90deg); }
 @media (max-width: 760px) {
   body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
 
-  /* Header: logo (esq) · mês (centro absoluto) · lupa (dir) */
+  /* Header: logo (esq) · mês (dir) */
   .header {
-    position: relative;
     height: auto;
     flex-wrap: nowrap;
     padding: 10px 14px;
@@ -1109,7 +1108,7 @@ details[open] summary::before { transform: rotate(90deg); }
   }
   .logo { margin: 0; font-size: 17px; }
   .month-nav { position: static; transform: none; margin-left: auto; }
-  .header-right { width: auto; gap: 8px; justify-content: flex-end; }
+  .header-right { display: none; }
   /* Cartões Pendente/Recebido são duplicata dos painéis — escondidos no mobile */
   .header-right .stat-pill { display: none; }
   .mn-label { min-width: 92px; }
@@ -1353,14 +1352,6 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
     <button class="mn-btn" onclick="navMes(-1)" title="Mês anterior">‹</button>
     <div class="mn-label" id="mnLabel">—</div>
     <button class="mn-btn" onclick="navMes(1)" title="Próximo mês">›</button>
-  </div>
-
-  <div class="nav-tabs">
-    <button class="ntab on" onclick="go('baixas')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nt-full">Recebimentos</span><span class="nt-short">Receber</span></button>
-    <button class="ntab" onclick="go('resumo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-full">Resumo</span><span class="nt-short">Resumo</span></button>
-    <button class="ntab" onclick="go('proprietarios')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-full">Proprietários</span><span class="nt-short">Donos</span></button>
-    <button class="ntab" onclick="go('novo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-full">Novo</span><span class="nt-short">Novo</span></button>
-    <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-full">Buscar</span><span class="nt-short">Buscar</span></button>
   </div>
 
   <div class="header-right">
@@ -3106,5 +3097,14 @@ async function boot(){
 }
 boot();
 </script>
+
+<!-- ─── DOCK (posição fixa, fora do header) ─── -->
+<div class="nav-tabs">
+  <button class="ntab on" onclick="go('baixas')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nt-full">Recebimentos</span><span class="nt-short">Receber</span></button>
+  <button class="ntab" onclick="go('resumo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-full">Resumo</span><span class="nt-short">Resumo</span></button>
+  <button class="ntab" onclick="go('proprietarios')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-full">Proprietários</span><span class="nt-short">Donos</span></button>
+  <button class="ntab" onclick="go('novo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-full">Novo</span><span class="nt-short">Novo</span></button>
+  <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-full">Buscar</span><span class="nt-short">Buscar</span></button>
+</div>
 </body>
 </html>
