@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AGI Locadora</title>
 <meta name="theme-color" content="#dfe7f2" id="metaTheme">
-<script>try{if(localStorage.getItem('agi-theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');var m=document.getElementById('metaTheme');}}catch(e){}</script>
+<script>try{var t=localStorage.getItem('agi-theme');var sd=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t==null&&sd)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}</script>
 <link rel="icon" type="image/png" href="logo-agi.png">
 <link rel="apple-touch-icon" href="logo-agi.png">
 <meta name="apple-mobile-web-app-title" content="AGI Locadora">
@@ -954,6 +954,7 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .receb-hoje { background: linear-gradient(165deg, rgba(31,95,168,.06) 0%, #ffffff 70%); border: 1px solid var(--blue-mid); border-radius: var(--rl); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); cursor: pointer; transition: box-shadow .15s, transform .15s, border-color .15s; }
 .receb-hoje:hover { box-shadow: 0 6px 24px rgba(31,95,168,.16); transform: translateY(-1px); border-color: var(--blue); }
 .receb-hoje:active { transform: translateY(0); }
+html[data-theme="dark"] .receb-hoje { background: linear-gradient(165deg, rgba(91,155,213,.16) 0%, var(--card) 70%); border-color: rgba(91,155,213,.30); }
 .rh-hd { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; margin-bottom: 11px; letter-spacing: -.01em; }
 .rh-sub { font-size: 12px; color: var(--blue); font-weight: 700; }
 .rh-list { display: flex; flex-direction: column; gap: 6px; }
@@ -3473,6 +3474,21 @@ function toggleTheme(){
   applyThemeChrome();
   renderAll();
 }
+// Acompanha o modo escuro do sistema (iPhone/Android/desktop): ao alternar no
+// dispositivo, o app alterna junto.
+function syncSystemTheme(){
+  if(!window.matchMedia) return;
+  const mq=window.matchMedia('(prefers-color-scheme: dark)');
+  const apply=e=>{
+    const dark=e.matches;
+    document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+    try{localStorage.setItem('agi-theme',dark?'dark':'light');}catch(_){}
+    applyThemeChrome();
+    try{renderAll();}catch(_){}
+  };
+  if(mq.addEventListener)mq.addEventListener('change',apply);
+  else if(mq.addListener)mq.addListener(apply);
+}
 function initSwipe(){
   const bc=document.getElementById('baixasContainer'); if(!bc||bc._sw)return; bc._sw=1;
   bc.addEventListener('touchstart',swStart,{passive:true});
@@ -3877,6 +3893,7 @@ function go(id){
 // ── BOOT ──
 async function boot(){
   applyThemeChrome();
+  syncSystemTheme();
   initSwipe();
   showSkeleton();
   let rows = await dbLoad();
