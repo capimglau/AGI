@@ -795,6 +795,8 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 
 /* ─── CHART ─── */
 .cw { position: relative; width: 100%; }
+.cw-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; margin: 0 -2px; }
+.cw-scroll .cw { width: auto; }
 
 /* RANK BAR */
 .rb { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
@@ -1725,7 +1727,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   <div class="g2">
     <div class="card">
       <div class="card-hd" id="hdMes">Faturado por mês</div>
-      <div class="cw" style="height:220px"><canvas id="cMes" role="img" aria-label="mensal"></canvas></div>
+      <div class="cw-scroll"><div class="cw" style="height:220px"><canvas id="cMes" role="img" aria-label="mensal"></canvas></div></div>
     </div>
     <div class="card">
       <div class="card-hd">Por tipo</div>
@@ -1734,16 +1736,16 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   </div>
   <div class="card">
     <div class="card-hd" id="hdTipoMes">Evolução mensal por tipo</div>
-    <div class="cw" style="height:240px"><canvas id="cTipoMes" role="img" aria-label="evolução mensal por tipo"></canvas></div>
+    <div class="cw-scroll"><div class="cw" style="height:240px"><canvas id="cTipoMes" role="img" aria-label="evolução mensal por tipo"></canvas></div></div>
   </div>
   <div class="card">
     <div class="card-hd" id="hdAcum">Faturado × recebido — mensal</div>
-    <div class="cw" style="height:230px"><canvas id="cAcum" role="img" aria-label="faturado e recebido acumulado"></canvas></div>
+    <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cAcum" role="img" aria-label="faturado e recebido acumulado"></canvas></div></div>
   </div>
   <div class="g2">
     <div class="card">
       <div class="card-hd" id="hdResLiq">Resultado líquido (receitas − despesas)</div>
-      <div class="cw" style="height:230px"><canvas id="cResLiq" role="img" aria-label="resultado líquido mensal"></canvas></div>
+      <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cResLiq" role="img" aria-label="resultado líquido mensal"></canvas></div></div>
     </div>
     <div class="card">
       <div class="card-hd">Aging de recebíveis (em aberto)</div>
@@ -2833,11 +2835,20 @@ function setResCtrl(kind,val,el){
   if(el&&el.parentElement)el.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===el));
   renderResumo();
 }
-// Conjunto de meses 'YYYY-MM' a exibir nas séries temporais, conforme o período.
+// Conjunto de meses 'YYYY-MM' a exibir nas séries temporais.
+// Sempre a partir de janeiro/2026 para frente; o período define a janela.
+const RES_MIN_MES='2026-01';
 function resMonths(present){
-  if(resPeriodo==='tudo') return present.slice();
-  if(resPeriodo==='ano'){const y=curMes.slice(0,4);const a=[];for(let i=1;i<=12;i++)a.push(`${y}-${String(i).padStart(2,'0')}`);return a;}
-  const n=parseInt(resPeriodo);const seq=[];for(let i=n-1;i>=0;i--)seq.push(mesAdd(curMes,-i));return seq;
+  const last=present.length?present[present.length-1]:curMes;
+  const lastM=last>curMes?last:curMes;
+  let start, end=lastM;
+  if(resPeriodo==='ano'){ start='2026-01'; end='2026-12'; }
+  else if(resPeriodo==='tudo'){ start=RES_MIN_MES; }
+  else { const n=parseInt(resPeriodo); start=mesAdd(lastM,-(n-1)); }
+  if(start<RES_MIN_MES) start=RES_MIN_MES;
+  const arr=[]; let m=start, guard=0;
+  while(m<=end && guard++<180){ arr.push(m); m=mesAdd(m,1); }
+  return arr.length?arr:[RES_MIN_MES];
 }
 // Valor de um lançamento conforme a base selecionada.
 function valBase(r){ return resBase==='caixa' ? (isPago(r)?fN(r.valor_pago):0) : fN(r.valor); }
@@ -2894,6 +2905,9 @@ function renderResumo(){
   const mShown=resMonths(presentMonths);
   const labelsT=mShown.map(mLabel);
   const acumSfx=resAcum?' — acumulado':'';
+  // Largura mínima das séries temporais → habilita rolagem lateral quando há muitos meses
+  const tsMinW=Math.max(480, mShown.length*66);
+  ['cMes','cTipoMes','cAcum','cResLiq'].forEach(id=>{const c=document.getElementById(id);if(c&&c.parentElement)c.parentElement.style.minWidth=tsMinW+'px';});
   // Recebido × A receber por mês
   const recM={},pendM={};
   baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m)return;recM[m]=(recM[m]||0)+(isPago(r)?fN(r.valor_pago):0);pendM[m]=(pendM[m]||0)+(isPend(r)?fN(r.saldo):0);});
