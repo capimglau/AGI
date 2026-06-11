@@ -378,10 +378,11 @@ body {
 .boletos-banner:active { background: rgba(31,95,168,0.14); }
 .boletos-banner-icon { font-size: 22px; flex-shrink: 0; }
 .boletos-banner-body { flex: 1; min-width: 0; }
-.boletos-banner-title { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+.boletos-banner-title { font-size: 10px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; display: flex; align-items: baseline; gap: 6px; }
+.boletos-banner-title-val { font-size: 15px; font-weight: 800; color: var(--blue); letter-spacing: -.02em; text-transform: none; }
 .boletos-banner-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .boletos-banner-val { font-size: 20px; font-weight: 800; color: var(--blue); letter-spacing: -.02em; }
-.boletos-banner-sub { font-size: 12px; color: var(--ink3); }
+.boletos-banner-sub { font-size: 11px; color: var(--ink3); }
 .boletos-banner-chips { display: flex; gap: 4px; margin-top: 5px; flex-wrap: nowrap; overflow: hidden; }
 .boletos-banner-chip { font-size: 10.5px; font-weight: 600; padding: 3px 7px; border-radius: 99px; white-space: nowrap; flex: 1; text-align: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .boletos-chip-feito { background: var(--green-soft); color: var(--green); }
@@ -1161,6 +1162,8 @@ details[open] summary::before { transform: rotate(90deg); }
 .mb-val.pago { color: var(--green); }
 .mb-val.venc { color: var(--red); }
 .mb-placa { font-size: 10px; background: var(--bg2); color: var(--ink2); border-radius: 5px; padding: 1px 6px; font-weight: 700; letter-spacing: .04em; }
+.mb-filt-btn { flex:1; padding: 6px 4px; border-radius: 20px; border: 1.5px solid var(--line); background: none; font-size: 12px; font-weight: 600; color: var(--ink3); cursor: pointer; transition: all .15s; }
+.mb-filt-btn.mb-filt-on { background: var(--blue); border-color: var(--blue); color: #fff; }
 
 /* EMPTY STATE */
 .empty { text-align: center; padding: 48px 20px; color: var(--ink3); }
@@ -1193,7 +1196,7 @@ details[open] summary::before { transform: rotate(90deg); }
   /* Abas viram barra de navegação fixa embaixo (estilo app) */
   .nav-tabs {
     position: fixed;
-    left: calc(5vw + 16px); right: calc(5vw + 16px);
+    left: calc(1.5vw + 16px); right: calc(1.5vw + 16px);
     bottom: calc(16px + env(safe-area-inset-bottom));
     width: auto;
     margin: 0;
@@ -1465,9 +1468,8 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
   <div class="mrow" id="baixa-metrics"></div>
   <div class="boletos-banner" id="boletosBanner" onclick="filtrarBoletos()">
     <div class="boletos-banner-body">
-      <div class="boletos-banner-title">Boletos do mês</div>
+      <div class="boletos-banner-title">Boletos do mês <span class="boletos-banner-title-val" id="bnTotalVal">—</span></div>
       <div class="boletos-banner-row">
-        <span class="boletos-banner-val" id="bnTotalVal">—</span>
         <span class="boletos-banner-sub" id="bnTotalSub"></span>
       </div>
       <div class="boletos-banner-chips" id="bnChips"></div>
@@ -1897,6 +1899,11 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
         <span id="mbResume" style="font-size:11px;font-weight:600;color:var(--ink3)"></span>
         <button class="mcl" onclick="document.getElementById('mBoletos').classList.remove('on')">✕</button>
       </div>
+    </div>
+    <div style="display:flex;gap:6px;padding:8px 14px 6px;flex-shrink:0;border-bottom:1px solid var(--line)">
+      <button id="mbf-todos"   class="mb-filt-btn mb-filt-on" onclick="setMbFiltro('todos')">Todos</button>
+      <button id="mbf-feitos"  class="mb-filt-btn"            onclick="setMbFiltro('feitos')">Feitos</button>
+      <button id="mbf-afazer"  class="mb-filt-btn"            onclick="setMbFiltro('afazer')">A fazer</button>
     </div>
     <div id="mBoletosBody" style="overflow-y:auto;flex:1;padding:2px 0 8px"></div>
   </div>
@@ -3072,7 +3079,6 @@ function renderBoletosBanner(){
   const chips = [];
   chips.push(`<span class="boletos-banner-chip boletos-chip-feito">${feitos.length} feito${feitos.length>1?'s':''} · ${fR(totFeitos)}</span>`);
   chips.push(`<span class="boletos-banner-chip boletos-chip-fazer">${aFazer.length} a fazer · ${fR(totFazer)}</span>`);
-  chips.push(`<span class="boletos-banner-chip boletos-chip-venc">${vencidos.length} vencido${vencidos.length>1?'s':''} · ${fR(totVenc)}</span>`);
   el('bnChips').innerHTML = chips.join('');
 }
 function filtrarBoletos(){
