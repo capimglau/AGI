@@ -864,6 +864,9 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .oc { background: var(--card); border: 1px solid var(--line); border-radius: var(--rl); padding: 18px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
 .oc:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); border-color: var(--blue); }
 .oc:active { transform: translateY(0); }
+.oc-saldo { display: flex; align-items: center; justify-content: space-between; margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.oc-saldo span { font-size: 11.5px; font-weight: 700; color: var(--ink2); }
+.oc-saldo strong { font-size: 15px; font-weight: 800; letter-spacing: -.02em; }
 .oc-more { font-size: 11px; color: var(--blue); font-weight: 700; margin-top: 12px; display: flex; align-items: center; gap: 4px; }
 .oc-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .oc-av { width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
@@ -2977,6 +2980,7 @@ function renderProp(){
     const col=DC[d]||'#888';
     const ini=d.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const tDesp=DESPESAS.filter(x=>x.dono===d&&x.mes===curMes).reduce((a,x)=>a+fN(x.valor),0);
+    const saldoFim=donoSaldoFinal(d,curMes);
     return`<div class="oc" onclick="openDono('${d.replace(/'/g,"\\'")}')" role="button" tabindex="0" title="Ver extrato de ${d}">
       <div class="oc-hd">
         <div class="oc-av" style="background:${col}18;color:${col}">${ini}</div>
@@ -2989,6 +2993,7 @@ function renderProp(){
         <div class="oc-s"><div class="oc-sl">Despesas</div><div class="oc-sv" style="color:var(--red)">${fR(tDesp)}</div></div>
       </div>
       <div class="prog"><div class="prog-f" style="width:${pct}%;background:${col}"></div></div>
+      <div class="oc-saldo"><span>Saldo final</span><strong style="color:${saldoFim>=0?'var(--green)':'var(--red)'}">${fR(saldoFim)}</strong></div>
       <div class="oc-more">Ver extrato (receitas × despesas) →</div>
     </div>`;
   }).join('');
