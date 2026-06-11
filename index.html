@@ -335,13 +335,6 @@ body::before {
 .subnav-btn { flex: 1; border: none; background: none; padding: 8px 6px; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink3); cursor: pointer; transition: color .15s, background .15s; }
 .subnav-btn.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
 
-/* ── DOCK CONTEXTUAL (Resumo mode) ── */
-#dock-default { display: flex; flex: 1; gap: 0; }
-#dock-resumo  { display: none; flex: 1; gap: 0; }
-.nav-tabs.resumo-mode #dock-default { display: none; }
-.nav-tabs.resumo-mode #dock-resumo  { display: flex; }
-/* Botão Voltar */
-.ntab-back { color: var(--ink3) !important; }
 /* Fluxo de Caixa Diário */
 .fc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .fc-table th { text-align: left; padding: 7px 8px; font-size: 11px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); }
@@ -836,6 +829,12 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .search-total .st-pago { color: var(--green); }
 .search-total .st-pend { color: var(--amber); }
 .search-total .st-month { margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--line); }
+/* Folha "Mais" */
+.mais-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.mais-item { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 18px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink); font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit; transition: border-color .12s, background .12s, transform .12s; }
+.mais-item:hover { border-color: var(--blue-mid); background: var(--surface); }
+.mais-item:active { transform: scale(.97); }
+.mais-item .mais-ic svg { width: 26px; height: 26px; stroke: var(--blue); fill: none; }
 .srow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .srow:last-child { border-bottom: none; }
 .srow:hover { background: var(--surface); }
@@ -2101,6 +2100,19 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   </div>
 </div>
 
+<!-- MAIS (telas secundárias) -->
+<div class="overlay" id="mMais">
+  <div class="modal" style="max-width:420px">
+    <div class="mhd">Mais <button class="mcl" onclick="closeMais()">✕</button></div>
+    <div class="mais-grid">
+      <button class="mais-item" onclick="maisGo('baixas')"><span class="mais-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>Recebimentos</button>
+      <button class="mais-item" onclick="maisGo('lancamentos')"><span class="mais-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>Lançamentos</button>
+      <button class="mais-item" onclick="maisGo('premissas')"><span class="mais-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>Premissas</button>
+      <button class="mais-item" onclick="maisGo('fluxo')"><span class="mais-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>Fluxo</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── EXTRATO DO DONO ─── -->
 <div class="overlay" id="mDono">
   <div class="modal" style="max-width:860px">
@@ -3155,6 +3167,9 @@ function openSearch(){
   setTimeout(()=>i.focus(),120);
 }
 function closeSearch(){document.getElementById('mSearch').classList.remove('on');}
+function openMais(){document.getElementById('mMais').classList.add('on');}
+function closeMais(){document.getElementById('mMais').classList.remove('on');}
+function maisGo(id){closeMais();go(id);}
 function runSearch(){
   const q=document.getElementById('searchInput').value.trim().toLowerCase();
   const box=document.getElementById('searchResults');
@@ -3671,35 +3686,12 @@ function go(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
 
-  // Modo contextual do Dock: Resumo / Lançamentos / Premissas / Fluxo
-  const resumoGroup = ['resumo','lancamentos','premissas','fluxo'];
-  const dock = document.getElementById('mainDock');
-  const dDefault = document.getElementById('dock-default');
-  const dResumo  = document.getElementById('dock-resumo');
-  if(resumoGroup.includes(id)){
-    dock.classList.add('resumo-mode');
-    dDefault.style.display = 'none';
-    dResumo.style.display  = 'flex';
-    // Highlight sub-aba ativa
-    dResumo.querySelectorAll('.ntab').forEach(t=>{
-      t.classList.toggle('on', t.dataset.rpg === id);
-    });
-    dDefault.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
-  } else {
-    dock.classList.remove('resumo-mode');
-    dDefault.style.display = 'flex';
-    dResumo.style.display  = 'none';
-    dDefault.querySelectorAll('.ntab').forEach(t=>{
-      const fn = t.getAttribute('onclick')||'';
-      t.classList.toggle('on', fn===`go('${id}')`);
-    });
-    dResumo.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
-  }
-  document.querySelectorAll('.subnav-btn').forEach(b=>b.classList.toggle('on', b.dataset.pg===id));
+  // Dock fixo único — destaca o item ativo (quando houver botão correspondente)
+  document.querySelectorAll('#mainDock .ntab').forEach(t=>t.classList.toggle('on', t.dataset.pg===id));
   renderAll();
 }
 
-['mEdit','mLote','mCam','mSearch','mDono','mBoletos'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
+['mEdit','mLote','mCam','mSearch','mMais','mDono','mBoletos'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
 
 // ── BOOT ──
 async function boot(){
@@ -3729,24 +3721,13 @@ boot();
 </script>
 
 <!-- ─── DOCK (posição fixa, fora do header) ─── -->
-<div class="nav-tabs resumo-mode" id="mainDock">
-  <!-- Grupo padrão -->
-  <div id="dock-default" style="flex:1;display:none;gap:0">
-    <button class="ntab" onclick="go('resumo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-short">Resumo</span></button>
-    <button class="ntab" onclick="go('baixas')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nt-short">Receber</span></button>
-    <button class="ntab" onclick="go('proprietarios')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-short">Donos</span></button>
-    <button class="ntab" onclick="go('novo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-short">Novo</span></button>
-    <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-short">Buscar</span></button>
-  </div>
-  <!-- Grupo Resumo (sub-abas) -->
-  <div id="dock-resumo" style="flex:1;display:flex;gap:0">
-    <button class="ntab on" onclick="go('resumo')" data-rpg="resumo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-short">Resumo</span></button>
-    <button class="ntab" onclick="go('lancamentos')" data-rpg="lancamentos"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nt-short">Lançam.</span></button>
-    <button class="ntab" onclick="go('premissas')" data-rpg="premissas"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span class="nt-short">Premissas</span></button>
-    <button class="ntab" onclick="go('fluxo')" data-rpg="fluxo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nt-short">Fluxo</span></button>
-    <button class="ntab" onclick="abrirModalBoletos()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="13.5" y1="9" x2="13.5" y2="15"/><line x1="17" y1="9" x2="17" y2="15"/></svg></span><span class="nt-short">Boletos</span></button>
-    <button class="ntab ntab-back" onclick="go('baixas')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></span><span class="nt-short">Voltar</span></button>
-  </div>
+<div class="nav-tabs" id="mainDock">
+  <button class="ntab on" onclick="go('resumo')" data-pg="resumo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-short">Resumo</span></button>
+  <button class="ntab" onclick="go('proprietarios')" data-pg="proprietarios"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-short">Donos</span></button>
+  <button class="ntab" onclick="abrirModalBoletos()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="13.5" y1="9" x2="13.5" y2="15"/><line x1="17" y1="9" x2="17" y2="15"/></svg></span><span class="nt-short">Boleto</span></button>
+  <button class="ntab" onclick="go('novo')" data-pg="novo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-short">Novo</span></button>
+  <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-short">Buscar</span></button>
+  <button class="ntab" onclick="openMais()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="nt-short">Mais</span></button>
 </div>
 </body>
 </html>
