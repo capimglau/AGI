@@ -2650,7 +2650,7 @@ function renderLanc(){
 // ── RESUMO ──
 // ── FILTROS DOS GRÁFICOS E PAINÉIS (Resumo) — multi-seleção ──
 const RF={dono:new Set(),placa:new Set(),cliente:new Set(),forma:new Set(),tipo:new Set()};
-const RF_LABELS={dono:'Proprietário',placa:'Placa',cliente:'Cliente',forma:'Forma',tipo:'Tipo'};
+const RF_LABELS={dono:'Proprietário',tipo:'Tipo',forma:'Forma de pagamento',cliente:'Cliente',placa:'Placa'};
 function buildResumoFilters(){
   const bar=document.getElementById('resumoFilters'); if(!bar) return;
   const data=allD();
