@@ -946,7 +946,8 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rf-sec-opts { display: flex; flex-direction: column; }
 
 /* ─── CONTROLES DO RESUMO (período · base · acumulado) ─── */
-.res-ctrls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.res-ctrls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
+.res-ctrls .rf-bar { margin-bottom: 0; }
 .rc-seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 3px; gap: 2px; }
 .rc-seg button { border: none; background: none; padding: 7px 12px; border-radius: 8px; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink3); cursor: pointer; white-space: nowrap; transition: color .12s, background .12s, box-shadow .12s; }
 .rc-seg button:hover { color: var(--ink); }
@@ -1706,8 +1707,8 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <div class="page on" id="page-resumo">
   <div class="mrow" id="res-m"></div>
   <div id="recebHoje"></div>
-  <div class="rf-bar" id="resumoFilters"></div>
   <div class="res-ctrls" id="resCtrls">
+    <div class="rf-bar" id="resumoFilters"></div>
     <div class="rc-seg" data-kind="periodo">
       <button onclick="setResCtrl('periodo','3',this)" data-v="3">3m</button>
       <button onclick="setResCtrl('periodo','6',this)" data-v="6">6m</button>
@@ -1716,8 +1717,8 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <button onclick="setResCtrl('periodo','tudo',this)" data-v="tudo">Tudo</button>
     </div>
     <div class="rc-seg" data-kind="base">
-      <button class="on" onclick="setResCtrl('base','comp',this)" data-v="comp">Competência</button>
-      <button onclick="setResCtrl('base','caixa',this)" data-v="caixa">Caixa</button>
+      <button class="on" onclick="setResCtrl('base','comp',this)" data-v="comp">Previsto</button>
+      <button onclick="setResCtrl('base','caixa',this)" data-v="caixa">Recebido</button>
     </div>
     <div class="rc-seg" data-kind="acum">
       <button class="on" onclick="setResCtrl('acum','0',this)" data-v="0">Mensal</button>
@@ -2914,7 +2915,7 @@ function renderResumo(){
   let recA=mShown.map(k=>recM[k]||0), pendA=mShown.map(k=>pendM[k]||0);
   if(resAcum){recA=cumArr(recA);pendA=cumArr(pendA);}
   const hdMes=document.getElementById('hdMes');
-  if(hdMes) hdMes.textContent=(resBase==='caixa'?'Recebido por mês':'Faturado por mês (recebido × a receber)')+acumSfx;
+  if(hdMes) hdMes.textContent=(resBase==='caixa'?'Recebido por mês':'Previsto por mês (recebido × a receber)')+acumSfx;
   const dsMes = resBase==='caixa'
     ? [{label:'Recebido',data:recA,backgroundColor:'#34c759',borderRadius:6,borderSkipped:false,maxBarThickness:46}]
     : [{label:'Recebido',data:recA,backgroundColor:'#34c759',stack:'s',borderRadius:{bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46},
