@@ -1749,7 +1749,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     </div>
     <div class="card">
       <div class="card-hd">Aging de recebíveis (em aberto)</div>
-      <div class="cw" style="height:230px"><canvas id="cAging" role="img" aria-label="aging de recebíveis"></canvas></div>
+      <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cAging" role="img" aria-label="aging de recebíveis"></canvas></div></div>
     </div>
   </div>
   <div class="g2">
@@ -1768,7 +1768,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   </div>
   <div class="card">
     <div class="card-hd">Projeção — próximos 90 dias</div>
-    <div class="cw" style="height:180px"><canvas id="cProj" role="img" aria-label="projeção"></canvas></div>
+    <div class="cw-scroll"><div class="cw" style="height:180px"><canvas id="cProj" role="img" aria-label="projeção"></canvas></div></div>
   </div>
 </div>
 
@@ -2960,6 +2960,7 @@ function renderResumo(){
   const hojeAg=td();
   const ag={v:0,d30:0,d60:0,d60p:0};
   baseRows.filter(r=>isPend(r)).forEach(r=>{const s=fN(r.saldo);const pp=r.prev_pgto||'';if(!pp){ag.v+=s;return;}const dias=Math.floor((new Date(hojeAg)-new Date(pp))/86400000);if(dias<=0)ag.v+=s;else if(dias<=30)ag.d30+=s;else if(dias<=60)ag.d60+=s;else ag.d60p+=s;});
+  {const c=document.getElementById('cAging');if(c&&c.parentElement)c.parentElement.style.minWidth='400px';}
   mkC('cAging',{type:'bar',data:{labels:['A vencer','Venc. 1–30','31–60','60+'],datasets:[{data:[ag.v,ag.d30,ag.d60,ag.d60p],backgroundColor:['#34c759','#f0b429','#e8833a','#c42b1c'],borderRadius:8,borderSkipped:false,maxBarThickness:60}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   const bF={};rows.forEach(r=>{bF[r.forma]=(bF[r.forma]||0)+fN(r.valor);});
   const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
@@ -2980,6 +2981,7 @@ function renderResumo(){
   const sem={};
   pendFut.forEach(r=>{const dt=new Date(r.prev_pgto),tDt=new Date(t);const wk=Math.max(0,Math.floor((dt-tDt)/(7*86400000)));const ws=new Date(tDt);ws.setDate(ws.getDate()+wk*7);const key=ws.toISOString().slice(0,10);sem[key]=(sem[key]||0)+fN(r.saldo);});
   const sK=Object.keys(sem).sort();
+  {const c=document.getElementById('cProj');if(c&&c.parentElement)c.parentElement.style.minWidth=Math.max(420,sK.length*64)+'px';}
   mkC('cProj',{type:'bar',data:{labels:sK.map(k=>{const[y,m,d]=k.split('-');return`${d}/${m}`;}),datasets:[{data:sK.map(k=>sem[k]),backgroundColor:'#1f5fa820',borderColor:'#1f5fa8',borderWidth:2,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
 }
 
