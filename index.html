@@ -943,6 +943,13 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rf-sec-tt { display: flex; align-items: center; gap: 7px; padding: 4px 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink3); }
 .rf-sec-opts { display: flex; flex-direction: column; }
 
+/* ─── CONTROLES DO RESUMO (período · base · acumulado) ─── */
+.res-ctrls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.rc-seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 3px; gap: 2px; }
+.rc-seg button { border: none; background: none; padding: 7px 12px; border-radius: 8px; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink3); cursor: pointer; white-space: nowrap; transition: color .12s, background .12s, box-shadow .12s; }
+.rc-seg button:hover { color: var(--ink); }
+.rc-seg button.on { background: var(--card); color: var(--blue); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+
 /* ─── RECEBIMENTOS DE HOJE (janela no Resumo) ─── */
 .receb-hoje { background: linear-gradient(165deg, rgba(31,95,168,.06) 0%, #ffffff 70%); border: 1px solid var(--blue-mid); border-radius: var(--rl); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); cursor: pointer; transition: box-shadow .15s, transform .15s, border-color .15s; }
 .receb-hoje:hover { box-shadow: 0 6px 24px rgba(31,95,168,.16); transform: translateY(-1px); border-color: var(--blue); }
@@ -1697,9 +1704,26 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   <div class="mrow" id="res-m"></div>
   <div id="recebHoje"></div>
   <div class="rf-bar" id="resumoFilters"></div>
+  <div class="res-ctrls" id="resCtrls">
+    <div class="rc-seg" data-kind="periodo">
+      <button onclick="setResCtrl('periodo','3',this)" data-v="3">3m</button>
+      <button onclick="setResCtrl('periodo','6',this)" data-v="6">6m</button>
+      <button class="on" onclick="setResCtrl('periodo','12',this)" data-v="12">12m</button>
+      <button onclick="setResCtrl('periodo','ano',this)" data-v="ano">Ano</button>
+      <button onclick="setResCtrl('periodo','tudo',this)" data-v="tudo">Tudo</button>
+    </div>
+    <div class="rc-seg" data-kind="base">
+      <button class="on" onclick="setResCtrl('base','comp',this)" data-v="comp">Competência</button>
+      <button onclick="setResCtrl('base','caixa',this)" data-v="caixa">Caixa</button>
+    </div>
+    <div class="rc-seg" data-kind="acum">
+      <button class="on" onclick="setResCtrl('acum','0',this)" data-v="0">Mensal</button>
+      <button onclick="setResCtrl('acum','1',this)" data-v="1">Acumulado</button>
+    </div>
+  </div>
   <div class="g2">
     <div class="card">
-      <div class="card-hd">Faturado por mês</div>
+      <div class="card-hd" id="hdMes">Faturado por mês</div>
       <div class="cw" style="height:220px"><canvas id="cMes" role="img" aria-label="mensal"></canvas></div>
     </div>
     <div class="card">
@@ -1708,8 +1732,22 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     </div>
   </div>
   <div class="card">
-    <div class="card-hd">Evolução mensal por tipo</div>
+    <div class="card-hd" id="hdTipoMes">Evolução mensal por tipo</div>
     <div class="cw" style="height:240px"><canvas id="cTipoMes" role="img" aria-label="evolução mensal por tipo"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-hd" id="hdAcum">Faturado × recebido — mensal</div>
+    <div class="cw" style="height:230px"><canvas id="cAcum" role="img" aria-label="faturado e recebido acumulado"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd" id="hdResLiq">Resultado líquido (receitas − despesas)</div>
+      <div class="cw" style="height:230px"><canvas id="cResLiq" role="img" aria-label="resultado líquido mensal"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">Aging de recebíveis (em aberto)</div>
+      <div class="cw" style="height:230px"><canvas id="cAging" role="img" aria-label="aging de recebíveis"></canvas></div>
+    </div>
   </div>
   <div class="g2">
     <div class="card">
@@ -2783,6 +2821,28 @@ const BF=newFilterState();
 function buildBaixasFilters(){ makeFilterSelector('baixasFilters',BF,renderBaixas); }
 function bfMatch(r){ return filterMatch(BF,r); }
 
+// ── CONTROLES DO RESUMO: período · base (competência/caixa) · mensal/acumulado ──
+let resPeriodo='12';   // '3' | '6' | '12' | 'ano' | 'tudo'
+let resBase='comp';    // 'comp' (faturado/competência) | 'caixa' (recebido)
+let resAcum=false;     // false=mensal · true=acumulado
+function setResCtrl(kind,val,el){
+  if(kind==='periodo')resPeriodo=val;
+  else if(kind==='base')resBase=val;
+  else if(kind==='acum')resAcum=(val==='1');
+  if(el&&el.parentElement)el.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===el));
+  renderResumo();
+}
+// Conjunto de meses 'YYYY-MM' a exibir nas séries temporais, conforme o período.
+function resMonths(present){
+  if(resPeriodo==='tudo') return present.slice();
+  if(resPeriodo==='ano'){const y=curMes.slice(0,4);const a=[];for(let i=1;i<=12;i++)a.push(`${y}-${String(i).padStart(2,'0')}`);return a;}
+  const n=parseInt(resPeriodo);const seq=[];for(let i=n-1;i>=0;i--)seq.push(mesAdd(curMes,-i));return seq;
+}
+// Valor de um lançamento conforme a base selecionada.
+function valBase(r){ return resBase==='caixa' ? (isPago(r)?fN(r.valor_pago):0) : fN(r.valor); }
+function cumArr(arr){ let s=0; return arr.map(v=>s+=v); }
+function mLabel(k){ const[y,m]=k.split('-'); return MN[parseInt(m)-1]+'/'+y.slice(2); }
+
 // Janela "Recebimentos de hoje" no Resumo — clicar abre todos os recebimentos
 function renderRecebHoje(){
   const el=document.getElementById('recebHoje'); if(!el) return;
@@ -2828,14 +2888,23 @@ function renderResumo(){
     <div class="mc red"><div class="mc-label">Inadimplência</div><div class="mc-value">${inad.toFixed(1)}%</div><div class="mc-sub">${fR(vencVal)} vencido</div></div>
   `;
   renderRecebHoje();
-  const mK=Object.keys(bM).sort();
-  // Empilhado: Recebido (verde) × A receber (âmbar) por mês
+  // Meses exibidos nas séries temporais, conforme o período selecionado
+  const presentMonths=[...new Set(baseRows.map(r=>(r.prev_pgto||'').slice(0,7)).filter(Boolean))].sort();
+  const mShown=resMonths(presentMonths);
+  const labelsT=mShown.map(mLabel);
+  const acumSfx=resAcum?' — acumulado':'';
+  // Recebido × A receber por mês
   const recM={},pendM={};
   baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m)return;recM[m]=(recM[m]||0)+(isPago(r)?fN(r.valor_pago):0);pendM[m]=(pendM[m]||0)+(isPend(r)?fN(r.saldo):0);});
-  mkC('cMes',{type:'bar',data:{labels:mK.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+'/'+y.slice(2);}),datasets:[
-    {label:'Recebido',data:mK.map(k=>recM[k]||0),backgroundColor:'#34c759',stack:'s',borderRadius:{bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46},
-    {label:'A receber',data:mK.map(k=>pendM[k]||0),backgroundColor:'#f0b429',stack:'s',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46}
-  ]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0))}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  let recA=mShown.map(k=>recM[k]||0), pendA=mShown.map(k=>pendM[k]||0);
+  if(resAcum){recA=cumArr(recA);pendA=cumArr(pendA);}
+  const hdMes=document.getElementById('hdMes');
+  if(hdMes) hdMes.textContent=(resBase==='caixa'?'Recebido por mês':'Faturado por mês (recebido × a receber)')+acumSfx;
+  const dsMes = resBase==='caixa'
+    ? [{label:'Recebido',data:recA,backgroundColor:'#34c759',borderRadius:6,borderSkipped:false,maxBarThickness:46}]
+    : [{label:'Recebido',data:recA,backgroundColor:'#34c759',stack:'s',borderRadius:{bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46},
+       {label:'A receber',data:pendA,backgroundColor:'#f0b429',stack:'s',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46}];
+  mkC('cMes',{type:'bar',data:{labels:labelsT,datasets:dsMes},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>items.length>1?'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0)):''}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   const bT={};rows.forEach(r=>{bT[r.tipo]=(bT[r.tipo]||0)+fN(r.valor);});
   const tK=Object.keys(bT).sort((a,b)=>bT[b]-bT[a]);
   const tC={Locação:'#1f5fa8',Avarias:'#c42b1c',Lavagem:'#0d6e3e',Multas:'#92600a',Outros:'#aaa','Taxa Mario':'#5b35d5','Taxa Alfredo':'#5b35d5','Taxa Bruno':'#5b35d5'};
@@ -2844,12 +2913,39 @@ function renderResumo(){
   // Evolução mensal por tipo — linhas com gradiente (Locação, Avarias, Lavagem, Multas)
   const TML=[{k:'Locação',from:'#1f5fa8',to:'#7cb3ec'},{k:'Avarias',from:'#c42b1c',to:'#f0897c'},{k:'Lavagem',from:'#0d6e3e',to:'#52c98c'},{k:'Multas',from:'#92600a',to:'#e0b24a'}];
   const tmMap={};TML.forEach(t=>tmMap[t.k]={});
-  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m||!tmMap[r.tipo])return;tmMap[r.tipo][m]=(tmMap[r.tipo][m]||0)+fN(r.valor);});
-  mkC('cTipoMes',{type:'line',data:{labels:mK.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+'/'+y.slice(2);}),datasets:TML.map(t=>({
-    label:t.k,data:mK.map(k=>tmMap[t.k][k]||0),
+  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m||!tmMap[r.tipo])return;tmMap[r.tipo][m]=(tmMap[r.tipo][m]||0)+valBase(r);});
+  const hdTipoMes=document.getElementById('hdTipoMes'); if(hdTipoMes) hdTipoMes.textContent='Evolução mensal por tipo'+acumSfx;
+  mkC('cTipoMes',{type:'line',data:{labels:labelsT,datasets:TML.map(t=>{let d=mShown.map(k=>tmMap[t.k][k]||0);if(resAcum)d=cumArr(d);return{
+    label:t.k,data:d,
     borderColor:c=>vGrad(c,t.from,t.to),backgroundColor:t.from,pointBackgroundColor:t.from,pointBorderColor:'#fff',pointBorderWidth:1.5,
     borderWidth:3,tension:.38,fill:false,pointRadius:2.5,pointHoverRadius:5,spanGaps:true
-  }))},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  };})},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+
+  // ── Recebido × Faturado acumulado (linhas) ──
+  const fatM={},rcvM={};
+  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m)return;fatM[m]=(fatM[m]||0)+fN(r.valor);rcvM[m]=(rcvM[m]||0)+(isPago(r)?fN(r.valor_pago):0);});
+  let fatA=mShown.map(k=>fatM[k]||0), rcvA=mShown.map(k=>rcvM[k]||0);
+  if(resAcum){fatA=cumArr(fatA);rcvA=cumArr(rcvA);}
+  const hdAcum=document.getElementById('hdAcum'); if(hdAcum) hdAcum.textContent=(resAcum?'Faturado × recebido — acumulado':'Faturado × recebido — mensal');
+  mkC('cAcum',{type:'line',data:{labels:labelsT,datasets:[
+    {label:'Faturado',data:fatA,borderColor:c=>vGrad(c,'#1f5fa8','#7cb3ec'),backgroundColor:'rgba(31,95,168,.10)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#1f5fa8',pointBorderColor:'#fff',pointBorderWidth:1.5},
+    {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.08)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5}
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+
+  // ── Resultado líquido mensal (Receitas − Despesas) ──
+  const donoOk=d=>(!selDono||d===selDono)&&(!RF.dono.size||RF.dono.has(d));
+  const despM={};DESPESAS.forEach(x=>{if(!donoOk(x.dono))return;if(x.mes)despM[x.mes]=(despM[x.mes]||0)+fN(x.valor);});
+  const recvM={};baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)recvM[m]=(recvM[m]||0)+valBase(r);});
+  let resArr=mShown.map(k=>(recvM[k]||0)-(despM[k]||0));
+  if(resAcum)resArr=cumArr(resArr);
+  const hdResLiq=document.getElementById('hdResLiq'); if(hdResLiq) hdResLiq.textContent='Resultado líquido (receitas − despesas)'+acumSfx;
+  mkC('cResLiq',{type:'bar',data:{labels:labelsT,datasets:[{label:'Resultado',data:resArr,backgroundColor:resArr.map(v=>v>=0?'#34c759':'#c42b1c'),borderRadius:6,borderSkipped:false,maxBarThickness:46}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+
+  // ── Aging de recebíveis (snapshot: tudo em aberto, por dias de atraso) ──
+  const hojeAg=td();
+  const ag={v:0,d30:0,d60:0,d60p:0};
+  baseRows.filter(r=>isPend(r)).forEach(r=>{const s=fN(r.saldo);const pp=r.prev_pgto||'';if(!pp){ag.v+=s;return;}const dias=Math.floor((new Date(hojeAg)-new Date(pp))/86400000);if(dias<=0)ag.v+=s;else if(dias<=30)ag.d30+=s;else if(dias<=60)ag.d60+=s;else ag.d60p+=s;});
+  mkC('cAging',{type:'bar',data:{labels:['A vencer','Venc. 1–30','31–60','60+'],datasets:[{data:[ag.v,ag.d30,ag.d60,ag.d60p],backgroundColor:['#34c759','#f0b429','#e8833a','#c42b1c'],borderRadius:8,borderSkipped:false,maxBarThickness:60}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   const bF={};rows.forEach(r=>{bF[r.forma]=(bF[r.forma]||0)+fN(r.valor);});
   const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
   const maxF=bF[fK[0]]||1;
