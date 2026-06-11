@@ -322,6 +322,10 @@ body::before {
 .filt-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); display: inline-block; margin-left: 6px; }
 .filt-panel { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin: 0 0 14px; }
 .filt-panel[hidden] { display: none; }
+.filt-panel-baixas { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.filt-panel-baixas[hidden] { display: none; }
+.filt-panel-baixas #baixasFilters { margin-bottom: 0; }
+.filt-panel-baixas #bf-status { flex: 1 1 auto; min-width: 140px; }
 /* Barra de ações dos Recebimentos: botões espaçados lateral e verticalmente */
 .fbar-baixas { gap: 10px; margin: 6px 0 18px; }
 .fbar-baixas .btn { flex: 1; justify-content: center; padding: 11px 12px; border-radius: 999px; font-weight: 600; }
@@ -1619,13 +1623,8 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <button class="btn" onclick="selTodos()">Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
       </div>
-      <div class="filt-panel" id="filtPanel" hidden>
-        <select id="bf-dono" onchange="renderBaixas()">
-          <option value="">Todos os proprietários</option>
-        </select>
-        <select id="bf-forma" onchange="renderBaixas()">
-          <option value="">Todas as formas</option>
-        </select>
+      <div class="filt-panel filt-panel-baixas" id="filtPanel" hidden>
+        <div id="baixasFilters" class="rf-bar"></div>
         <select id="bf-status" onchange="renderBaixas()">
           <option value="pend">Pendentes</option>
           <option value="venc">Vencidos</option>
@@ -2480,12 +2479,10 @@ function buildMiniSummary(){
 
 // ── BAIXAS ──
 function renderBaixas(){
-  const dono=document.getElementById('bf-dono').value;
-  const forma=document.getElementById('bf-forma').value;
   const status=document.getElementById('bf-status').value;
 
-  // allMes = todos os lançamentos do mês (para métricas corretas)
-  const allMes=filtBaixas({dono:dono||undefined,forma:forma||undefined});
+  // allMes = todos os lançamentos do mês (para métricas corretas), aplicando os filtros multi-seleção
+  const allMes=filtBaixas().filter(bfMatch);
   // rows = filtrado pelo status selecionado (para exibição)
   let rows=[...allMes];
   if(status==='pend') rows=rows.filter(r=>isPend(r));
@@ -2511,7 +2508,8 @@ function renderBaixas(){
 
   // Indicador de filtro ativo
   const fdot=document.getElementById('filtDot');
-  if(fdot) fdot.style.display=(dono||forma||(status&&status!=='pend'))?'inline-block':'none';
+  const anyBF=Object.values(BF).some(s=>s.size);
+  if(fdot) fdot.style.display=(anyBF||(status&&status!=='pend'))?'inline-block':'none';
 
   const container=document.getElementById('baixasContainer');
   container.innerHTML='';
@@ -2654,33 +2652,54 @@ function renderLanc(){
 }
 
 // ── RESUMO ──
-// ── FILTROS DOS GRÁFICOS E PAINÉIS (Resumo) — multi-seleção ──
-const RF={dono:new Set(),placa:new Set(),cliente:new Set(),forma:new Set(),tipo:new Set()};
+// ── FILTROS MULTI-SELEÇÃO (seletor único) — usado no Resumo e em Recebimentos ──
 const RF_LABELS={dono:'Proprietário',tipo:'Tipo',forma:'Forma de pagamento',cliente:'Cliente',placa:'Placa'};
-function buildResumoFilters(){
-  const bar=document.getElementById('resumoFilters'); if(!bar) return;
+const RF_DIMS=Object.keys(RF_LABELS);
+const newFilterState=()=>RF_DIMS.reduce((o,d)=>(o[d]=new Set(),o),{});
+function filterMatch(state,r){ return RF_DIMS.every(d=>!state[d].size||state[d].has(r[d])); }
+// Monta um seletor único de filtros num container; chama onChange ao alterar.
+function makeFilterSelector(mountId,state,onChange){
+  const bar=document.getElementById(mountId); if(!bar) return;
   const data=allD();
   const uniq=k=>[...new Set(data.map(r=>r[k]).filter(v=>v!=null&&v!==''))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
-  const opts={dono:uniq('dono'),placa:uniq('placa'),cliente:uniq('cliente'),forma:uniq('forma'),tipo:uniq('tipo')};
-  const sections=Object.keys(RF_LABELS).map(dim=>`
-    <div class="rf-sec">
-      <div class="rf-sec-tt">${RF_LABELS[dim]}<span class="rf-badge" id="rfb-${dim}"></span></div>
-      <div class="rf-sec-opts">${opts[dim].length?opts[dim].map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" onchange="toggleRF('${dim}',this)"> ${escHtml(String(v))}</label>`).join(''):'<div class="rf-empty">Sem dados</div>'}</div>
-    </div>`).join('');
+  const sections=RF_DIMS.map(dim=>{
+    const opts=uniq(dim);
+    return `<div class="rf-sec">
+      <div class="rf-sec-tt">${RF_LABELS[dim]}<span class="rf-badge" data-badge="${dim}"></span></div>
+      <div class="rf-sec-opts">${opts.length?opts.map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" data-dim="${dim}"${state[dim].has(String(v))?' checked':''}> ${escHtml(String(v))}</label>`).join(''):'<div class="rf-empty">Sem dados</div>'}</div>
+    </div>`;
+  }).join('');
   bar.innerHTML=`
     <details class="rf rf-single">
-      <summary>🔎 Filtros<span class="rf-badge" id="rfb-all"></span><span class="rf-caret">▾</span></summary>
+      <summary>🔎 Filtros<span class="rf-badge" data-badge="__all"></span><span class="rf-caret">▾</span></summary>
       <div class="rf-menu rf-menu-wide">
-        <div class="rf-menu-hd"><span>Filtrar</span><button class="rf-clear" id="rfClear" onclick="clearRF()" style="display:none">✕ Limpar</button></div>
+        <div class="rf-menu-hd"><span>Filtrar</span><button class="rf-clear" data-clear style="display:none">✕ Limpar</button></div>
         ${sections}
       </div>
     </details>`;
-  updateRFbadges();
+  const update=()=>{
+    let total=0;
+    RF_DIMS.forEach(dim=>{const n=state[dim].size;const b=bar.querySelector(`[data-badge="${dim}"]`);if(b)b.textContent=n?String(n):'';total+=n;});
+    const all=bar.querySelector('[data-badge="__all"]'); if(all)all.textContent=total?String(total):'';
+    const c=bar.querySelector('[data-clear]'); if(c)c.style.display=total?'inline-flex':'none';
+  };
+  bar.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener('change',()=>{
+    const dim=cb.dataset.dim; if(cb.checked)state[dim].add(cb.value); else state[dim].delete(cb.value); update(); onChange();
+  }));
+  const clr=bar.querySelector('[data-clear]');
+  if(clr) clr.addEventListener('click',()=>{ RF_DIMS.forEach(d=>state[d].clear()); bar.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false); update(); onChange(); });
+  update();
 }
-function toggleRF(dim,el){ if(el.checked)RF[dim].add(el.value); else RF[dim].delete(el.value); updateRFbadges(); renderResumo(); }
-function clearRF(){ Object.values(RF).forEach(s=>s.clear()); document.querySelectorAll('#resumoFilters input[type=checkbox]').forEach(c=>c.checked=false); updateRFbadges(); renderResumo(); }
-function updateRFbadges(){ let total=0; Object.keys(RF).forEach(dim=>{const n=RF[dim].size;const b=document.getElementById('rfb-'+dim);if(b)b.textContent=n?String(n):'';total+=n;}); const all=document.getElementById('rfb-all'); if(all)all.textContent=total?String(total):''; const c=document.getElementById('rfClear'); if(c)c.style.display=total?'inline-flex':'none'; }
-function rfMatch(r){ return (!RF.dono.size||RF.dono.has(r.dono))&&(!RF.placa.size||RF.placa.has(r.placa))&&(!RF.cliente.size||RF.cliente.has(r.cliente))&&(!RF.forma.size||RF.forma.has(r.forma))&&(!RF.tipo.size||RF.tipo.has(r.tipo)); }
+
+// Resumo (gráficos e painéis)
+const RF=newFilterState();
+function buildResumoFilters(){ makeFilterSelector('resumoFilters',RF,renderResumo); }
+function rfMatch(r){ return filterMatch(RF,r); }
+
+// Recebimentos (mesmos filtros do Resumo)
+const BF=newFilterState();
+function buildBaixasFilters(){ makeFilterSelector('baixasFilters',BF,renderBaixas); }
+function bfMatch(r){ return filterMatch(BF,r); }
 
 // Janela "Recebimentos de hoje" no Resumo — clicar abre todos os recebimentos
 function renderRecebHoje(){
@@ -3594,9 +3613,9 @@ function popSel(){
   const tipos=[...new Set(all.map(r=>r.tipo).filter(Boolean))].sort();
   const formas=[...new Set(all.map(r=>r.forma).filter(Boolean))].sort();
   ['nf-d','e-d','ai-d'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Selecione</option>';donos.forEach(d=>el.innerHTML+=`<option>${d}</option>`);el.value=cv;});
-  ['lf-dono','bf-dono'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Todos os proprietários</option>';donos.forEach(d=>el.innerHTML+=`<option>${d}</option>`);el.value=cv;});
+  ['lf-dono'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Todos os proprietários</option>';donos.forEach(d=>el.innerHTML+=`<option>${d}</option>`);el.value=cv;});
   ['lf-tipo'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Todos os tipos</option>';tipos.forEach(t=>el.innerHTML+=`<option>${t}</option>`);el.value=cv;});
-  ['lf-forma','bf-forma'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Todas as formas</option>';formas.forEach(f=>el.innerHTML+=`<option>${f}</option>`);el.value=cv;});
+  ['lf-forma'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Todas as formas</option>';formas.forEach(f=>el.innerHTML+=`<option>${f}</option>`);el.value=cv;});
 }
 
 // ── CSV ──
@@ -3669,6 +3688,7 @@ async function boot(){
   popSel();
   updateMesLabel();
   buildResumoFilters();
+  buildBaixasFilters();
   renderAll();
   autoFillDono('nf-p','nf-d');
   autoFillDono('e-p','e-d');
