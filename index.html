@@ -835,6 +835,7 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .search-total .st-sub { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11.5px; font-weight: 600; }
 .search-total .st-pago { color: var(--green); }
 .search-total .st-pend { color: var(--amber); }
+.search-total .st-month { margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--line); }
 .srow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .srow:last-child { border-bottom: none; }
 .srow:hover { background: var(--surface); }
@@ -1698,6 +1699,10 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <div class="cw" style="height:220px"><canvas id="cTipo" role="img" aria-label="tipo"></canvas></div>
     </div>
   </div>
+  <div class="card">
+    <div class="card-hd">Evolução mensal por tipo</div>
+    <div class="cw" style="height:240px"><canvas id="cTipoMes" role="img" aria-label="evolução mensal por tipo"></canvas></div>
+  </div>
   <div class="g2">
     <div class="card">
       <div class="card-hd">Por forma de recebimento</div>
@@ -2355,6 +2360,8 @@ function filtGeral(o={}){
 
 const CH={};
 function mkC(id,cfg){if(CH[id])CH[id].destroy();const c=document.getElementById(id);if(!c)return;CH[id]=new Chart(c,cfg);}
+// Gradiente vertical para traço/preenchimento de linhas (scriptable color)
+function vGrad(context,cFrom,cTo){const ch=context.chart,area=ch.chartArea;if(!area)return cFrom;const g=ch.ctx.createLinearGradient(0,area.top,0,area.bottom);g.addColorStop(0,cFrom);g.addColorStop(1,cTo);return g;}
 // Qualidade/identidade visual padrão dos gráficos
 if(window.Chart){
   Chart.defaults.font.family="'DM Sans', -apple-system, sans-serif";
@@ -2759,6 +2766,15 @@ function renderResumo(){
   const tC={Locação:'#1f5fa8',Avarias:'#c42b1c',Lavagem:'#0d6e3e',Multas:'#92600a',Outros:'#aaa','Taxa Mario':'#5b35d5','Taxa Alfredo':'#5b35d5','Taxa Bruno':'#5b35d5'};
   const totTipo=tK.reduce((a,k)=>a+bT[k],0);
   mkC('cTipo',{type:'doughnut',data:{labels:tK,datasets:[{data:tK.map(k=>bT[k]),backgroundColor:tK.map(k=>tC[k]||'#aaa'),borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{center:{text:'R$'+Math.round(totTipo/1000)+'k',sub:'Total'},legend:{position:'bottom',labels:{font:{size:11.5},boxWidth:9,boxHeight:9,padding:11,usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:ctx=>{const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);const pct=tot?(ctx.raw/tot*100).toFixed(1):'0';return ' '+fR(ctx.raw)+'  ·  '+pct+'%';}}}}}});
+  // Evolução mensal por tipo — linhas com gradiente (Locação, Avarias, Lavagem, Multas)
+  const TML=[{k:'Locação',from:'#1f5fa8',to:'#7cb3ec'},{k:'Avarias',from:'#c42b1c',to:'#f0897c'},{k:'Lavagem',from:'#0d6e3e',to:'#52c98c'},{k:'Multas',from:'#92600a',to:'#e0b24a'}];
+  const tmMap={};TML.forEach(t=>tmMap[t.k]={});
+  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m||!tmMap[r.tipo])return;tmMap[r.tipo][m]=(tmMap[r.tipo][m]||0)+fN(r.valor);});
+  mkC('cTipoMes',{type:'line',data:{labels:mK.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+'/'+y.slice(2);}),datasets:TML.map(t=>({
+    label:t.k,data:mK.map(k=>tmMap[t.k][k]||0),
+    borderColor:c=>vGrad(c,t.from,t.to),backgroundColor:t.from,pointBackgroundColor:t.from,pointBorderColor:'#fff',pointBorderWidth:1.5,
+    borderWidth:3,tension:.38,fill:false,pointRadius:2.5,pointHoverRadius:5,spanGaps:true
+  }))},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   const bF={};rows.forEach(r=>{bF[r.forma]=(bF[r.forma]||0)+fN(r.valor);});
   const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
   const maxF=bF[fK[0]]||1;
@@ -3150,9 +3166,22 @@ function runSearch(){
   const totVal=res.reduce((a,{r})=>a+fN(r.valor),0);
   const totPago=res.reduce((a,{r})=>a+(isPago(r)?fN(r.valor):0),0);
   const totPend=totVal-totPago;
+  // Totais do mês vigente (curMes), por competência (prev_pgto)
+  const inMes=res.filter(({r})=>(r.prev_pgto||'').slice(0,7)===curMes);
+  const mVal=inMes.reduce((a,{r})=>a+fN(r.valor),0);
+  const mPago=inMes.reduce((a,{r})=>a+(isPago(r)?fN(r.valor):0),0);
+  const mPend=mVal-mPago;
+  const [my,mm]=curMes.split('-');
+  const mesLabel=MN[parseInt(mm)-1]+'/'+my.slice(2);
   const totHtml=`<div class="search-total">
-    <div class="st-main"><span>${res.length} resultado${res.length>1?'s':''}</span><span class="st-val">${fR(totVal)}</span></div>
-    <div class="st-sub"><span class="st-pago">Pago ${fR(totPago)}</span><span class="st-pend">Pendente ${fR(totPend)}</span></div>
+    <div class="st-blk">
+      <div class="st-main"><span>Geral · ${res.length} resultado${res.length>1?'s':''}</span><span class="st-val">${fR(totVal)}</span></div>
+      <div class="st-sub"><span class="st-pago">Pago ${fR(totPago)}</span><span class="st-pend">Pendente ${fR(totPend)}</span></div>
+    </div>
+    <div class="st-blk st-month">
+      <div class="st-main"><span>Mês ${mesLabel} · ${inMes.length} resultado${inMes.length===1?'':'s'}</span><span class="st-val">${fR(mVal)}</span></div>
+      <div class="st-sub"><span class="st-pago">Pago ${fR(mPago)}</span><span class="st-pend">Pendente ${fR(mPend)}</span></div>
+    </div>
   </div>`;
   const shown=res.slice(0,40);
   const moreHtml=res.length>shown.length?`<div class="srow-empty">+${res.length-shown.length} não exibidos — refine a busca</div>`:'';
