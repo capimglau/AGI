@@ -2855,6 +2855,18 @@ function resMonths(present){
 function valBase(r){ return resBase==='caixa' ? (isPago(r)?fN(r.valor_pago):0) : fN(r.valor); }
 function cumArr(arr){ let s=0; return arr.map(v=>s+=v); }
 function mLabel(k){ const[y,m]=k.split('-'); return MN[parseInt(m)-1]+'/'+y.slice(2); }
+// Posiciona a rolagem das séries temporais com o mês vigente centralizado.
+function centerResScroll(mShown){
+  const idx=mShown.indexOf(curMes);
+  ['cMes','cTipoMes','cAcum','cResLiq'].forEach(id=>{
+    const c=document.getElementById(id); if(!c)return;
+    const sc=c.parentElement&&c.parentElement.parentElement; // .cw-scroll
+    if(!sc||!sc.classList||!sc.classList.contains('cw-scroll'))return;
+    const max=sc.scrollWidth-sc.clientWidth; if(max<=0)return;
+    let left = idx<0 ? max : ((idx+0.5)*(sc.scrollWidth/mShown.length) - sc.clientWidth/2);
+    sc.scrollLeft=Math.max(0,Math.min(max,left));
+  });
+}
 
 // Janela "Recebimentos de hoje" no Resumo — clicar abre todos os recebimentos
 function renderRecebHoje(){
@@ -2920,7 +2932,7 @@ function renderResumo(){
     ? [{label:'Recebido',data:recA,backgroundColor:'#34c759',borderRadius:6,borderSkipped:false,maxBarThickness:46}]
     : [{label:'Recebido',data:recA,backgroundColor:'#34c759',stack:'s',borderRadius:{bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46},
        {label:'A receber',data:pendA,backgroundColor:'#f0b429',stack:'s',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46}];
-  mkC('cMes',{type:'bar',data:{labels:labelsT,datasets:dsMes},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>items.length>1?'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0)):''}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  mkC('cMes',{type:'bar',data:{labels:labelsT,datasets:dsMes},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>items.length>1?'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0)):''}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:false}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   const bT={};rows.forEach(r=>{bT[r.tipo]=(bT[r.tipo]||0)+fN(r.valor);});
   const tK=Object.keys(bT).sort((a,b)=>bT[b]-bT[a]);
   const tC={Locação:'#1f5fa8',Avarias:'#c42b1c',Lavagem:'#0d6e3e',Multas:'#92600a',Outros:'#aaa','Taxa Mario':'#5b35d5','Taxa Alfredo':'#5b35d5','Taxa Bruno':'#5b35d5'};
@@ -2935,7 +2947,7 @@ function renderResumo(){
     label:t.k,data:d,
     borderColor:c=>vGrad(c,t.from,t.to),backgroundColor:t.from,pointBackgroundColor:t.from,pointBorderColor:'#fff',pointBorderWidth:1.5,
     borderWidth:3,tension:.38,fill:false,pointRadius:2.5,pointHoverRadius:5,spanGaps:true
-  };})},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  };})},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
 
   // ── Recebido × Faturado acumulado (linhas) ──
   const fatM={},rcvM={};
@@ -2946,7 +2958,7 @@ function renderResumo(){
   mkC('cAcum',{type:'line',data:{labels:labelsT,datasets:[
     {label:'Faturado',data:fatA,borderColor:c=>vGrad(c,'#1f5fa8','#7cb3ec'),backgroundColor:'rgba(31,95,168,.10)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#1f5fa8',pointBorderColor:'#fff',pointBorderWidth:1.5},
     {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.08)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5}
-  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
 
   // ── Resultado líquido mensal (Receitas − Despesas) ──
   const donoOk=d=>(!selDono||d===selDono)&&(!RF.dono.size||RF.dono.has(d));
@@ -2955,7 +2967,7 @@ function renderResumo(){
   let resArr=mShown.map(k=>(recvM[k]||0)-(despM[k]||0));
   if(resAcum)resArr=cumArr(resArr);
   const hdResLiq=document.getElementById('hdResLiq'); if(hdResLiq) hdResLiq.textContent='Resultado líquido (receitas − despesas)'+acumSfx;
-  mkC('cResLiq',{type:'bar',data:{labels:labelsT,datasets:[{label:'Resultado',data:resArr,backgroundColor:resArr.map(v=>v>=0?'#34c759':'#c42b1c'),borderRadius:6,borderSkipped:false,maxBarThickness:46}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:8,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  mkC('cResLiq',{type:'bar',data:{labels:labelsT,datasets:[{label:'Resultado',data:resArr,backgroundColor:resArr.map(v=>v>=0?'#34c759':'#c42b1c'),borderRadius:6,borderSkipped:false,maxBarThickness:46}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
 
   // ── Aging de recebíveis (snapshot: tudo em aberto, por dias de atraso) ──
   const hojeAg=td();
@@ -2984,6 +2996,7 @@ function renderResumo(){
   const sK=Object.keys(sem).sort();
   {const c=document.getElementById('cProj');if(c&&c.parentElement)c.parentElement.style.minWidth=Math.max(420,sK.length*64)+'px';}
   mkC('cProj',{type:'bar',data:{labels:sK.map(k=>{const[y,m,d]=k.split('-');return`${d}/${m}`;}),datasets:[{data:sK.map(k=>sem[k]),backgroundColor:'#1f5fa820',borderColor:'#1f5fa8',borderWidth:2,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
+  requestAnimationFrame(()=>centerResScroll(mShown));
 }
 
 
