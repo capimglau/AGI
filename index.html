@@ -898,6 +898,39 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
   .dn-add .dn-row2 { grid-template-columns: 1fr; }
 }
 
+/* ─── FILTROS DOS GRÁFICOS (Resumo) — multi-seleção ─── */
+.rf-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
+.rf { position: relative; }
+.rf > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--card); font-size: 13px; font-weight: 600; color: var(--ink2); user-select: none; white-space: nowrap; transition: border-color .12s, box-shadow .12s; }
+.rf > summary::-webkit-details-marker { display: none; }
+.rf > summary:hover { border-color: var(--blue-mid); }
+.rf[open] > summary { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31,95,168,.08); color: var(--blue); }
+.rf-badge { min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; background: var(--blue); color: #fff; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.rf-badge:empty { display: none; }
+.rf-caret { font-size: 10px; color: var(--ink3); }
+.rf-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; min-width: 190px; max-height: 300px; overflow-y: auto; background: var(--card); border: 1px solid var(--line); border-radius: 13px; box-shadow: var(--shadow-lg); padding: 6px; }
+.rf-opt { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--ink); }
+.rf-opt:hover { background: var(--surface); }
+.rf-opt input { accent-color: var(--blue); width: 15px; height: 15px; flex-shrink: 0; }
+.rf-empty { padding: 10px; color: var(--ink3); font-size: 12px; }
+.rf-clear { border: none; background: none; color: var(--blue); font-weight: 700; font-size: 12.5px; cursor: pointer; padding: 8px 8px; display: inline-flex; align-items: center; gap: 4px; }
+.rf-clear:hover { text-decoration: underline; }
+
+/* ─── RECEBIMENTOS DO DIA (Receber) ─── */
+.receb-hoje { background: linear-gradient(165deg, rgba(31,95,168,.06) 0%, #ffffff 70%); border: 1px solid var(--blue-mid); border-radius: var(--rl); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); }
+.rh-hd { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; margin-bottom: 11px; letter-spacing: -.01em; }
+.rh-sub { font-size: 12px; color: var(--blue); font-weight: 700; }
+.rh-list { display: flex; flex-direction: column; gap: 6px; }
+.rh-item { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 11px; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 9px 12px; cursor: pointer; font-family: inherit; font-size: 13px; color: var(--ink); transition: border-color .12s, background .12s; }
+.rh-item:hover { border-color: var(--blue); background: var(--surface); }
+.rh-cli { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rh-dono { font-size: 11.5px; color: var(--ink3); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.rh-val { font-weight: 700; color: var(--red); white-space: nowrap; }
+@media (max-width: 680px) {
+  .rh-item { grid-template-columns: auto 1fr auto; gap: 9px; }
+  .rh-dono { display: none; }
+}
+
 /* ─── PREMISSAS PAGE ─── */
 .prem-grid {
   display: grid;
@@ -1559,8 +1592,9 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <!-- ─── PAGES ─── -->
 
 <!-- RECEBIMENTOS -->
-<div class="page on" id="page-baixas">
+<div class="page" id="page-baixas">
   <div class="mrow" id="baixa-metrics"></div>
+  <div id="recebHoje"></div>
   <div class="baixas-layout">
 
     <!-- LEFT: day groups -->
@@ -1636,7 +1670,8 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 </div>
 
 <!-- RESUMO -->
-<div class="page" id="page-resumo">
+<div class="page on" id="page-resumo">
+  <div class="rf-bar" id="resumoFilters"></div>
   <div class="mrow" id="res-m"></div>
   <div class="g2">
     <div class="card">
@@ -2457,6 +2492,29 @@ function renderBaixas(){
     <div class="mc red"><div class="mc-label">Já vencidos</div><div class="mc-value">${nVenc}</div></div>
   `;
   renderBoletosBanner();
+
+  // Janela "Recebimentos do dia" — só aparece se houver itens pendentes vencendo hoje
+  const rhEl=document.getElementById('recebHoje');
+  if(rhEl){
+    const hojeItems=allMes.filter(r=>isPend(r)&&r.prev_pgto===hoje)
+                          .sort((a,b)=>fN(b.saldo)-fN(a.saldo));
+    if(hojeItems.length){
+      const totHoje=hojeItems.reduce((a,r)=>a+fN(r.saldo),0);
+      rhEl.innerHTML=`<div class="receb-hoje">
+        <div class="rh-hd"><span>📥 Recebimentos de hoje</span><span class="rh-sub">${hojeItems.length} · ${fR(totHoje)}</span></div>
+        <div class="rh-list">${hojeItems.map(r=>{
+          const gi=allD().indexOf(r);const col=DC[r.dono]||'#888';
+          return `<button class="rh-item" onclick="openEdit(${gi})">
+            <span class="placa">${r.placa}</span>
+            <span class="rh-cli">${r.cliente||'—'}</span>
+            <span class="rh-dono"><span class="ddot" style="background:${col}"></span>${r.dono||''}</span>
+            <span class="rh-val">${fR(r.saldo)}</span>
+          </button>`;
+        }).join('')}</div>
+      </div>`;
+    } else { rhEl.innerHTML=''; }
+  }
+
   // Indicador de filtro ativo
   const fdot=document.getElementById('filtDot');
   if(fdot) fdot.style.display=(dono||forma||(status&&status!=='pend'))?'inline-block':'none';
@@ -2602,9 +2660,30 @@ function renderLanc(){
 }
 
 // ── RESUMO ──
+// ── FILTROS DOS GRÁFICOS E PAINÉIS (Resumo) — multi-seleção ──
+const RF={dono:new Set(),placa:new Set(),cliente:new Set(),forma:new Set(),tipo:new Set()};
+const RF_LABELS={dono:'Proprietário',placa:'Placa',cliente:'Cliente',forma:'Forma',tipo:'Tipo'};
+function buildResumoFilters(){
+  const bar=document.getElementById('resumoFilters'); if(!bar) return;
+  const data=allD();
+  const uniq=k=>[...new Set(data.map(r=>r[k]).filter(v=>v!=null&&v!==''))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
+  const opts={dono:uniq('dono'),placa:uniq('placa'),cliente:uniq('cliente'),forma:uniq('forma'),tipo:uniq('tipo')};
+  bar.innerHTML=Object.keys(RF_LABELS).map(dim=>`
+    <details class="rf" data-dim="${dim}">
+      <summary>${RF_LABELS[dim]}<span class="rf-badge" id="rfb-${dim}"></span><span class="rf-caret">▾</span></summary>
+      <div class="rf-menu">${opts[dim].length?opts[dim].map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" onchange="toggleRF('${dim}',this)"> ${escHtml(String(v))}</label>`).join(''):'<div class="rf-empty">Sem dados</div>'}</div>
+    </details>`).join('')+`<button class="rf-clear" id="rfClear" onclick="clearRF()" style="display:none">✕ Limpar filtros</button>`;
+  bar.querySelectorAll('details.rf').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)bar.querySelectorAll('details.rf').forEach(o=>{if(o!==d)o.open=false;});}));
+  updateRFbadges();
+}
+function toggleRF(dim,el){ if(el.checked)RF[dim].add(el.value); else RF[dim].delete(el.value); updateRFbadges(); renderResumo(); }
+function clearRF(){ Object.values(RF).forEach(s=>s.clear()); document.querySelectorAll('#resumoFilters input[type=checkbox]').forEach(c=>c.checked=false); updateRFbadges(); renderResumo(); }
+function updateRFbadges(){ let any=false; Object.keys(RF).forEach(dim=>{const n=RF[dim].size;const b=document.getElementById('rfb-'+dim);if(b)b.textContent=n?String(n):'';if(n)any=true;}); const c=document.getElementById('rfClear'); if(c)c.style.display=any?'inline-flex':'none'; }
+function rfMatch(r){ return (!RF.dono.size||RF.dono.has(r.dono))&&(!RF.placa.size||RF.placa.has(r.placa))&&(!RF.cliente.size||RF.cliente.has(r.cliente))&&(!RF.forma.size||RF.forma.has(r.forma))&&(!RF.tipo.size||RF.tipo.has(r.tipo)); }
+
 function renderResumo(){
   // Todos os lançamentos com prev_pgto no mês (competência de caixa)
-  const rows=allD().filter(r=>(!selDono||r.dono===selDono)&&(r.prev_pgto||'').startsWith(curMes));
+  const rows=allD().filter(r=>(!selDono||r.dono===selDono)&&rfMatch(r)&&(r.prev_pgto||'').startsWith(curMes));
   const totV=rows.reduce((a,r)=>a+fN(r.valor),0);
   const totP=rows.filter(r=>isPago(r)).reduce((a,r)=>a+fN(r.valor_pago),0);
   const totS=rows.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
@@ -2613,7 +2692,7 @@ function renderResumo(){
   const vencVal=rows.filter(r=>isVenc(r)).reduce((a,r)=>a+fN(r.saldo),0);
   const inad=totV>0?(vencVal/totV*100):0;
   // Comparativo vs. mês anterior (faturamento)
-  const baseRows=allD().filter(r=>(!selDono||r.dono===selDono));
+  const baseRows=allD().filter(r=>(!selDono||r.dono===selDono)&&rfMatch(r));
   const bM={};baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)bM[m]=(bM[m]||0)+fN(r.valor);});
   const [cy,cm]=curMes.split('-').map(Number);
   const pd=new Date(cy,cm-2,1);const prevKey=`${pd.getFullYear()}-${String(pd.getMonth()+1).padStart(2,'0')}`;
@@ -3500,7 +3579,7 @@ function exportCSV(){
 }
 
 // ── ROUTING ──
-let curPage='baixas';
+let curPage='resumo';
 function renderAll(){
   updateHeader();buildOwnerPills();buildMiniSummary();
   if(curPage==='baixas')renderBaixas();
@@ -3560,6 +3639,7 @@ async function boot(){
   DESPESAS = await despLoad();
   popSel();
   updateMesLabel();
+  buildResumoFilters();
   renderAll();
   autoFillDono('nf-p','nf-d');
   autoFillDono('e-p','e-d');
@@ -3571,18 +3651,18 @@ boot();
 </script>
 
 <!-- ─── DOCK (posição fixa, fora do header) ─── -->
-<div class="nav-tabs" id="mainDock">
+<div class="nav-tabs resumo-mode" id="mainDock">
   <!-- Grupo padrão -->
-  <div id="dock-default" style="flex:1;display:flex;gap:0">
-    <button class="ntab on" onclick="go('baixas')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nt-short">Receber</span></button>
+  <div id="dock-default" style="flex:1;display:none;gap:0">
+    <button class="ntab" onclick="go('baixas')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nt-short">Receber</span></button>
     <button class="ntab" onclick="go('resumo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-short">Resumo</span></button>
     <button class="ntab" onclick="go('proprietarios')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-short">Donos</span></button>
     <button class="ntab" onclick="go('novo')"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-short">Novo</span></button>
     <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-short">Buscar</span></button>
   </div>
   <!-- Grupo Resumo (sub-abas) -->
-  <div id="dock-resumo" style="flex:1;display:none;gap:0">
-    <button class="ntab" onclick="go('resumo')" data-rpg="resumo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-short">Resumo</span></button>
+  <div id="dock-resumo" style="flex:1;display:flex;gap:0">
+    <button class="ntab on" onclick="go('resumo')" data-rpg="resumo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-short">Resumo</span></button>
     <button class="ntab" onclick="go('lancamentos')" data-rpg="lancamentos"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nt-short">Lançam.</span></button>
     <button class="ntab" onclick="go('premissas')" data-rpg="premissas"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span class="nt-short">Premissas</span></button>
     <button class="ntab" onclick="go('fluxo')" data-rpg="fluxo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nt-short">Fluxo</span></button>
