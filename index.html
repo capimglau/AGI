@@ -915,6 +915,14 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rf-empty { padding: 10px; color: var(--ink3); font-size: 12px; }
 .rf-clear { border: none; background: none; color: var(--blue); font-weight: 700; font-size: 12.5px; cursor: pointer; padding: 8px 8px; display: inline-flex; align-items: center; gap: 4px; }
 .rf-clear:hover { text-decoration: underline; }
+/* Seletor único de filtros */
+.rf-menu-wide { min-width: 280px; max-width: min(360px, calc(100vw - 32px)); max-height: 72vh; }
+.rf-menu-hd { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line); font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink2); }
+.rf-menu-hd .rf-clear { padding: 0; }
+.rf-sec { padding: 6px 0; }
+.rf-sec + .rf-sec { border-top: 1px solid var(--line); }
+.rf-sec-tt { display: flex; align-items: center; gap: 7px; padding: 4px 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink3); }
+.rf-sec-opts { display: flex; flex-direction: column; }
 
 /* ─── RECEBIMENTOS DE HOJE (janela no Resumo) ─── */
 .receb-hoje { background: linear-gradient(165deg, rgba(31,95,168,.06) 0%, #ffffff 70%); border: 1px solid var(--blue-mid); border-radius: var(--rl); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); cursor: pointer; transition: box-shadow .15s, transform .15s, border-color .15s; }
@@ -1672,9 +1680,9 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
 <!-- RESUMO -->
 <div class="page on" id="page-resumo">
-  <div class="rf-bar" id="resumoFilters"></div>
   <div class="mrow" id="res-m"></div>
   <div id="recebHoje"></div>
+  <div class="rf-bar" id="resumoFilters"></div>
   <div class="g2">
     <div class="card">
       <div class="card-hd">Faturado por mês</div>
@@ -2648,17 +2656,24 @@ function buildResumoFilters(){
   const data=allD();
   const uniq=k=>[...new Set(data.map(r=>r[k]).filter(v=>v!=null&&v!==''))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
   const opts={dono:uniq('dono'),placa:uniq('placa'),cliente:uniq('cliente'),forma:uniq('forma'),tipo:uniq('tipo')};
-  bar.innerHTML=Object.keys(RF_LABELS).map(dim=>`
-    <details class="rf" data-dim="${dim}">
-      <summary>${RF_LABELS[dim]}<span class="rf-badge" id="rfb-${dim}"></span><span class="rf-caret">▾</span></summary>
-      <div class="rf-menu">${opts[dim].length?opts[dim].map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" onchange="toggleRF('${dim}',this)"> ${escHtml(String(v))}</label>`).join(''):'<div class="rf-empty">Sem dados</div>'}</div>
-    </details>`).join('')+`<button class="rf-clear" id="rfClear" onclick="clearRF()" style="display:none">✕ Limpar filtros</button>`;
-  bar.querySelectorAll('details.rf').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)bar.querySelectorAll('details.rf').forEach(o=>{if(o!==d)o.open=false;});}));
+  const sections=Object.keys(RF_LABELS).map(dim=>`
+    <div class="rf-sec">
+      <div class="rf-sec-tt">${RF_LABELS[dim]}<span class="rf-badge" id="rfb-${dim}"></span></div>
+      <div class="rf-sec-opts">${opts[dim].length?opts[dim].map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" onchange="toggleRF('${dim}',this)"> ${escHtml(String(v))}</label>`).join(''):'<div class="rf-empty">Sem dados</div>'}</div>
+    </div>`).join('');
+  bar.innerHTML=`
+    <details class="rf rf-single">
+      <summary>🔎 Filtros<span class="rf-badge" id="rfb-all"></span><span class="rf-caret">▾</span></summary>
+      <div class="rf-menu rf-menu-wide">
+        <div class="rf-menu-hd"><span>Filtrar</span><button class="rf-clear" id="rfClear" onclick="clearRF()" style="display:none">✕ Limpar</button></div>
+        ${sections}
+      </div>
+    </details>`;
   updateRFbadges();
 }
 function toggleRF(dim,el){ if(el.checked)RF[dim].add(el.value); else RF[dim].delete(el.value); updateRFbadges(); renderResumo(); }
 function clearRF(){ Object.values(RF).forEach(s=>s.clear()); document.querySelectorAll('#resumoFilters input[type=checkbox]').forEach(c=>c.checked=false); updateRFbadges(); renderResumo(); }
-function updateRFbadges(){ let any=false; Object.keys(RF).forEach(dim=>{const n=RF[dim].size;const b=document.getElementById('rfb-'+dim);if(b)b.textContent=n?String(n):'';if(n)any=true;}); const c=document.getElementById('rfClear'); if(c)c.style.display=any?'inline-flex':'none'; }
+function updateRFbadges(){ let total=0; Object.keys(RF).forEach(dim=>{const n=RF[dim].size;const b=document.getElementById('rfb-'+dim);if(b)b.textContent=n?String(n):'';total+=n;}); const all=document.getElementById('rfb-all'); if(all)all.textContent=total?String(total):''; const c=document.getElementById('rfClear'); if(c)c.style.display=total?'inline-flex':'none'; }
 function rfMatch(r){ return (!RF.dono.size||RF.dono.has(r.dono))&&(!RF.placa.size||RF.placa.has(r.placa))&&(!RF.cliente.size||RF.cliente.has(r.cliente))&&(!RF.forma.size||RF.forma.has(r.forma))&&(!RF.tipo.size||RF.tipo.has(r.tipo)); }
 
 // Janela "Recebimentos de hoje" no Resumo — clicar abre todos os recebimentos
