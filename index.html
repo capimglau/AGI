@@ -879,6 +879,17 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .dn-kpi { background: var(--surface); border-radius: 12px; padding: 12px 14px; }
 .dn-kpi-l { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; color: var(--ink3); }
 .dn-kpi-v { font-size: 18px; font-weight: 700; margin-top: 4px; letter-spacing: -.02em; }
+.dn-saldo { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; }
+.dn-saldo-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dn-saldo-row + .dn-saldo-row { margin-top: 8px; }
+.dn-saldo-row label { font-size: 12.5px; font-weight: 700; color: var(--ink2); }
+.dn-saldo-row input { width: 150px; text-align: right; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font-size: 14px; font-weight: 600; font-family: inherit; }
+.dn-saldo-row input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31,95,168,.08); outline: none; }
+.dn-saldo-calc { font-size: 12.5px; color: var(--ink3); font-weight: 600; padding-top: 8px; border-top: 1px dashed var(--line); }
+.dn-saldo-final { padding-top: 8px; border-top: 1px solid var(--line); }
+.dn-saldo-final > span { font-size: 13px; font-weight: 700; color: var(--ink2); }
+.dn-saldo-final small { font-weight: 600; color: var(--ink3); font-size: 11px; }
+.dn-saldo-final strong { font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
 .dn-extrato { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
 .dn-col { background: var(--surface); border-radius: 14px; padding: 13px; display: flex; flex-direction: column; min-height: 170px; }
 .dn-col-hd { font-size: 12px; font-weight: 700; margin-bottom: 11px; display: flex; justify-content: space-between; align-items: center; }
@@ -2118,6 +2129,20 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <div class="dn-kpi"><div class="dn-kpi-l">Resultado</div><div class="dn-kpi-v" id="dnRes">—</div></div>
     </div>
 
+    <div class="dn-saldo">
+      <div class="dn-saldo-row">
+        <label for="dn-saldo-ini">Saldo do mês (transportado)</label>
+        <input type="number" id="dn-saldo-ini" step="0.01" inputmode="decimal" placeholder="0,00" onchange="setSaldoMes(this.value)">
+      </div>
+      <div class="dn-saldo-row dn-saldo-calc">
+        <span>Resultado do mês</span><span id="dnSaldoRes">—</span>
+      </div>
+      <div class="dn-saldo-row dn-saldo-final">
+        <span>Saldo final <small id="dnSaldoProx"></small></span>
+        <strong id="dnSaldoFim">—</strong>
+      </div>
+    </div>
+
     <div class="dn-extrato">
       <div class="dn-col">
         <div class="dn-col-hd dn-hd-green"><span>▲ Receitas previstas do mês</span><span id="dnRecCt"></span></div>
@@ -2219,6 +2244,59 @@ async function despDel(id){
   if(despBackend==='sb'){const {error}=await SB.from('despesas').delete().eq('id',id);if(error)console.error(error);}
   else despLSsave();
 }
+
+// ─── SALDOS (saldo de abertura por dono/mês; resultado final é transportado p/ o mês seguinte) ───
+let SALDOS = [];
+let saldoBackend = 'ls';
+const SALDO_LS_KEY = 'agi-saldos';
+function saldoLSsave(){try{localStorage.setItem(SALDO_LS_KEY,JSON.stringify(SALDOS));}catch(e){}}
+async function saldoLoad(){
+  if(SB){
+    const {data,error}=await SB.from('saldos').select('*');
+    if(!error){saldoBackend='sb';return data;}
+    console.warn('Tabela "saldos" indisponível ('+error.message+'). Usando armazenamento local. Rode supabase/schema.sql para sincronizar.');
+  }
+  saldoBackend='ls';
+  try{return JSON.parse(localStorage.getItem(SALDO_LS_KEY)||'[]');}catch(e){return [];}
+}
+async function saldoSet(dono,mes,valor){
+  let rec=SALDOS.find(s=>s.dono===dono&&s.mes===mes);
+  if(rec){
+    rec.valor=valor;
+    if(saldoBackend==='sb'){const {error}=await SB.from('saldos').update({valor}).eq('id',rec.id);if(error)console.error(error);}
+    else saldoLSsave();
+    return;
+  }
+  rec={dono,mes,valor};
+  if(saldoBackend==='sb'){
+    const {data,error}=await SB.from('saldos').insert({dono,mes,valor}).select().single();
+    if(!error){SALDOS.push(data);return;}
+    console.error(error);
+  }
+  rec.id='ls_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  SALDOS.push(rec);saldoLSsave();
+}
+function saldoOverride(dono,mes){const r=SALDOS.find(s=>s.dono===dono&&s.mes===mes);return r?fN(r.valor):null;}
+function mesAdd(mes,delta){const [y,m]=mes.split('-').map(Number);const d=new Date(y,m-1+delta,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+function donoResultado(dono,mes){
+  const rec=allD().filter(r=>r.dono===dono&&(r.prev_pgto||'').startsWith(mes)).reduce((a,r)=>a+fN(r.valor),0);
+  const desp=DESPESAS.filter(x=>x.dono===dono&&x.mes===mes).reduce((a,x)=>a+fN(x.valor),0);
+  return rec-desp;
+}
+// Saldo de abertura do mês: override manual OU resultado final (transportado) do mês anterior.
+function donoSaldoAbertura(dono,mes,guard){
+  guard=guard||0;
+  const ov=saldoOverride(dono,mes);
+  if(ov!==null) return ov;
+  if(guard>=60) return 0;
+  const prev=mesAdd(mes,-1);
+  const temPrev = saldoOverride(dono,prev)!==null
+    || allD().some(r=>r.dono===dono&&(r.prev_pgto||'').startsWith(prev))
+    || DESPESAS.some(x=>x.dono===dono&&x.mes===prev);
+  if(!temPrev) return 0;
+  return donoSaldoFinal(dono,prev,guard+1);
+}
+function donoSaldoFinal(dono,mes,guard){ return donoSaldoAbertura(dono,mes,guard) + donoResultado(dono,mes); }
 
 let DATA = DS.map(r => ({...r}));
 let NOVOS = [];
@@ -2984,7 +3062,25 @@ function renderDonoModal(){
   resEl.textContent=fR(res);
   resEl.style.color=res>=0?'var(--green)':'var(--red)';
 
+  // Saldo transportado: abertura (override OU final do mês anterior) → final = abertura + resultado
+  const abertura=donoSaldoAbertura(d,curMes);
+  const saldoFim=abertura+res;
+  const iEl=document.getElementById('dn-saldo-ini');
+  if(document.activeElement!==iEl) iEl.value=abertura.toFixed(2);
+  document.getElementById('dnSaldoRes').textContent=fR(res);
+  const fimEl=document.getElementById('dnSaldoFim');
+  fimEl.textContent=fR(saldoFim);
+  fimEl.style.color=saldoFim>=0?'var(--green)':'var(--red)';
+  const [py,pm]=mesAdd(curMes,1).split('-');
+  document.getElementById('dnSaldoProx').textContent=`→ ${MF[parseInt(pm)-1]} ${py}`;
+
   renderDonoChart(d);
+}
+async function setSaldoMes(v){
+  const d=donoAberto; if(!d) return;
+  await saldoSet(d,curMes,parseFloat(v)||0);
+  renderDonoModal();
+  renderProp();
 }
 
 async function addDespesa(){
@@ -3690,6 +3786,7 @@ async function boot(){
   }
   DATA = rows.map(r=>({...r}));
   DESPESAS = await despLoad();
+  SALDOS = await saldoLoad();
   popSel();
   updateMesLabel();
   buildResumoFilters();

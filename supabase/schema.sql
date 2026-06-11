@@ -65,3 +65,29 @@ create policy "anon full access despesas"
   to anon
   using (true)
   with check (true);
+
+-- ─── SALDOS (saldo transportado por proprietário/mês) ───
+-- Guarda o saldo de abertura informado manualmente para um mês. Quando não há
+-- registro, o saldo de abertura é o resultado final (transportado) do mês anterior.
+create table if not exists public.saldos (
+  id          bigint generated always as identity primary key,
+  dono        text,
+  mes         text,            -- competência 'YYYY-MM'
+  valor       numeric(12,2),
+  created_at  timestamptz default now(),
+  unique (dono, mes)
+);
+
+create index if not exists idx_saldos_dono on public.saldos (dono);
+create index if not exists idx_saldos_mes on public.saldos (mes);
+
+alter table public.saldos enable row level security;
+
+-- Mesma política liberal das demais tabelas (veja a observação acima).
+drop policy if exists "anon full access saldos" on public.saldos;
+create policy "anon full access saldos"
+  on public.saldos
+  for all
+  to anon
+  using (true)
+  with check (true);
