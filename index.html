@@ -378,8 +378,8 @@ body {
 .boletos-banner:active { background: rgba(31,95,168,0.14); }
 .boletos-banner-icon { font-size: 22px; flex-shrink: 0; }
 .boletos-banner-body { flex: 1; min-width: 0; }
-.boletos-banner-title { font-size: 10px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; display: flex; align-items: baseline; gap: 6px; }
-.boletos-banner-title-val { font-size: 15px; font-weight: 800; color: var(--blue); letter-spacing: -.02em; text-transform: none; }
+.boletos-banner-title { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; display: flex; align-items: baseline; gap: 6px; }
+.boletos-banner-title-val { font-size: 16px; font-weight: 800; color: var(--blue); letter-spacing: -.02em; text-transform: none; line-height: 1; }
 .boletos-banner-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .boletos-banner-val { font-size: 20px; font-weight: 800; color: var(--blue); letter-spacing: -.02em; }
 .boletos-banner-sub { font-size: 11px; color: var(--ink3); }
@@ -1469,9 +1469,6 @@ html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink);
   <div class="boletos-banner" id="boletosBanner" onclick="filtrarBoletos()">
     <div class="boletos-banner-body">
       <div class="boletos-banner-title">Boletos do mês <span class="boletos-banner-title-val" id="bnTotalVal">—</span></div>
-      <div class="boletos-banner-row">
-        <span class="boletos-banner-sub" id="bnTotalSub"></span>
-      </div>
       <div class="boletos-banner-chips" id="bnChips"></div>
     </div>
     <div class="boletos-banner-arrow">›</div>
@@ -3074,13 +3071,23 @@ function renderBoletosBanner(){
 
   const el = id => document.getElementById(id);
   el('bnTotalVal').textContent = fR(totGeral);
-  el('bnTotalSub').textContent = `${boletos.length} boleto${boletos.length>1?'s':''} · ${feitos.length} pago${feitos.length!==1?'s':''}`;
 
   const chips = [];
   chips.push(`<span class="boletos-banner-chip boletos-chip-feito">${feitos.length} feito${feitos.length>1?'s':''} · ${fR(totFeitos)}</span>`);
   chips.push(`<span class="boletos-banner-chip boletos-chip-fazer">${aFazer.length} a fazer · ${fR(totFazer)}</span>`);
   el('bnChips').innerHTML = chips.join('');
 }
+window._mbFiltro = 'todos';
+
+function setMbFiltro(f){
+  window._mbFiltro = f;
+  ['todos','feitos','afazer'].forEach(k => {
+    const btn = document.getElementById('mbf-' + k);
+    if(btn) btn.classList.toggle('mb-filt-on', k === f);
+  });
+  renderModalBoletos();
+}
+
 function filtrarBoletos(){
   abrirModalBoletos();
 }
@@ -3088,6 +3095,11 @@ function filtrarBoletos(){
 function abrirModalBoletos(){
   const modal = document.getElementById('mBoletos');
   if(!modal) return;
+  window._mbFiltro = 'todos';
+  ['todos','feitos','afazer'].forEach(k => {
+    const btn = document.getElementById('mbf-' + k);
+    if(btn) btn.classList.toggle('mb-filt-on', k === 'todos');
+  });
   renderModalBoletos();
   modal.classList.add('on');
 }
@@ -3103,8 +3115,13 @@ function toggleBoletoFeito(idx){
 
 function renderModalBoletos(){
   const hoje = td();
-  const boletos = filtBaixas({}).filter(r => (r.forma||'').toLowerCase() === 'boleto');
-  boletos.sort((a,b)=>(a.cliente||'').localeCompare(b.cliente||''));
+  const todos = filtBaixas({}).filter(r => (r.forma||'').toLowerCase() === 'boleto');
+
+  // Aplicar filtro ativo
+  let boletos;
+  if(window._mbFiltro === 'feitos')      boletos = todos.filter(r => r.boleto_feito);
+  else if(window._mbFiltro === 'afazer') boletos = todos.filter(r => !r.boleto_feito);
+  else                                   boletos = todos;
 
   // Agrupar por cliente
   const grupos = {};
@@ -3114,11 +3131,9 @@ function renderModalBoletos(){
     grupos[c].push(r);
   });
 
-  const feitos = boletos.filter(r => r.boleto_feito);
-  const total  = boletos.length;
-
+  const nFeitos = todos.filter(r => r.boleto_feito).length;
   const resumeEl = document.getElementById('mbResume');
-  if(resumeEl) resumeEl.textContent = feitos.length + '/' + total + ' feitos';
+  if(resumeEl) resumeEl.textContent = nFeitos + '/' + todos.length + ' feitos';
 
   const body = document.getElementById('mBoletosBody');
   if(!body) return;
@@ -3133,8 +3148,8 @@ function renderModalBoletos(){
       const feito = !!r.boleto_feito;
       const pago  = isPago(r);
       const venc  = isVenc(r);
-      let valCls  = pago ? 'pago' : venc ? 'venc' : '';
-      let statusTxt = pago ? ' · Pago' : venc ? ' · Vencido' : '';
+      const valCls    = pago ? 'pago' : venc ? 'venc' : '';
+      const statusTxt = pago ? ' · Pago' : venc ? ' · Vencido' : '';
       html += '<div class="mb-row" onclick="toggleBoletoFeito(' + gi + ')">';
       html += '<div class="mb-check' + (feito ? ' done' : '') + '">' + (feito ? '✓' : '') + '</div>';
       html += '<div class="mb-info">';
@@ -3146,7 +3161,7 @@ function renderModalBoletos(){
     html += '</div>';
   });
 
-  if(!html) html = '<div style="padding:24px;text-align:center;color:var(--ink3);font-size:13px">Nenhum boleto no mês</div>';
+  if(!html) html = '<div style="padding:24px;text-align:center;color:var(--ink3);font-size:13px">Nenhum boleto</div>';
   body.innerHTML = html;
 }
 
