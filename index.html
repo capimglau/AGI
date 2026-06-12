@@ -946,12 +946,18 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rf-sec-opts { display: flex; flex-direction: column; }
 
 /* ─── CONTROLES DO RESUMO (período · base · acumulado) ─── */
-.res-ctrls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
-.res-ctrls .rf-bar { margin-bottom: 0; }
-.rc-seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 3px; gap: 2px; }
-.rc-seg button { border: none; background: none; padding: 7px 12px; border-radius: 8px; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink3); cursor: pointer; white-space: nowrap; transition: color .12s, background .12s, box-shadow .12s; }
+.res-ctrls { display: flex; align-items: stretch; gap: 7px; margin-bottom: 16px; }
+.res-ctrls > * { flex: 1 1 0; min-width: 0; }
+.res-ctrls .rf-bar { margin-bottom: 0; display: flex; }
+.res-ctrls .rf-single { flex: 1; }
+.res-ctrls .rf-single > summary { width: 100%; justify-content: center; padding: 7px 8px; font-size: 12.5px; }
+.rc-seg { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 3px; gap: 2px; }
+.rc-seg button { flex: 1; border: none; background: none; padding: 6px 6px; border-radius: 8px; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink3); cursor: pointer; white-space: nowrap; transition: color .12s, background .12s, box-shadow .12s; }
 .rc-seg button:hover { color: var(--ink); }
 .rc-seg button.on { background: var(--card); color: var(--blue); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+.rc-sel { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 7px 8px; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: center; }
+.rc-sel:focus { outline: none; border-color: var(--blue); }
+html[data-theme="dark"] .rc-sel { background: var(--surface2); color: var(--ink); border-color: var(--line); }
 
 /* ─── RECEBIMENTOS DE HOJE (janela no Resumo) ─── */
 .receb-hoje { background: linear-gradient(165deg, rgba(31,95,168,.06) 0%, #ffffff 70%); border: 1px solid var(--blue-mid); border-radius: var(--rl); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); cursor: pointer; transition: box-shadow .15s, transform .15s, border-color .15s; }
@@ -1713,10 +1719,10 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <button class="on" onclick="setResCtrl('base','comp',this)" data-v="comp">Previsto</button>
       <button onclick="setResCtrl('base','caixa',this)" data-v="caixa">Recebido</button>
     </div>
-    <div class="rc-seg" data-kind="acum">
-      <button class="on" onclick="setResCtrl('acum','0',this)" data-v="0">Mensal</button>
-      <button onclick="setResCtrl('acum','1',this)" data-v="1">Acumulado</button>
-    </div>
+    <select class="rc-sel" id="rc-acum" onchange="setResAcum(this.value)">
+      <option value="0">Mensal</option>
+      <option value="1">Acumulado</option>
+    </select>
   </div>
   <div class="g2">
     <div class="card">
@@ -2788,7 +2794,7 @@ function makeFilterSelector(mountId,state,onChange){
   }).join('');
   bar.innerHTML=`
     <details class="rf rf-single">
-      <summary>🔎 Filtros<span class="rf-badge" data-badge="__all"></span><span class="rf-caret">▾</span></summary>
+      <summary>Filtros<span class="rf-badge" data-badge="__all"></span><span class="rf-caret">▾</span></summary>
       <div class="rf-menu rf-menu-wide">
         <div class="rf-menu-hd"><span>Filtrar</span><button class="rf-clear" data-clear style="display:none">✕ Limpar</button></div>
         ${sections}
@@ -2829,6 +2835,7 @@ function setResCtrl(kind,val,el){
   if(el&&el.parentElement)el.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===el));
   renderResumo();
 }
+function setResAcum(v){ resAcum=(v==='1'); renderResumo(); }
 // Conjunto de meses 'YYYY-MM' a exibir nas séries temporais.
 // Sempre a partir de janeiro/2026 para frente; o período define a janela.
 const RES_MIN_MES='2026-01';
