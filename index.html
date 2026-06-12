@@ -244,22 +244,53 @@ body::before {
   margin-bottom: 22px;
 }
 @media(max-width:760px){ .mrow { grid-template-columns: 1fr 1fr; } }
-/* Telas largas (tablet/desktop): dock flutuante visível + painéis em 1 linha */
+/* Telas largas (tablet/desktop): sidebar lateral esquerda */
 @media (min-width: 761px) {
-  body { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  body { padding-bottom: 0; padding-left: 0; }
+
+  /* Sidebar hover-trigger: faixa invisível na borda esquerda */
   .nav-tabs {
-    position: fixed; left: 50%; transform: translateX(-50%);
-    width: min(640px, calc(100% - 48px)); bottom: 18px; margin: 0;
-    display: flex; gap: 0; background: var(--card);
-    border: .5px solid rgba(0,0,0,.07); border-radius: 28px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.18); padding: 4px 6px; z-index: 300;
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 60px; /* largura colapsada */
+    display: flex; flex-direction: column; align-items: flex-start;
+    background: var(--card);
+    border-right: .5px solid rgba(0,0,0,.07);
+    box-shadow: 2px 0 16px rgba(0,0,0,.10);
+    padding: 80px 0 24px;
+    gap: 2px;
+    z-index: 300;
+    overflow: hidden;
+    transition: width 220ms cubic-bezier(.4,0,.2,1);
   }
-  .ntab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 4px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .nav-tabs:hover {
+    width: 200px;
+  }
+  /* Grupos de itens dentro da sidebar */
+  #dock-main {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100%;
+    gap: 2px;
+  }
+  #dock-mais { display: none !important; }
+  .ntab {
+    display: flex; flex-direction: row; align-items: center;
+    gap: 10px; padding: 10px 16px;
+    border-radius: 10px; margin: 0 6px;
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap; width: calc(100% - 12px);
+    transition: background 160ms;
+  }
   .ntab:hover { background: var(--surface); }
   .ntab.on { background: var(--blue-soft); color: var(--blue); }
-  .nt-ico { display: block; line-height: 0; }
-  .nt-ico svg { width: 22px; height: 22px; }
-  .nt-short { display: block; font-size: 11px; font-weight: 600; }
+  .nt-ico { display: flex; align-items: center; flex-shrink: 0; }
+  .nt-ico svg { width: 20px; height: 20px; }
+  .nt-short { display: block; font-size: 13px; font-weight: 500; overflow: hidden; }
+  /* Empurra o conteúdo das páginas para não ficar atrás da sidebar */
+  .header { left: 60px; width: calc(100% - 60px); }
+  .page { margin-left: 60px; }
+  /* Separador entre grupos */
+  .sidebar-sep { display: block; height: 1px; background: rgba(0,0,0,.07); margin: 6px 12px; width: calc(100% - 24px); }
 }
 .mc {
   background: linear-gradient(165deg, #eef2f9 0%, #ffffff 62%);
@@ -1270,7 +1301,20 @@ details[open] summary::before { transform: rotate(90deg); }
 .mb-filt-btn { flex:1; padding: 6px 4px; border-radius: 20px; border: 1.5px solid var(--line); background: none; font-size: 12px; font-weight: 600; color: var(--ink3); cursor: pointer; transition: all .15s; }
 .mb-filt-btn.mb-filt-on { background: var(--blue); border-color: var(--blue); color: #fff; }
 
-/* EMPTY STATE */
+/* Separador da sidebar (oculto no mobile) */
+.sidebar-sep { display: none; }
+@media (min-width: 761px) {
+  .sidebar-sep { display: block; height: 1px; background: rgba(0,0,0,.07); margin: 4px 10px; width: calc(100% - 20px); }
+  .ntab-mais-mobile { display: none !important; }
+}
+@media (max-width: 760px) {
+  /* No mobile, esconde as telas secundárias no dock-main */
+  #dock-main .ntab[data-pg="baixas"],
+  #dock-main .ntab[data-pg="lancamentos"],
+  #dock-main .ntab[data-pg="premissas"],
+  #dock-main .ntab[data-pg="fluxo"] { display: none !important; }
+  #dock-main .ntab-mais-mobile { display: flex !important; }
+}
 .empty { text-align: center; padding: 48px 20px; color: var(--ink3); }
 .empty-icon { font-size: 40px; margin-bottom: 12px; }
 .empty-text { font-size: 15px; font-weight: 600; color: var(--ink2); margin-bottom: 6px; }
@@ -1294,6 +1338,9 @@ details[open] summary::before { transform: rotate(90deg); }
   .logo { margin: 0; font-size: 17px; }
   .month-nav { position: static; transform: none; margin-left: auto; }
   .header-right { display: none; }
+  /* reset sidebar offsets */
+  .header { left: 0 !important; width: 100% !important; }
+  .page { margin-left: 0 !important; }
   /* Cartões Pendente/Recebido são duplicata dos painéis — escondidos no mobile */
   .header-right .stat-pill { display: none; }
   .mn-label { min-width: 92px; }
@@ -1306,6 +1353,7 @@ details[open] summary::before { transform: rotate(90deg); }
     width: auto;
     margin: 0;
     display: flex;
+    flex-direction: row;
     gap: 0;
     background: var(--card);
     border: .5px solid rgba(0,0,0,.07);
@@ -1317,6 +1365,14 @@ details[open] summary::before { transform: rotate(90deg); }
     will-change: transform;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    /* reset sidebar styles */
+    top: auto; height: auto; overflow: visible;
+    transition: none;
+  }
+  /* dock-main volta a ser horizontal no mobile */
+  #dock-main {
+    flex-direction: row !important;
+    width: auto !important;
   }
   .ntab {
     flex: 1;
@@ -1389,22 +1445,27 @@ details[open] summary::before { transform: rotate(90deg); }
   .stat-pill .val.r { color: #ff3b30; }
   .stat-pill .val.g { color: #34c759; }
 
-  /* Dock flutuante estilo iOS: vidro fosco, tingido, sem bloco */
+  /* Sidebar lateral estilo iOS */
   .nav-tabs {
-    background: rgba(255,255,255,.68);
-    border: .5px solid rgba(255,255,255,.7);
-    box-shadow: 0 8px 28px rgba(0,0,0,.16);
+    background: rgba(255,255,255,.92);
+    border-right: .5px solid rgba(0,0,0,.08);
+    box-shadow: 2px 0 20px rgba(0,0,0,.10);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
   }
   .ntab { color: #55555a; }
-  .ntab.on { background: none; color: #1f5fa8; }
-  .nt-ico { display: block; line-height: 0; }
-  .nt-ico svg { width: 25px; height: 25px; display: block; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .ntab.on { background: rgba(31,95,168,.10); color: #1f5fa8; }
+  .nt-ico { display: flex; }
+  .nt-ico svg { width: 20px; height: 20px; display: block; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .nt-short { font-weight: 500; }
 
   /* Painéis / cards minimalistas (sem borda, fundo branco) */
   .card { border: 1px solid rgba(255,255,255,.65); border-radius: 18px; box-shadow: 0 2px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.04); }
   /* Painéis de métrica compactos e flat (iOS) */
   .mrow, #res-m { grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 16px; }
+  @media (min-width: 1024px) {
+    .mrow, #res-m { grid-template-columns: repeat(4, 1fr) !important; gap: 12px; }
+  }
   .mc { border: 1px solid rgba(255,255,255,.65); border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.04); padding: 12px 13px; }
   .mc:hover { transform: none; box-shadow: 0 2px 10px rgba(0,0,0,.07); }
   .mc::before, .mc::after { display: none; }
@@ -2950,16 +3011,25 @@ function renderResumo(){
   const mxt=tK.length?bT[tK[0]]:1;
   document.getElementById('resTipo').innerHTML=tK.length?tK.map(k=>`<div class="rb"><div class="rb-l">${k}</div><div class="rb-bg"><div class="rb-f" style="width:${(bT[k]/(mxt||1)*100).toFixed(1)}%;background:${tC[k]||'#888'}"></div></div><div class="rb-v">${fR(bT[k])}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
 
-  // ── Recebido × Faturado acumulado (linhas) ──
+  // ── Faturado × Recebido acumulado (linhas) — respeita seletor previsto/recebido ──
   const fatM={},rcvM={};
   baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m)return;fatM[m]=(fatM[m]||0)+fN(r.valor);rcvM[m]=(rcvM[m]||0)+(isPago(r)?fN(r.valor_pago):0);});
   let fatA=mShown.map(k=>fatM[k]||0), rcvA=mShown.map(k=>rcvM[k]||0);
   if(resAcum){fatA=cumArr(fatA);rcvA=cumArr(rcvA);}
-  const hdAcum=document.getElementById('hdAcum'); if(hdAcum) hdAcum.textContent=(resAcum?'Faturado × recebido — acumulado':'Faturado × recebido — mensal');
-  mkC('cAcum',{type:'line',data:{labels:labelsT,datasets:[
-    {label:'Faturado',data:fatA,borderColor:c=>vGrad(c,'#1f5fa8','#7cb3ec'),backgroundColor:'rgba(31,95,168,.10)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#1f5fa8',pointBorderColor:'#fff',pointBorderWidth:1.5},
-    {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.08)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5}
-  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  const hdAcum=document.getElementById('hdAcum');
+  // No modo "caixa" (Recebido), mostra só recebido; no modo "comp" (Previsto), mostra faturado vs recebido
+  if(resBase==='caixa'){
+    if(hdAcum) hdAcum.textContent='Recebido'+(resAcum?' — acumulado':' — mensal');
+    mkC('cAcum',{type:'line',data:{labels:labelsT,datasets:[
+      {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.10)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5}
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  } else {
+    if(hdAcum) hdAcum.textContent=(resAcum?'Faturado × recebido — acumulado':'Faturado × recebido — mensal');
+    mkC('cAcum',{type:'line',data:{labels:labelsT,datasets:[
+      {label:'Faturado',data:fatA,borderColor:c=>vGrad(c,'#1f5fa8','#7cb3ec'),backgroundColor:'rgba(31,95,168,.10)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#1f5fa8',pointBorderColor:'#fff',pointBorderWidth:1.5},
+      {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.08)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5}
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}}); 
+  }
 
   // ── Resultado líquido mensal (Receitas − Despesas) ──
   const donoOk=d=>(!selDono||d===selDono)&&(!RF.dono.size||RF.dono.has(d));
@@ -3377,8 +3447,8 @@ function openSearch(){
   setTimeout(()=>i.focus(),120);
 }
 function closeSearch(){document.getElementById('mSearch').classList.remove('on');}
-function showMais(){document.getElementById('dock-main').style.display='none';document.getElementById('dock-mais').style.display='flex';}
-function hideMais(){document.getElementById('dock-mais').style.display='none';document.getElementById('dock-main').style.display='flex';}
+function showMais(){if(window.innerWidth<761){document.getElementById('dock-main').style.display='none';document.getElementById('dock-mais').style.display='flex';}}
+function hideMais(){if(window.innerWidth<761){document.getElementById('dock-mais').style.display='none';document.getElementById('dock-main').style.display='flex';}}
 function runSearch(){
   const q=document.getElementById('searchInput').value.trim().toLowerCase();
   const box=document.getElementById('searchResults');
@@ -3910,10 +3980,17 @@ function go(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');
 
-  // Dock: alterna entre grupo principal e grupo "Mais" conforme a página, e destaca o ativo
+  // No desktop (sidebar): dock-main sempre visível, dock-mais sempre oculto
+  // No mobile: alterna entre grupo principal e grupo "Mais"
   const maisPages=['baixas','lancamentos','premissas','fluxo'];
   const dMain=document.getElementById('dock-main'),dMais=document.getElementById('dock-mais');
-  if(dMain&&dMais){const isMais=maisPages.includes(id);dMain.style.display=isMais?'none':'flex';dMais.style.display=isMais?'flex':'none';}
+  const isDesktop=window.innerWidth>=761;
+  if(isDesktop){
+    if(dMain){dMain.style.display='flex';dMain.style.flexDirection='column';}
+    if(dMais) dMais.style.display='none';
+  } else {
+    if(dMain&&dMais){const isMais=maisPages.includes(id);dMain.style.display=isMais?'none':'flex';dMais.style.display=isMais?'flex':'none';}
+  }
   document.querySelectorAll('#mainDock .ntab').forEach(t=>t.classList.toggle('on', t.dataset.pg===id));
   renderAll();
 }
@@ -3949,18 +4026,25 @@ async function boot(){
 boot();
 </script>
 
-<!-- ─── DOCK (posição fixa, fora do header) ─── -->
+<!-- ─── DOCK / SIDEBAR (posição fixa, fora do header) ─── -->
 <div class="nav-tabs" id="mainDock">
-  <!-- Grupo principal (5 itens + Mais) -->
+  <!-- Grupo principal -->
   <div id="dock-main" style="display:flex;flex:1;gap:0">
     <button class="ntab on" onclick="go('resumo')" data-pg="resumo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-short">Resumo</span></button>
     <button class="ntab" onclick="go('proprietarios')" data-pg="proprietarios"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-short">Donos</span></button>
     <button class="ntab" onclick="abrirModalBoletos()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="13.5" y1="9" x2="13.5" y2="15"/><line x1="17" y1="9" x2="17" y2="15"/></svg></span><span class="nt-short">Boleto</span></button>
     <button class="ntab" onclick="go('novo')" data-pg="novo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-short">Novo</span></button>
     <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-short">Buscar</span></button>
-    <button class="ntab" onclick="showMais()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="nt-short">Mais</span></button>
+    <!-- Separador visível só na sidebar desktop -->
+    <span class="sidebar-sep"></span>
+    <button class="ntab" onclick="go('baixas')" data-pg="baixas"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nt-short">Receber</span></button>
+    <button class="ntab" onclick="go('lancamentos')" data-pg="lancamentos"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nt-short">Lançam.</span></button>
+    <button class="ntab" onclick="go('premissas')" data-pg="premissas"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span class="nt-short">Premissas</span></button>
+    <button class="ntab" onclick="go('fluxo')" data-pg="fluxo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nt-short">Fluxo</span></button>
+    <!-- Mais: botão visível só no mobile -->
+    <button class="ntab ntab-mais-mobile" onclick="showMais()" style="display:none"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="nt-short">Mais</span></button>
   </div>
-  <!-- Grupo "Mais" (telas secundárias) -->
+  <!-- Grupo "Mais" (mobile: telas secundárias) -->
   <div id="dock-mais" style="display:none;flex:1;gap:0">
     <button class="ntab" onclick="go('baixas')" data-pg="baixas"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span class="nt-short">Receber</span></button>
     <button class="ntab" onclick="go('lancamentos')" data-pg="lancamentos"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nt-short">Lançam.</span></button>
