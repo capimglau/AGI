@@ -1877,10 +1877,6 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <!-- PROPRIETÁRIOS -->
 <div class="page" id="page-proprietarios">
   <div class="g3" id="propCards" style="margin-bottom:16px"></div>
-  <div class="card">
-    <div class="card-hd">Evolução mensal</div>
-    <div class="cw" style="height:260px"><canvas id="cEvo" role="img" aria-label="evolução"></canvas></div>
-  </div>
 </div>
 
 <!-- NOVO -->
@@ -2558,9 +2554,12 @@ function vGrad(context,cFrom,cTo){const ch=context.chart,area=ch.chartArea;if(!a
 // Qualidade/identidade visual padrão dos gráficos
 if(window.Chart){
   Chart.defaults.font.family="'DM Sans', -apple-system, sans-serif";
-  Chart.defaults.font.size=11;
-  Chart.defaults.color='#6b6b7a';
-  Chart.defaults.devicePixelRatio=Math.max(2, window.devicePixelRatio||1);
+  Chart.defaults.font.size=12;
+  Chart.defaults.font.weight=500;
+  Chart.defaults.color='#5b5b6a';
+  // Renderiza sempre em alta densidade (supersampling) p/ traços e fontes nítidos,
+  // respeitando telas de DPI ainda maior (retina). Nunca abaixo de 2.5x.
+  Chart.defaults.devicePixelRatio=Math.max(2.5, window.devicePixelRatio||1);
   Chart.defaults.animation.duration=650;
   Chart.defaults.animation.easing='easeOutQuart';
   const tt=Chart.defaults.plugins.tooltip;
@@ -3205,8 +3204,6 @@ function renderProp(){
       <div class="oc-more">Ver extrato (receitas × despesas) →</div>
     </div>`;
   }).join('');
-  const meses=[...new Set(rows.map(r=>(r.prev_pgto||'').slice(0,7)).filter(Boolean))].sort();
-  mkC('cEvo',{type:'line',data:{labels:meses.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+' '+y.slice(2);}),datasets:donos.map(d=>({label:d,data:meses.map(m=>rows.filter(r=>r.dono===d&&(r.prev_pgto||'').startsWith(m)).reduce((a,r)=>a+fN(r.valor),0)),borderColor:DC[d]||'#888',backgroundColor:(DC[d]||'#888')+'18',tension:.4,fill:true,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#fff',pointBorderWidth:2}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:12,family:'DM Sans'},boxWidth:10,padding:16,usePointStyle:true}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
 }
 
 // ── EXTRATO DO DONO (receitas × despesas) ──
