@@ -1735,26 +1735,16 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     </div>
   </div>
   <div class="card">
-    <div class="card-hd" id="hdTipoMes">Evolução mensal por tipo</div>
-    <div class="cw-scroll"><div class="cw" style="height:240px"><canvas id="cTipoMes" role="img" aria-label="evolução mensal por tipo"></canvas></div></div>
-  </div>
-  <div class="card">
     <div class="card-hd" id="hdAcum">Faturado × recebido — mensal</div>
     <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cAcum" role="img" aria-label="faturado e recebido acumulado"></canvas></div></div>
   </div>
-  <div class="g2">
-    <div class="card">
-      <div class="card-hd" id="hdResLiq">Resultado líquido (receitas − despesas)</div>
-      <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cResLiq" role="img" aria-label="resultado líquido mensal"></canvas></div></div>
-    </div>
-    <div class="card">
-      <div class="card-hd">Aging de recebíveis (em aberto)</div>
-      <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cAging" role="img" aria-label="aging de recebíveis"></canvas></div></div>
-    </div>
+  <div class="card">
+    <div class="card-hd" id="hdResLiq">Resultado líquido (receitas − despesas)</div>
+    <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cResLiq" role="img" aria-label="resultado líquido mensal"></canvas></div></div>
   </div>
   <div class="card">
-    <div class="card-hd" id="hdRecDono">Recebimentos por proprietário</div>
-    <div class="cw-scroll"><div class="cw" style="height:240px"><canvas id="cRecDono" role="img" aria-label="recebimentos por proprietário"></canvas></div></div>
+    <div class="card-hd">Recebimentos por proprietário</div>
+    <div id="resRecDono"></div>
   </div>
   <div class="g2">
     <div class="card">
@@ -2862,7 +2852,7 @@ function mLabel(k){ const[y,m]=k.split('-'); return MN[parseInt(m)-1]+'/'+y.slic
 // Posiciona a rolagem das séries temporais com o mês vigente centralizado.
 function centerResScroll(mShown){
   const idx=mShown.indexOf(curMes);
-  ['cMes','cTipoMes','cAcum','cResLiq','cRecDono'].forEach(id=>{
+  ['cMes','cAcum','cResLiq'].forEach(id=>{
     const c=document.getElementById(id); if(!c)return;
     const sc=c.parentElement&&c.parentElement.parentElement; // .cw-scroll
     if(!sc||!sc.classList||!sc.classList.contains('cw-scroll'))return;
@@ -2924,7 +2914,7 @@ function renderResumo(){
   const acumSfx=resAcum?' — acumulado':'';
   // Largura mínima das séries temporais → habilita rolagem lateral quando há muitos meses
   const tsMinW=Math.max(480, mShown.length*66);
-  ['cMes','cTipoMes','cAcum','cResLiq','cRecDono'].forEach(id=>{const c=document.getElementById(id);if(c&&c.parentElement)c.parentElement.style.minWidth=tsMinW+'px';});
+  ['cMes','cAcum','cResLiq'].forEach(id=>{const c=document.getElementById(id);if(c&&c.parentElement)c.parentElement.style.minWidth=tsMinW+'px';});
   // Recebido × A receber por mês
   const recM={},pendM={};
   baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m)return;recM[m]=(recM[m]||0)+(isPago(r)?fN(r.valor_pago):0);pendM[m]=(pendM[m]||0)+(isPend(r)?fN(r.saldo):0);});
@@ -2942,16 +2932,6 @@ function renderResumo(){
   const tC={Locação:'#1f5fa8',Avarias:'#c42b1c',Lavagem:'#0d6e3e',Multas:'#92600a',Outros:'#aaa','Taxa Mario':'#5b35d5','Taxa Alfredo':'#5b35d5','Taxa Bruno':'#5b35d5'};
   const totTipo=tK.reduce((a,k)=>a+bT[k],0);
   mkC('cTipo',{type:'doughnut',data:{labels:tK,datasets:[{data:tK.map(k=>bT[k]),backgroundColor:tK.map(k=>tC[k]||'#aaa'),borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'64%',plugins:{center:{text:'R$'+Math.round(totTipo/1000)+'k',sub:'Total'},legend:{position:'bottom',labels:{font:{size:11.5},boxWidth:9,boxHeight:9,padding:11,usePointStyle:true,pointStyle:'circle'}},tooltip:{callbacks:{label:ctx=>{const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);const pct=tot?(ctx.raw/tot*100).toFixed(1):'0';return ' '+fR(ctx.raw)+'  ·  '+pct+'%';}}}}}});
-  // Evolução mensal por tipo — linhas com gradiente (Locação, Avarias, Lavagem, Multas)
-  const TML=[{k:'Locação',from:'#1f5fa8',to:'#7cb3ec'},{k:'Avarias',from:'#c42b1c',to:'#f0897c'},{k:'Lavagem',from:'#0d6e3e',to:'#52c98c'},{k:'Multas',from:'#92600a',to:'#e0b24a'}];
-  const tmMap={};TML.forEach(t=>tmMap[t.k]={});
-  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m||!tmMap[r.tipo])return;tmMap[r.tipo][m]=(tmMap[r.tipo][m]||0)+valBase(r);});
-  const hdTipoMes=document.getElementById('hdTipoMes'); if(hdTipoMes) hdTipoMes.textContent='Evolução mensal por tipo'+acumSfx;
-  mkC('cTipoMes',{type:'line',data:{labels:labelsT,datasets:TML.map(t=>{let d=mShown.map(k=>tmMap[t.k][k]||0);if(resAcum)d=cumArr(d);return{
-    label:t.k,data:d,
-    borderColor:c=>vGrad(c,t.from,t.to),backgroundColor:t.from,pointBackgroundColor:t.from,pointBorderColor:'#fff',pointBorderWidth:1.5,
-    borderWidth:3,tension:.38,fill:false,pointRadius:2.5,pointHoverRadius:5,spanGaps:true
-  };})},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
 
   // ── Recebido × Faturado acumulado (linhas) ──
   const fatM={},rcvM={};
@@ -2973,22 +2953,11 @@ function renderResumo(){
   const hdResLiq=document.getElementById('hdResLiq'); if(hdResLiq) hdResLiq.textContent='Resultado líquido (receitas − despesas)'+acumSfx;
   mkC('cResLiq',{type:'bar',data:{labels:labelsT,datasets:[{label:'Resultado',data:resArr,backgroundColor:resArr.map(v=>v>=0?'#34c759':'#c42b1c'),borderRadius:6,borderSkipped:false,maxBarThickness:46}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
 
-  // ── Aging de recebíveis (snapshot: tudo em aberto, por dias de atraso) ──
-  const hojeAg=td();
-  const ag={v:0,d30:0,d60:0,d60p:0};
-  baseRows.filter(r=>isPend(r)).forEach(r=>{const s=fN(r.saldo);const pp=r.prev_pgto||'';if(!pp){ag.v+=s;return;}const dias=Math.floor((new Date(hojeAg)-new Date(pp))/86400000);if(dias<=0)ag.v+=s;else if(dias<=30)ag.d30+=s;else if(dias<=60)ag.d60+=s;else ag.d60p+=s;});
-  {const c=document.getElementById('cAging');if(c&&c.parentElement)c.parentElement.style.minWidth='400px';}
-  mkC('cAging',{type:'bar',data:{labels:['A vencer','Venc. 1–30','31–60','60+'],datasets:[{data:[ag.v,ag.d30,ag.d60,ag.d60p],backgroundColor:['#34c759','#f0b429','#e8833a','#c42b1c'],borderRadius:8,borderSkipped:false,maxBarThickness:60}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
-
-  // ── Recebimentos por proprietário (linhas, uma por dono) ──
-  const donosR=[...new Set(baseRows.map(r=>r.dono).filter(Boolean))].sort();
-  const dmR={};donosR.forEach(d=>dmR[d]={});
-  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m||!r.dono)return;dmR[r.dono][m]=(dmR[r.dono][m]||0)+valBase(r);});
-  const hdRecDono=document.getElementById('hdRecDono'); if(hdRecDono) hdRecDono.textContent='Recebimentos por proprietário'+acumSfx;
-  mkC('cRecDono',{type:'line',data:{labels:labelsT,datasets:donosR.map(d=>{let arr=mShown.map(k=>dmR[d][k]||0);if(resAcum)arr=cumArr(arr);const col=DC[d]||'#888';return{
-    label:d,data:arr,borderColor:col,backgroundColor:col,pointBackgroundColor:col,pointBorderColor:'#fff',pointBorderWidth:1.5,
-    borderWidth:3,tension:.38,fill:false,pointRadius:2.5,pointHoverRadius:5,spanGaps:true
-  };})},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:12,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  // ── Recebimentos por proprietário (barras horizontais, estilo Top 10) ──
+  const bRD={};rows.forEach(r=>{if(!r.dono)return;bRD[r.dono]=(bRD[r.dono]||0)+(isPago(r)?fN(r.valor_pago):0);});
+  const srd=Object.entries(bRD).sort((a,b)=>b[1]-a[1]);
+  const mxrd=srd[0]?srd[0][1]:1;
+  document.getElementById('resRecDono').innerHTML=srd.length?srd.map(([d,v],i)=>`<div class="rb"><div class="rb-l"><span class="rb-rank">${i+1}</span>${d}</div><div class="rb-bg"><div class="rb-f" style="width:${(v/(mxrd||1)*100).toFixed(1)}%;background:${DC[d]||'#1f5fa8'}"></div></div><div class="rb-v">${fR(v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
   const bF={};rows.forEach(r=>{bF[r.forma]=(bF[r.forma]||0)+fN(r.valor);});
   const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
   const maxF=bF[fK[0]]||1;
