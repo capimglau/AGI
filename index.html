@@ -2986,7 +2986,7 @@ function renderResumo(){
   baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m||!r.dono)return;dmR[r.dono][m]=(dmR[r.dono][m]||0)+valBase(r);});
   const hdRecDono=document.getElementById('hdRecDono'); if(hdRecDono) hdRecDono.textContent='Recebimentos por proprietário'+acumSfx;
   mkC('cRecDono',{type:'line',data:{labels:labelsT,datasets:donosR.map(d=>{let arr=mShown.map(k=>dmR[d][k]||0);if(resAcum)arr=cumArr(arr);const col=DC[d]||'#888';return{
-    label:d,data:arr,borderColor:c=>vGrad(c,col,col+'66'),backgroundColor:col+'18',pointBackgroundColor:col,pointBorderColor:'#fff',pointBorderWidth:1.5,
+    label:d,data:arr,borderColor:col,backgroundColor:col,pointBackgroundColor:col,pointBorderColor:'#fff',pointBorderWidth:1.5,
     borderWidth:3,tension:.38,fill:false,pointRadius:2.5,pointHoverRadius:5,spanGaps:true
   };})},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:12,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   const bF={};rows.forEach(r=>{bF[r.forma]=(bF[r.forma]||0)+fN(r.valor);});
