@@ -2250,7 +2250,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <div class="overlay" id="mSearch">
   <div class="modal" style="max-width:520px">
     <div class="mhd">Buscar lançamento <button class="mcl" onclick="closeSearch()">✕</button></div>
-    <input id="searchInput" class="search-input" type="text" placeholder="Placa ou cliente…" autocomplete="off" oninput="runSearch()">
+    <input id="searchInput" class="search-input" type="text" placeholder="Placa, cliente ou proprietário…" autocomplete="off" oninput="runSearch()">
     <div id="searchResults"></div>
   </div>
 </div>
@@ -3556,10 +3556,10 @@ function hideMais(){if(window.innerWidth<761){document.getElementById('dock-mais
 function runSearch(){
   const q=document.getElementById('searchInput').value.trim().toLowerCase();
   const box=document.getElementById('searchResults');
-  if(!q){box.innerHTML='<div class="srow-empty">Digite uma placa ou nome de cliente.</div>';return;}
+  if(!q){box.innerHTML='<div class="srow-empty">Digite uma placa, cliente ou proprietário.</div>';return;}
   const all=allD();
   const res=[];
-  for(let i=0;i<all.length;i++){const r=all[i];if((r.placa||'').toLowerCase().includes(q)||(r.cliente||'').toLowerCase().includes(q))res.push({r,i});}
+  for(let i=0;i<all.length;i++){const r=all[i];if((r.placa||'').toLowerCase().includes(q)||(r.cliente||'').toLowerCase().includes(q)||(r.dono||'').toLowerCase().includes(q))res.push({r,i});}
   if(!res.length){box.innerHTML='<div class="srow-empty">Nada encontrado.</div>';return;}
   const totVal=res.reduce((a,{r})=>a+fN(r.valor),0);
   const totPago=res.reduce((a,{r})=>a+(isPago(r)?fN(r.valor):0),0);
@@ -3571,6 +3571,22 @@ function runSearch(){
   const mPend=mVal-mPago;
   const [my,mm]=curMes.split('-');
   const mesLabel=MN[parseInt(mm)-1]+'/'+my.slice(2);
+  // Se a busca corresponde a proprietário(s), mostra os totais de LOCAÇÃO do mês (previsto/recebido)
+  const donosMatch=[...new Set(all.map(r=>r.dono).filter(Boolean))].filter(d=>d.toLowerCase().includes(q));
+  let ownerHtml='';
+  if(donosMatch.length){
+    const locRows=all.filter(r=>donosMatch.includes(r.dono)&&(r.tipo||'').toLowerCase().startsWith('loca')&&(r.prev_pgto||'').slice(0,7)===curMes);
+    const locPrev=locRows.reduce((a,r)=>a+fN(r.valor),0);
+    const locReceb=locRows.reduce((a,r)=>a+fN(r.valor_pago),0);
+    const locReceber=Math.max(0,locPrev-locReceb);
+    const nome=donosMatch.length===1?donosMatch[0]:donosMatch.length+' proprietários';
+    ownerHtml=`<div class="search-total" style="margin-bottom:8px">
+      <div class="st-blk st-month">
+        <div class="st-main"><span>🚗 Locação · ${nome} · ${mesLabel}</span><span class="st-val">${fR(locPrev)}</span></div>
+        <div class="st-sub"><span class="st-pago">Recebido ${fR(locReceb)}</span><span class="st-pend">A receber ${fR(locReceber)}</span></div>
+      </div>
+    </div>`;
+  }
   const totHtml=`<div class="search-total">
     <div class="st-blk">
       <div class="st-main"><span>Geral · ${res.length} resultado${res.length>1?'s':''}</span><span class="st-val">${fR(totVal)}</span></div>
@@ -3583,7 +3599,7 @@ function runSearch(){
   </div>`;
   const shown=res.slice(0,40);
   const moreHtml=res.length>shown.length?`<div class="srow-empty">+${res.length-shown.length} não exibidos — refine a busca</div>`:'';
-  box.innerHTML=totHtml+shown.map(({r,i})=>{
+  box.innerHTML=ownerHtml+totHtml+shown.map(({r,i})=>{
     const col=DC[r.dono]||'#888',pago=isPago(r);
     return `<div class="srow" onclick="searchOpen(${i})">
       <div style="min-width:0">
