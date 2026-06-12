@@ -3085,7 +3085,8 @@ function renderResumo(){
   const nL=rows.length, nPend=rows.filter(r=>isPend(r)).length;
   const ticket=nL?totV/nL:0;
   const vencVal=rows.filter(r=>isVenc(r)).reduce((a,r)=>a+fN(r.saldo),0);
-  const inad=totV>0?(vencVal/totV*100):0;
+  const prevLiq=totP+totS;                       // previsto líquido = recebido + a receber
+  const inad=prevLiq>0?(vencVal/prevLiq*100):0;
   // Comparativo vs. mês anterior (faturamento)
   const baseRows=allD().filter(r=>(!selDono||r.dono===selDono)&&rfMatch(r));
   const bM={};baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)bM[m]=(bM[m]||0)+fN(r.valor);});
@@ -3096,7 +3097,7 @@ function renderResumo(){
   if(prevV>0){const dp=(totV-prevV)/prevV*100;const up=dp>=0;deltaBadge=` · <span class="mc-delta ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(dp).toFixed(0)}%</span>`;}
   document.getElementById('res-m').innerHTML=`
     <div class="mc blue"><div class="mc-label">Total faturado</div><div class="mc-value">${fR(totV)}</div><div class="mc-sub">${nL} lançamentos${deltaBadge}</div></div>
-    <div class="mc green"><div class="mc-label">Total recebido</div><div class="mc-value">${fR(totP)}</div><div class="mc-sub">${totV>0?((totP/totV)*100).toFixed(1):'0'}% do faturado</div></div>
+    <div class="mc green"><div class="mc-label">Total recebido</div><div class="mc-value">${fR(totP)}</div><div class="mc-sub">${prevLiq>0?((totP/prevLiq)*100).toFixed(1):'0'}% do previsto</div></div>
     <div class="mc amber"><div class="mc-label">A receber</div><div class="mc-value">${fR(totS)}</div><div class="mc-sub">${nPend} pendentes</div></div>
     <div class="mc red"><div class="mc-label">Inadimplência</div><div class="mc-value">${inad.toFixed(1)}%</div><div class="mc-sub">${fR(vencVal)} vencido</div></div>
   `;
@@ -3229,7 +3230,7 @@ function renderFluxo(){
   document.getElementById('fc-summary').innerHTML = `
     <div class="mc green" style="flex:1;min-width:130px"><div class="mc-label">Total recebido</div><div class="mc-value">${fR(totRec)}</div></div>
     <div class="mc amber" style="flex:1;min-width:130px"><div class="mc-label">A receber</div><div class="mc-value">${fR(totPend)}</div></div>
-    <div class="mc blue" style="flex:1;min-width:130px"><div class="mc-label">Total faturado</div><div class="mc-value">${fR(totRec+totPend)}</div></div>
+    <div class="mc blue" style="flex:1;min-width:130px"><div class="mc-label">Previsto (líquido)</div><div class="mc-value">${fR(totRec+totPend)}</div></div>
   `;
 
   // Tabela
@@ -3276,7 +3277,7 @@ function renderFluxo(){
     <td>TOTAL</td>
     <td class="fc-ent">${fR(totRec)}</td>
     <td class="fc-pend">${fR(totPend)}</td>
-    <td class="fc-ac">${fR(totRec+totPend)}</td>
+    <td class="fc-ac">${fR(totRec)}</td>
     <td></td>
   </tr>`;
 
@@ -3316,8 +3317,13 @@ function renderProp(){
       <div class="oc-more">Ver extrato (receitas × despesas) →</div>
     </div>`;
   }).join('');
-  const meses=[...new Set(rows.map(r=>(r.prev_pgto||'').slice(0,7)).filter(Boolean))].sort();
-  mkC('cEvo',{type:'line',data:{labels:meses.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+' '+y.slice(2);}),datasets:donos.map(d=>({label:d,data:meses.map(m=>rows.filter(r=>r.dono===d&&(r.prev_pgto||'').startsWith(m)).reduce((a,r)=>a+fN(r.valor),0)),borderColor:DC[d]||'#888',backgroundColor:(DC[d]||'#888')+'18',tension:.4,fill:true,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#fff',pointBorderWidth:2}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:12,family:'DM Sans'},boxWidth:10,padding:16,usePointStyle:true}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
+  // Evolução: usa TODOS os meses da base (não só o mês vigente), até 12 mais recentes
+  const evoBase=allD();
+  let meses=[...new Set(evoBase.map(r=>(r.prev_pgto||'').slice(0,7)).filter(Boolean))].sort();
+  if(meses.length>12) meses=meses.slice(-12);
+  const evoSum={};
+  evoBase.forEach(r=>{const k=(r.prev_pgto||'').slice(0,7);if(!k||!r.dono)return;(evoSum[r.dono]||(evoSum[r.dono]={}))[k]=(evoSum[r.dono][k]||0)+fN(r.valor);});
+  mkC('cEvo',{type:'line',data:{labels:meses.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+' '+y.slice(2);}),datasets:donos.map(d=>({label:d,data:meses.map(m=>(evoSum[d]&&evoSum[d][m])||0),borderColor:DC[d]||'#888',backgroundColor:(DC[d]||'#888')+'18',tension:.4,fill:true,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#fff',pointBorderWidth:2}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:12,family:'DM Sans'},boxWidth:10,padding:16,usePointStyle:true}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
 }
 
 // ── EXTRATO DO DONO (receitas × despesas) ──
@@ -3501,8 +3507,12 @@ function confirmarBaixa(){
   const obs=document.getElementById('b-obs').value;
   if(!data){alert('Informe a data de pagamento.');return;}
   const r=allD()[editIdx];
-  r.valor_pago=val;r.saldo=Math.max(0,fN(r.valor)-val);r.prev_pgto=data;
-  if(obs)r.obs=obs;
+  // Recebe 'val' (líquido); abate do saldo (líquido a receber) e mantém a
+  // competência (prev_pgto). A data efetiva do pagamento fica na observação.
+  r.valor_pago=fN(r.valor_pago)+val;
+  r.saldo=Math.max(0,fN(r.saldo)-val);
+  const _ref=[obs,data?('pago '+data.split('-').reverse().join('/')):''].filter(Boolean).join(' · ');
+  if(_ref)r.obs=_ref;
   dbUpdate(r);
   closeEdit();renderAll();
 }
@@ -3553,7 +3563,8 @@ function quickPay(idx){
   const r=allD()[idx];
   if(!r||isPago(r))return;
   const prev={valor_pago:r.valor_pago,saldo:r.saldo};
-  r.valor_pago=fN(r.valor);r.saldo=0; // baixa total, mantém a competência (prev_pgto)
+  // Recebe o líquido a receber (saldo); mantém a competência (prev_pgto).
+  r.valor_pago=fN(r.valor_pago)+fN(r.saldo);r.saldo=0;
   dbUpdate(r);renderAll();
   showToast(`✓ ${r.cliente||r.placa} baixado`,'Desfazer',()=>{
     r.valor_pago=prev.valor_pago;r.saldo=prev.saldo;
@@ -3579,14 +3590,14 @@ function runSearch(){
   const res=[];
   for(let i=0;i<all.length;i++){const r=all[i];if((r.placa||'').toLowerCase().includes(q)||(r.cliente||'').toLowerCase().includes(q)||(r.dono||'').toLowerCase().includes(q))res.push({r,i});}
   if(!res.length){box.innerHTML='<div class="srow-empty">Nada encontrado.</div>';return;}
-  const totVal=res.reduce((a,{r})=>a+fN(r.valor),0);
-  const totPago=res.reduce((a,{r})=>a+(isPago(r)?fN(r.valor):0),0);
-  const totPend=totVal-totPago;
+  const totVal=res.reduce((a,{r})=>a+fN(r.valor),0);                          // faturado (bruto)
+  const totPago=res.reduce((a,{r})=>a+(isPago(r)?fN(r.valor_pago):0),0);      // recebido (líquido)
+  const totPend=res.reduce((a,{r})=>a+(isPend(r)?fN(r.saldo):0),0);           // a receber (líquido)
   // Totais do mês vigente (curMes), por competência (prev_pgto)
   const inMes=res.filter(({r})=>(r.prev_pgto||'').slice(0,7)===curMes);
   const mVal=inMes.reduce((a,{r})=>a+fN(r.valor),0);
-  const mPago=inMes.reduce((a,{r})=>a+(isPago(r)?fN(r.valor):0),0);
-  const mPend=mVal-mPago;
+  const mPago=inMes.reduce((a,{r})=>a+(isPago(r)?fN(r.valor_pago):0),0);
+  const mPend=inMes.reduce((a,{r})=>a+(isPend(r)?fN(r.saldo):0),0);
   const [my,mm]=curMes.split('-');
   const mesLabel=MN[parseInt(mm)-1]+'/'+my.slice(2);
   // Se a busca corresponde a proprietário(s), mostra os totais de LOCAÇÃO do mês (previsto/recebido)
@@ -3594,9 +3605,9 @@ function runSearch(){
   let ownerHtml='';
   if(donosMatch.length){
     const locRows=all.filter(r=>donosMatch.includes(r.dono)&&(r.tipo||'').toLowerCase().startsWith('loca')&&(r.prev_pgto||'').slice(0,7)===curMes);
-    const locPrev=locRows.reduce((a,r)=>a+fN(r.valor),0);
-    const locReceb=locRows.reduce((a,r)=>a+fN(r.valor_pago),0);
-    const locReceber=Math.max(0,locPrev-locReceb);
+    const locReceb=locRows.reduce((a,r)=>a+(isPago(r)?fN(r.valor_pago):0),0); // recebido (líquido)
+    const locReceber=locRows.reduce((a,r)=>a+(isPend(r)?fN(r.saldo):0),0);    // a receber (líquido)
+    const locPrev=locReceb+locReceber;                                       // previsto = recebido + a receber
     const nome=donosMatch.length===1?donosMatch[0]:donosMatch.length+' proprietários';
     ownerHtml=`<div class="search-total" style="margin-bottom:8px">
       <div class="st-blk st-month">
@@ -3801,9 +3812,17 @@ function toggleBoletoFeito(idx){
   const r = allD()[idx];
   if(!r) return;
   r.boleto_feito = !r.boleto_feito;
-  dbUpdate(r);
+  persistBoletoFeito(r);
   renderModalBoletos();
   renderBoletosBanner();
+}
+// Persiste apenas o flag "boleto_feito". Isolado e tolerante a erro: se a coluna
+// ainda não existir no banco (rode supabase/boleto_feito.sql), apenas avisa no
+// console — os demais salvamentos continuam funcionando.
+async function persistBoletoFeito(r){
+  if(!SB || r.id==null) return;
+  const {error}=await SB.from('lancamentos').update({boleto_feito:!!r.boleto_feito}).eq('id',r.id);
+  if(error) console.warn('Coluna "boleto_feito" indisponível ('+error.message+'). Rode supabase/boleto_feito.sql para sincronizar.');
 }
 
 function renderModalBoletos(){
@@ -3881,7 +3900,7 @@ function confirmarLote(){
   const data=document.getElementById('bl-data').value;
   const obs=document.getElementById('bl-obs').value;
   if(!data){alert('Informe a data.');return;}
-  loteSel.forEach(i=>{const r=allD()[i];if(!r)return;r.valor_pago=fN(r.valor);r.saldo=0;r.prev_pgto=data;if(obs)r.obs=obs;dbUpdate(r);});
+  loteSel.forEach(i=>{const r=allD()[i];if(!r)return;r.valor_pago=fN(r.valor_pago)+fN(r.saldo);r.saldo=0;const _ref=[obs,data?('pago '+data.split('-').reverse().join('/')):''].filter(Boolean).join(' · ');if(_ref)r.obs=_ref;dbUpdate(r);});
   document.getElementById('mLote').classList.remove('on');
   loteSel=[];renderAll();
 }
@@ -4065,7 +4084,7 @@ function addN(){
   const vp=parseFloat(document.getElementById('nf-vp').value)||0;
   const obs=document.getElementById('nf-obs').value||null;
   if(!p||!d||!c||!v){document.getElementById('nMsg').innerHTML='<span style="color:var(--red)">Preencha placa, proprietário, cliente e valor.</span>';return;}
-  const _rec={placa:p,dono:d,saida:s,retorno:rr,cliente:c,tipo:t,valor:v,forma:f,prev_pgto:pp,valor_pago:vp,saldo:Math.max(0,v-vp),obs:obs};
+  const _rec={placa:p,dono:d,saida:s,retorno:rr,cliente:c,tipo:t,valor:v,forma:f,prev_pgto:pp,valor_pago:0,saldo:vp,obs:obs};
   dbInsert(_rec).then(saved=>{NOVOS.push(saved);rNovos();popSel();renderAll();});
   document.getElementById('nMsg').innerHTML='<span style="color:var(--green)">✓ Adicionado!</span>';
   document.getElementById('novosCard').style.display='block';
@@ -4155,7 +4174,13 @@ function popSel(){
 
 // ── CSV ──
 function exportCSV(){
-  const rows=filtGeral({usePrev:true});
+  // Respeita os mesmos filtros aplicados na tela de Lançamentos
+  const q=document.getElementById('lf-q')?.value||'';
+  const tipo=document.getElementById('lf-tipo')?.value||undefined;
+  const forma=document.getElementById('lf-forma')?.value||undefined;
+  const dono=document.getElementById('lf-dono')?.value||undefined;
+  const status=document.getElementById('lf-status')?.value||undefined;
+  const rows=filtGeral({q,tipo,forma,dono,status,usePrev:true});
   const hd=['Placa','Proprietário','Cliente','Tipo','Saída','Retorno','Valor','Forma','Prev/Baixa','Status','Pago','Saldo','Obs'];
   const csv=[hd.join(';'),...rows.map(r=>[r.placa,r.dono,r.cliente,r.tipo,r.saida||'',r.retorno||'',fN(r.valor).toFixed(2),r.forma,r.prev_pgto||'',isPago(r)?'Baixado':'Pendente',fN(r.valor_pago).toFixed(2),fN(r.saldo).toFixed(2),r.obs||''].join(';'))].join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));a.download=`autogest_${curMes}.csv`;a.click();
