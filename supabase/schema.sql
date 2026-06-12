@@ -91,3 +91,31 @@ create policy "anon full access saldos"
   to anon
   using (true)
   with check (true);
+
+-- ─── VEÍCULOS (frota: cada carro e seu proprietário) ───
+-- Cadastro central dos carros. O app lê esta tabela na aba "Premissas" para
+-- listar, incluir, editar e excluir veículos e alterar o proprietário de cada
+-- um. Na primeira vez (tabela vazia) o app popula automaticamente a partir das
+-- placas já existentes nos lançamentos. Para semear manualmente, use
+-- supabase/veiculos.sql.
+create table if not exists public.veiculos (
+  id          bigint generated always as identity primary key,
+  placa       text not null,
+  dono        text,
+  modelo      text,
+  created_at  timestamptz default now(),
+  unique (placa)
+);
+
+create index if not exists idx_veiculos_dono on public.veiculos (dono);
+
+alter table public.veiculos enable row level security;
+
+-- Mesma política liberal das demais tabelas (veja a observação acima).
+drop policy if exists "anon full access veiculos" on public.veiculos;
+create policy "anon full access veiculos"
+  on public.veiculos
+  for all
+  to anon
+  using (true)
+  with check (true);

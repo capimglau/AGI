@@ -2095,6 +2095,34 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <span class="prem-save-ok" id="prem-ok">✓ Premissas salvas e aplicadas!</span>
     </div>
 
+    <!-- ─── FROTA DE VEÍCULOS ─── -->
+    <div class="prem-card" style="grid-column:1/-1;margin-bottom:24px">
+      <div class="prem-card-head">
+        <div class="prem-card-icon" style="background:var(--blue-soft)">🚗</div>
+        <div>
+          <div class="prem-card-title">Frota de Veículos</div>
+          <div class="prem-card-sub">Inclua, edite e exclua carros e altere o proprietário de cada um</div>
+        </div>
+        <div style="margin-left:auto;font-size:12px;font-weight:600;color:var(--ink3)" id="veic-count"></div>
+      </div>
+      <div class="prem-card-body">
+        <!-- Incluir novo veículo -->
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:14px">
+          <div class="fp"><label>Placa</label><input type="text" id="veic-placa" placeholder="ABC1D23" style="text-transform:uppercase"></div>
+          <div class="fp"><label>Proprietário</label><select id="veic-dono"></select></div>
+          <button class="btn btn-blue" style="height:38px;justify-content:center" onclick="addVeiculo()">+ Incluir</button>
+        </div>
+        <input type="text" id="veic-busca" placeholder="🔎 Buscar por placa ou proprietário…" oninput="renderVeiculos()" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);font-size:13px;margin-bottom:12px">
+        <div class="tw" style="max-height:420px;overflow-y:auto">
+          <table class="prem-parcela-table">
+            <thead><tr><th>Placa</th><th>Proprietário</th><th style="width:1%;white-space:nowrap;text-align:right">Ações</th></tr></thead>
+            <tbody id="veic-body"></tbody>
+          </table>
+        </div>
+        <div style="font-size:11.5px;color:var(--ink3);margin-top:10px">Altere a placa ou o proprietário e clique em 💾 para salvar. Use 🗑 para excluir o veículo.</div>
+      </div>
+    </div>
+
     <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:14px;margin-bottom:24px">
       <span style="font-size:18px">🌙</span>
       <div style="flex:1">
@@ -2398,6 +2426,70 @@ async function saldoSet(dono,mes,valor){
   SALDOS.push(rec);saldoLSsave();
 }
 function saldoOverride(dono,mes){const r=SALDOS.find(s=>s.dono===dono&&s.mes===mes);return r?fN(r.valor):null;}
+
+// ─── VEÍCULOS (frota: placa → proprietário) ───
+// Persiste no Supabase (tabela 'veiculos') quando disponível; senão localStorage.
+let VEICULOS = [];
+let veicBackend = 'ls';            // 'sb' (Supabase) ou 'ls' (localStorage)
+const VEIC_LS_KEY = 'agi-veiculos';
+const VEIC_COLS = ['placa','dono','modelo'];
+function _veicClean(r){const o={};VEIC_COLS.forEach(k=>o[k]=(r[k]===undefined||r[k]==='')?null:r[k]);return o;}
+function veicLSsave(){try{localStorage.setItem(VEIC_LS_KEY,JSON.stringify(VEICULOS));}catch(e){}}
+async function veicLoad(){
+  if(SB){
+    const {data,error}=await SB.from('veiculos').select('*').order('placa',{ascending:true});
+    if(!error){veicBackend='sb';return data;}
+    console.warn('Tabela "veiculos" indisponível ('+error.message+'). Usando armazenamento local. Rode supabase/veiculos.sql para sincronizar.');
+  }
+  veicBackend='ls';
+  try{const raw=localStorage.getItem(VEIC_LS_KEY);return raw==null?null:JSON.parse(raw);}catch(e){return null;}
+}
+// Frota base: placas conhecidas (mapa PLACA_DONO) + placas presentes nos lançamentos.
+function frotaBase(){
+  const map={};
+  Object.keys(PLACA_DONO).forEach(p=>{const k=p.toUpperCase();if(!map[k])map[k]={placa:p,dono:PLACA_DONO[p]};});
+  allD().forEach(r=>{if(r.placa){const k=r.placa.toUpperCase();if(!map[k])map[k]={placa:r.placa,dono:r.dono||null};}});
+  return Object.values(map).sort((a,b)=>(a.placa||'').localeCompare(b.placa||''));
+}
+async function veicSeed(base){
+  if(veicBackend==='sb'){
+    const recs=base.map(_veicClean);
+    for(let i=0;i<recs.length;i+=100){
+      const {error}=await SB.from('veiculos').insert(recs.slice(i,i+100));
+      if(error){console.error(error);break;}
+    }
+    const {data}=await SB.from('veiculos').select('*').order('placa',{ascending:true});
+    return data||[];
+  }
+  VEICULOS=base.map(r=>({...r,id:'ls_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}));
+  veicLSsave();
+  return VEICULOS;
+}
+async function veicAdd(rec){
+  if(veicBackend==='sb'){
+    const {data,error}=await SB.from('veiculos').insert(_veicClean(rec)).select().single();
+    if(!error){VEICULOS.push(data);return data;}
+    console.error(error);alert('Erro ao salvar veículo: '+error.message);return null;
+  }
+  rec.id='ls_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  VEICULOS.push(rec);veicLSsave();return rec;
+}
+async function veicUpdate(rec){
+  if(veicBackend==='sb'){const {error}=await SB.from('veiculos').update(_veicClean(rec)).eq('id',rec.id);if(error){console.error(error);alert('Erro ao atualizar veículo: '+error.message);}}
+  else veicLSsave();
+}
+async function veicDel(id){
+  VEICULOS=VEICULOS.filter(v=>String(v.id)!==String(id));
+  if(veicBackend==='sb'){const {error}=await SB.from('veiculos').delete().eq('id',id);if(error)console.error(error);}
+  else veicLSsave();
+}
+// Lista de proprietários (lançamentos + frota), para os seletores.
+function donosFrota(){
+  const s=new Set();
+  allD().forEach(r=>{if(r.dono)s.add(r.dono);});
+  VEICULOS.forEach(v=>{if(v.dono)s.add(v.dono);});
+  return [...s].sort();
+}
 function mesAdd(mes,delta){const [y,m]=mes.split('-').map(Number);const d=new Date(y,m-1+delta,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
 function donoResultado(dono,mes){
   const rec=allD().filter(r=>r.dono===dono&&(r.prev_pgto||'').startsWith(mes)).reduce((a,r)=>a+fN(r.valor),0);
@@ -2448,7 +2540,8 @@ function autoFillDono(placaId, donoSelectId) {
   if (!placa || !donoSel) return;
   placa.addEventListener('input', function() {
     const p = this.value.trim().toUpperCase();
-    const dono = PLACA_DONO[p] || PLACA_DONO[this.value.trim()];
+    let dono = PLACA_DONO[p] || PLACA_DONO[this.value.trim()];
+    if (!dono) { const v = VEICULOS.find(x => (x.placa||'').toUpperCase() === p); if (v) dono = v.dono; }
     if (dono) {
       for (let o of donoSel.options) { if (o.value === dono) { donoSel.value = dono; break; } }
     }
@@ -3835,6 +3928,65 @@ function renderPremissas(){
   if(el('inf-taxa-cr')) el('inf-taxa-cr').textContent = tc.toFixed(2).replace('.',',');
   if(el('inf-taxa-deb')) el('inf-taxa-deb').textContent = td2.toFixed(2).replace('.',',');
   if(el('inf-prazo-bol')) el('inf-prazo-bol').textContent = pb;
+
+  renderVeiculos();
+}
+
+// ── FROTA DE VEÍCULOS (gestão na aba Premissas) ──
+function _veicEsc(s){return String(s==null?'':s).replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function renderVeiculos(){
+  const body=document.getElementById('veic-body'); if(!body) return;
+  const donos=donosFrota();
+  // Seletor de proprietário do formulário de inclusão
+  const sel=document.getElementById('veic-dono');
+  if(sel){const cv=sel.value;sel.innerHTML='<option value="">Selecione</option>'+donos.map(d=>`<option>${_veicEsc(d)}</option>`).join('');sel.value=cv;}
+  // Lista (com busca)
+  const q=(document.getElementById('veic-busca')?.value||'').trim().toUpperCase();
+  let list=[...VEICULOS].sort((a,b)=>(a.placa||'').localeCompare(b.placa||''));
+  if(q) list=list.filter(v=>(v.placa||'').toUpperCase().includes(q)||(v.dono||'').toUpperCase().includes(q));
+  const cnt=document.getElementById('veic-count');
+  if(cnt) cnt.textContent=`${list.length}${q?' de '+VEICULOS.length:''} veículo${VEICULOS.length===1?'':'s'}`;
+  if(!list.length){ body.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--ink3);padding:18px">Nenhum veículo encontrado.</td></tr>'; return; }
+  body.innerHTML=list.map(v=>{
+    const id=_veicEsc(v.id);
+    const opts='<option value="">— sem dono —</option>'+donos.map(d=>`<option ${d===v.dono?'selected':''}>${_veicEsc(d)}</option>`).join('');
+    return `<tr>
+      <td><input class="veic-edit-placa" data-id="${id}" value="${_veicEsc(v.placa)}" style="width:120px;text-transform:uppercase;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font-size:13px;font-weight:600"></td>
+      <td><select class="veic-edit-dono" data-id="${id}" style="padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font-size:13px">${opts}</select></td>
+      <td style="white-space:nowrap;text-align:right">
+        <button class="btn" style="padding:5px 9px" onclick="saveVeiculo('${id}')" title="Salvar alterações">💾</button>
+        <button class="btn btn-red" style="padding:5px 9px" onclick="delVeiculo('${id}')" title="Excluir veículo">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+async function addVeiculo(){
+  const pEl=document.getElementById('veic-placa'), dEl=document.getElementById('veic-dono');
+  const placa=(pEl.value||'').trim().toUpperCase();
+  const dono=dEl.value||null;
+  if(!placa){alert('Informe a placa do veículo.');return;}
+  if(VEICULOS.some(v=>(v.placa||'').toUpperCase()===placa)){alert('Já existe um veículo com a placa '+placa+'.');return;}
+  await veicAdd({placa,dono});
+  pEl.value=''; dEl.value='';
+  renderVeiculos(); popSel();
+}
+async function saveVeiculo(id){
+  const v=VEICULOS.find(x=>String(x.id)===String(id)); if(!v) return;
+  const pEl=document.querySelector(`.veic-edit-placa[data-id="${CSS.escape(String(id))}"]`);
+  const dEl=document.querySelector(`.veic-edit-dono[data-id="${CSS.escape(String(id))}"]`);
+  const placa=(pEl?.value||'').trim().toUpperCase();
+  const dono=dEl?.value||null;
+  if(!placa){alert('A placa não pode ficar vazia.');return;}
+  if(VEICULOS.some(x=>String(x.id)!==String(id)&&(x.placa||'').toUpperCase()===placa)){alert('Já existe outro veículo com a placa '+placa+'.');return;}
+  v.placa=placa; v.dono=dono;
+  await veicUpdate(v);
+  renderVeiculos(); popSel();
+}
+async function delVeiculo(id){
+  const v=VEICULOS.find(x=>String(x.id)===String(id)); if(!v) return;
+  if(!confirm(`Excluir o veículo ${v.placa}? (não afeta os lançamentos já registrados)`)) return;
+  await veicDel(id);
+  renderVeiculos(); popSel();
 }
 
 function getTaxaForma(forma){
@@ -3958,7 +4110,7 @@ dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dov');con
 // ── SELECTS ──
 function popSel(){
   const all=allD();
-  const donos=[...new Set(all.map(r=>r.dono).filter(Boolean))].sort();
+  const donos=[...new Set([...all.map(r=>r.dono),...VEICULOS.map(v=>v.dono)].filter(Boolean))].sort();
   const tipos=[...new Set(all.map(r=>r.tipo).filter(Boolean))].sort();
   const formas=[...new Set(all.map(r=>r.forma).filter(Boolean))].sort();
   ['nf-d','e-d','ai-d'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Selecione</option>';donos.forEach(d=>el.innerHTML+=`<option>${d}</option>`);el.value=cv;});
@@ -4023,6 +4175,9 @@ async function boot(){
   DATA = rows.map(r=>({...r}));
   DESPESAS = await despLoad();
   SALDOS = await saldoLoad();
+  let veics = await veicLoad();
+  if(veics==null || veics.length===0){ veics = await veicSeed(frotaBase()); }
+  VEICULOS = veics;
   popSel();
   updateMesLabel();
   buildResumoFilters();
