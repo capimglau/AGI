@@ -243,7 +243,7 @@ body::before {
   gap: 14px;
   margin-bottom: 22px;
 }
-@media(max-width:760px){ .mrow { grid-template-columns: 1fr 1fr; } }
+@media(max-width:760px){ .mrow, #res-m { grid-template-columns: 1fr 1fr; } }
 /* Telas largas (tablet/desktop): sidebar lateral esquerda */
 @media (min-width: 761px) {
   body { padding-bottom: 0; padding-left: 0; }
@@ -286,7 +286,7 @@ body::before {
   .nt-ico { display: flex; align-items: center; flex-shrink: 0; }
   .nt-ico svg { width: 20px; height: 20px; }
   .nt-short { display: block; font-size: 13px; font-weight: 500; overflow: hidden; }
-  /* Empurra o conteúdo das páginas para não ficar atrás da sidebar */
+  /* Sidebar fixa: header e pages ficam deslocados via margin-left */
   .header { left: 60px; width: calc(100% - 60px); }
   .page { margin-left: 60px; }
   /* Separador entre grupos */
@@ -859,7 +859,7 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .mc-delta.down { color: var(--red); }
 
 /* Resumo: métricas em 3 colunas */
-#res-m { grid-template-columns: repeat(3, 1fr); }
+#res-m { grid-template-columns: repeat(4, 1fr); display: grid; }
 
 /* Busca global */
 .search-input {
@@ -1341,6 +1341,7 @@ details[open] summary::before { transform: rotate(90deg); }
   /* reset sidebar offsets */
   .header { left: 0 !important; width: 100% !important; }
   .page { margin-left: 0 !important; }
+  body { padding-left: 0 !important; }
   /* Cartões Pendente/Recebido são duplicata dos painéis — escondidos no mobile */
   .header-right .stat-pill { display: none; }
   .mn-label { min-width: 92px; }
@@ -1394,7 +1395,11 @@ details[open] summary::before { transform: rotate(90deg); }
 
   /* Conteúdo */
   .page { padding: 14px 12px; }
-  .mrow { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mrow, #res-m { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mrow .mc { padding: 10px 11px; border-radius: 14px; }
+  .mrow .mc-label { font-size: 8.5px; letter-spacing: .04em; margin-bottom: 3px; }
+  .mrow .mc-value { font-size: 16px; letter-spacing: -.03em; }
+  .mrow .mc-sub { font-size: 9.5px; margin-top: 2px; }
 
   /* Filtros compactos: 3 seletores numa linha, ações na linha de baixo */
   .fbar { flex-wrap: wrap; gap: 7px; }
@@ -1462,17 +1467,17 @@ details[open] summary::before { transform: rotate(90deg); }
   /* Painéis / cards minimalistas (sem borda, fundo branco) */
   .card { border: 1px solid rgba(255,255,255,.65); border-radius: 18px; box-shadow: 0 2px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.04); }
   /* Painéis de métrica compactos e flat (iOS) */
-  .mrow, #res-m { grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 16px; }
+  .mrow, #res-m { grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
   @media (min-width: 1024px) {
-    .mrow, #res-m { grid-template-columns: repeat(4, 1fr) !important; gap: 12px; }
+    .mrow, #res-m { gap: 10px; }
   }
-  .mc { border: 1px solid rgba(255,255,255,.65); border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.04); padding: 12px 13px; }
+  .mc { border: 1px solid rgba(255,255,255,.65); border-radius: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.04); padding: 10px 11px; }
   .mc:hover { transform: none; box-shadow: 0 2px 10px rgba(0,0,0,.07); }
   .mc::before, .mc::after { display: none; }
-  .mc-icon { font-size: 14px; margin-bottom: 5px; }
-  .mc-label { font-size: 9.5px; letter-spacing: .04em; margin-bottom: 4px; }
-  .mc-value { font-size: 19px; letter-spacing: -.03em; }
-  .mc-sub { font-size: 10px; margin-top: 3px; }
+  .mc-icon { font-size: 13px; margin-bottom: 4px; }
+  .mc-label { font-size: 8.5px; letter-spacing: .04em; margin-bottom: 3px; }
+  .mc-value { font-size: 16px; letter-spacing: -.03em; }
+  .mc-sub { font-size: 9.5px; margin-top: 2px; }
   .pcard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
   .pcard.venc::before { background: #ff3b30; }
   .pcard.hoje-card::before { background: #1f5fa8; }
@@ -1509,7 +1514,7 @@ details[open] summary::before { transform: rotate(90deg); }
 @media (max-width: 420px) {
   .header-right { flex-wrap: wrap; }
   .header-right .stat-pill { font-size: 12px; padding: 6px 8px; }
-  .mrow { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mrow, #res-m { grid-template-columns: 1fr 1fr; gap: 8px; }
   .mc-value { font-size: 18px; }
 }
 @keyframes fadeOp { from { opacity: 0; } to { opacity: 1; } }
