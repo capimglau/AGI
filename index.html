@@ -243,7 +243,24 @@ body::before {
   gap: 14px;
   margin-bottom: 22px;
 }
-@media(max-width:900px){ .mrow { grid-template-columns: 1fr 1fr; } }
+@media(max-width:760px){ .mrow { grid-template-columns: 1fr 1fr; } }
+/* Telas largas (tablet/desktop): dock flutuante visível + painéis em 1 linha */
+@media (min-width: 761px) {
+  body { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  .nav-tabs {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    width: min(640px, calc(100% - 48px)); bottom: 18px; margin: 0;
+    display: flex; gap: 0; background: var(--card);
+    border: .5px solid rgba(0,0,0,.07); border-radius: 28px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.18); padding: 4px 6px; z-index: 300;
+  }
+  .ntab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 4px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .ntab:hover { background: var(--surface); }
+  .ntab.on { background: var(--blue-soft); color: var(--blue); }
+  .nt-ico { display: block; line-height: 0; }
+  .nt-ico svg { width: 22px; height: 22px; }
+  .nt-short { display: block; font-size: 11px; font-weight: 600; }
+}
 .mc {
   background: linear-gradient(165deg, #eef2f9 0%, #ffffff 62%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
