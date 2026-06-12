@@ -1752,6 +1752,10 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cAging" role="img" aria-label="aging de recebíveis"></canvas></div></div>
     </div>
   </div>
+  <div class="card">
+    <div class="card-hd" id="hdRecDono">Recebimentos por proprietário</div>
+    <div class="cw-scroll"><div class="cw" style="height:240px"><canvas id="cRecDono" role="img" aria-label="recebimentos por proprietário"></canvas></div></div>
+  </div>
   <div class="g2">
     <div class="card">
       <div class="card-hd">Por forma de recebimento</div>
@@ -2858,7 +2862,7 @@ function mLabel(k){ const[y,m]=k.split('-'); return MN[parseInt(m)-1]+'/'+y.slic
 // Posiciona a rolagem das séries temporais com o mês vigente centralizado.
 function centerResScroll(mShown){
   const idx=mShown.indexOf(curMes);
-  ['cMes','cTipoMes','cAcum','cResLiq'].forEach(id=>{
+  ['cMes','cTipoMes','cAcum','cResLiq','cRecDono'].forEach(id=>{
     const c=document.getElementById(id); if(!c)return;
     const sc=c.parentElement&&c.parentElement.parentElement; // .cw-scroll
     if(!sc||!sc.classList||!sc.classList.contains('cw-scroll'))return;
@@ -2920,7 +2924,7 @@ function renderResumo(){
   const acumSfx=resAcum?' — acumulado':'';
   // Largura mínima das séries temporais → habilita rolagem lateral quando há muitos meses
   const tsMinW=Math.max(480, mShown.length*66);
-  ['cMes','cTipoMes','cAcum','cResLiq'].forEach(id=>{const c=document.getElementById(id);if(c&&c.parentElement)c.parentElement.style.minWidth=tsMinW+'px';});
+  ['cMes','cTipoMes','cAcum','cResLiq','cRecDono'].forEach(id=>{const c=document.getElementById(id);if(c&&c.parentElement)c.parentElement.style.minWidth=tsMinW+'px';});
   // Recebido × A receber por mês
   const recM={},pendM={};
   baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m)return;recM[m]=(recM[m]||0)+(isPago(r)?fN(r.valor_pago):0);pendM[m]=(pendM[m]||0)+(isPend(r)?fN(r.saldo):0);});
@@ -2975,6 +2979,16 @@ function renderResumo(){
   baseRows.filter(r=>isPend(r)).forEach(r=>{const s=fN(r.saldo);const pp=r.prev_pgto||'';if(!pp){ag.v+=s;return;}const dias=Math.floor((new Date(hojeAg)-new Date(pp))/86400000);if(dias<=0)ag.v+=s;else if(dias<=30)ag.d30+=s;else if(dias<=60)ag.d60+=s;else ag.d60p+=s;});
   {const c=document.getElementById('cAging');if(c&&c.parentElement)c.parentElement.style.minWidth='400px';}
   mkC('cAging',{type:'bar',data:{labels:['A vencer','Venc. 1–30','31–60','60+'],datasets:[{data:[ag.v,ag.d30,ag.d60,ag.d60p],backgroundColor:['#34c759','#f0b429','#e8833a','#c42b1c'],borderRadius:8,borderSkipped:false,maxBarThickness:60}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+
+  // ── Recebimentos por proprietário (linhas, uma por dono) ──
+  const donosR=[...new Set(baseRows.map(r=>r.dono).filter(Boolean))].sort();
+  const dmR={};donosR.forEach(d=>dmR[d]={});
+  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m||!r.dono)return;dmR[r.dono][m]=(dmR[r.dono][m]||0)+valBase(r);});
+  const hdRecDono=document.getElementById('hdRecDono'); if(hdRecDono) hdRecDono.textContent='Recebimentos por proprietário'+acumSfx;
+  mkC('cRecDono',{type:'line',data:{labels:labelsT,datasets:donosR.map(d=>{let arr=mShown.map(k=>dmR[d][k]||0);if(resAcum)arr=cumArr(arr);const col=DC[d]||'#888';return{
+    label:d,data:arr,borderColor:c=>vGrad(c,col,col+'66'),backgroundColor:col+'18',pointBackgroundColor:col,pointBorderColor:'#fff',pointBorderWidth:1.5,
+    borderWidth:3,tension:.38,fill:false,pointRadius:2.5,pointHoverRadius:5,spanGaps:true
+  };})},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:12,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   const bF={};rows.forEach(r=>{bF[r.forma]=(bF[r.forma]||0)+fN(r.valor);});
   const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
   const maxF=bF[fK[0]]||1;
