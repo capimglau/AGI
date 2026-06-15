@@ -231,7 +231,7 @@ body::before {
 }
 .icon-btn:hover, .icon-btn:active { background: rgba(118,118,128,.22); }
 .icon-btn svg { width: 19px; height: 19px; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.theme-toggle { width: 32px; height: 32px; margin-right: 8px; }
+.theme-toggle { width: 32px; height: 32px; margin-left: 12px; }
 .theme-toggle svg { width: 16px; height: 16px; }
 
 /* ─── PAGES ─── */
@@ -1720,7 +1720,6 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   <div class="logo">
     <img class="logo-img" src="logo-agi.png" alt="AGI Locadora">
   </div>
-  <button class="icon-btn theme-toggle" onclick="toggleTheme()" title="Alterar tema" aria-label="Alterar tema" id="themeBtnHdr"></button>
   <div class="month-nav">
     <button class="mn-btn" onclick="navMes(-1)" title="Mês anterior">‹</button>
     <div class="mn-label" id="mnLabel">—</div>
@@ -1738,6 +1737,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     </div>
 
   </div>
+  <button class="icon-btn theme-toggle" onclick="toggleTheme()" title="Alterar tema" aria-label="Alterar tema" id="themeBtnHdr"></button>
 </div>
 
 <!-- ─── PAGES ─── -->
