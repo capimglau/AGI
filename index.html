@@ -1023,6 +1023,14 @@ html[data-theme="dark"] .receb-hoje { background: linear-gradient(165deg, rgba(9
 .rh-dono { font-size: 11.5px; color: var(--ink3); display: flex; align-items: center; gap: 5px; white-space: nowrap; }
 .rh-val { font-weight: 700; color: var(--red); white-space: nowrap; }
 .rh-foot { margin-top: 11px; font-size: 12.5px; font-weight: 700; color: var(--blue); text-align: right; }
+/* Atalho com o total dos vencidos */
+.rh-venc-chip { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 11px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(191,37,24,.30); background: rgba(191,37,24,.08); color: var(--red); font-size: 12px; font-weight: 700; cursor: pointer; transition: background .15s, border-color .15s; }
+.rh-venc-chip:hover { background: rgba(191,37,24,.16); border-color: var(--red); }
+html[data-theme="dark"] .rh-venc-chip { border-color: rgba(255,107,107,.30); background: rgba(255,107,107,.14); }
+/* Modo "vencidos" (quando não há recebimentos hoje) */
+.receb-hoje.modo-venc { background: linear-gradient(165deg, rgba(191,37,24,.06) 0%, #ffffff 70%); border-color: rgba(191,37,24,.35); }
+html[data-theme="dark"] .receb-hoje.modo-venc { background: linear-gradient(165deg, rgba(255,107,107,.16) 0%, var(--card) 70%); border-color: rgba(255,107,107,.30); }
+.receb-hoje.modo-venc .rh-sub, .receb-hoje.modo-venc .rh-foot { color: var(--red); }
 @media (max-width: 680px) {
   .rh-item { grid-template-columns: auto 1fr auto; gap: 9px; }
   .rh-dono { display: none; }
@@ -2631,6 +2639,18 @@ function irHoje(){
   }
   updateMesLabel();renderAll();
 }
+// Abre os Recebimentos no mês com mais vencidos, já filtrado por "Vencidos"
+function irVencidos(){
+  const venc=allD().filter(r=>isVenc(r));
+  if(venc.length){
+    const cnt={};
+    venc.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)cnt[m]=(cnt[m]||0)+1;});
+    curMes=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0][0];
+    updateMesLabel();
+  }
+  const sel=document.getElementById('bf-status'); if(sel) sel.value='venc';
+  go('baixas');
+}
 function updateMesLabel(){
   const [y,m]=curMes.split('-');
   document.getElementById('mnLabel').textContent=`${MF[parseInt(m)-1]} ${y.slice(2)}`;
@@ -3060,23 +3080,42 @@ function centerResScroll(mShown){
   });
 }
 
-// Janela "Recebimentos de hoje" no Resumo — clicar abre todos os recebimentos
+// Janela "Recebimentos de hoje" no Resumo — clicar abre todos os recebimentos.
+// Exibe até 5 linhas por padrão, um atalho com o total dos vencidos e,
+// quando não há recebimentos hoje, mostra os vencidos no lugar.
 function renderRecebHoje(){
   const el=document.getElementById('recebHoje'); if(!el) return;
   const hoje=td();
-  const items=allD().filter(r=>isPend(r)&&r.prev_pgto===hoje).sort((a,b)=>fN(b.saldo)-fN(a.saldo));
+  const itemsHoje=allD().filter(r=>isPend(r)&&r.prev_pgto===hoje).sort((a,b)=>fN(b.saldo)-fN(a.saldo));
+  const vencidos=allD().filter(r=>isVenc(r)).sort((a,b)=>fN(b.saldo)-fN(a.saldo));
+  const totVenc=vencidos.reduce((a,r)=>a+fN(r.saldo),0);
+
+  // Sem recebimentos hoje → exibe os vencidos no lugar
+  const modoVenc=itemsHoje.length===0 && vencidos.length>0;
+  const items=modoVenc?vencidos:itemsHoje;
   if(!items.length){ el.innerHTML=''; return; }
+
   const tot=items.reduce((a,r)=>a+fN(r.saldo),0);
-  const preview=items.slice(0,6);
-  el.innerHTML=`<div class="receb-hoje" role="button" tabindex="0" onclick="go('baixas')" title="Abrir todos os recebimentos">
-    <div class="rh-hd"><span>📥 Recebimentos de hoje</span><span class="rh-sub">${items.length} · ${fR(tot)}</span></div>
+  const preview=items.slice(0,5);
+  const titulo=modoVenc?'⚠ Recebimentos vencidos':'📥 Recebimentos de hoje';
+  const acao=modoVenc?'irVencidos()':"go('baixas')";
+  const verTudo=modoVenc?'Ver todos os vencidos':'Ver todos os recebimentos';
+
+  // Atalho com o valor dos vencidos (quando já há recebimentos hoje na lista)
+  const atalho=(!modoVenc && vencidos.length)
+    ? `<button class="rh-venc-chip" onclick="event.stopPropagation();irVencidos()" title="Ver recebimentos vencidos">⚠ ${vencidos.length} vencido${vencidos.length>1?'s':''} · ${fR(totVenc)}</button>`
+    : '';
+
+  el.innerHTML=`<div class="receb-hoje${modoVenc?' modo-venc':''}" role="button" tabindex="0" onclick="${acao}" title="${verTudo}">
+    <div class="rh-hd"><span>${titulo}</span><span class="rh-sub">${items.length} · ${fR(tot)}</span></div>
+    ${atalho}
     <div class="rh-list">${preview.map(r=>{const col=DC[r.dono]||'#888';return `<div class="rh-item">
       <span class="placa">${r.placa}</span>
       <span class="rh-cli">${r.cliente||'—'}</span>
       <span class="rh-dono"><span class="ddot" style="background:${col}"></span>${r.dono||''}</span>
       <span class="rh-val">${fR(r.saldo)}</span>
     </div>`;}).join('')}</div>
-    <div class="rh-foot">${items.length>preview.length?`+${items.length-preview.length} • `:''}Ver todos os recebimentos ›</div>
+    <div class="rh-foot">${items.length>preview.length?`+${items.length-preview.length} • `:''}${verTudo} ›</div>
   </div>`;
 }
 
