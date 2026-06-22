@@ -2467,11 +2467,35 @@ async function dedupLancamentos(){
   }
 
   // PASSO 2: registros com saida NULA cuja placa já tem outro registro com saida válida
-  // (são fantasmas de importações com parsing quebrado)
   const placasComSaida=new Set((all||[]).filter(r=>r.placa&&r.saida).map(r=>normP(r.placa)));
   for(const r of (all||[])){
     if(r.placa&&!r.saida&&placasComSaida.has(normP(r.placa))&&!toDelete.includes(r.id)){
       toDelete.push(r.id);
+    }
+  }
+
+  // PASSO 3: mesma placa com saida com ±1 dia (bug de fuso horário em importações anteriores)
+  // Remove o registro sem prev_pgto quando há um par com 1 dia de diferença
+  const vivos=(all||[]).filter(r=>r.placa&&r.saida&&!toDelete.includes(r.id));
+  const porPlaca=new Map();
+  for(const r of vivos){
+    const pn=normP(r.placa);
+    if(!porPlaca.has(pn))porPlaca.set(pn,[]);
+    porPlaca.get(pn).push(r);
+  }
+  for(const recs of porPlaca.values()){
+    if(recs.length<2)continue;
+    for(let i=0;i<recs.length;i++){
+      for(let j=i+1;j<recs.length;j++){
+        const diff=Math.abs(new Date(recs[i].saida)-new Date(recs[j].saida));
+        if(diff===86400000){ // exatamente 1 dia de diferença
+          // Mantém o com prev_pgto; se ambos têm ou ambos não têm, não remove
+          const semPP=[recs[i],recs[j]].filter(r=>!r.prev_pgto);
+          if(semPP.length===1&&!toDelete.includes(semPP[0].id)){
+            toDelete.push(semPP[0].id);
+          }
+        }
+      }
     }
   }
 
@@ -4457,9 +4481,9 @@ function handleXls(input){
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const wb=XLSX.read(e.target.result,{type:'binary',cellDates:true});
+      const wb=XLSX.read(e.target.result,{type:'binary'});
       const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd',defval:''});
       if(!rows||rows.length<2){showXlsSt('⚠ Arquivo vazio ou sem dados.','err');return;}
       const headers=rows[0].map(h=>String(h||'').trim());
       const dataRows=rows.slice(1).filter(r=>r&&r.some(c=>String(c||'').trim()!==''));
@@ -4482,19 +4506,16 @@ function handleXls(input){
         showXlsSt(`⚠ Nenhuma coluna reconhecida. Cabeçalhos encontrados:<br><code>${headers.join(' | ')}</code><br>Renomeie para: Placa, Cliente, Saída, Retorno, Valor, Forma, Proprietário`,'err');
         return;
       }
-      const get=(row,idx)=>idx>=0&&row[idx]!=null?row[idx]:'';
-      const str=(row,idx)=>String(get(row,idx)||'').trim();
+      const get=(row,idx)=>idx>=0?String(row[idx]||'').trim():'';
+      const str=get;
       const normDate=s=>{
-        if(s==null||s==='')return null;
-        if(s instanceof Date){
-          if(isNaN(s))return null;
-          const y=s.getFullYear(),mo=s.getMonth()+1,d=s.getDate();
-          return`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        }
+        if(!s)return null;
         const t=String(s).trim();
         if(!t)return null;
+        // ISO: yyyy-mm-dd (retornado por dateNF:'yyyy-mm-dd')
         let m=t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
         if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+        // BR: dd/mm/yyyy ou dd-mm-yyyy ou dd.mm.yyyy
         m=t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
         if(!m)return null;
         const y=m[3].length===2?'20'+m[3]:m[3];
