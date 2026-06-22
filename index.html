@@ -2423,6 +2423,12 @@ async function dbInsert(rec){
   if(error){console.error(error);alert('Erro ao salvar no Supabase: '+error.message);return rec;}
   return data;
 }
+async function dbInsertMany(recs){
+  if(!SB) return recs;
+  const {data,error}=await SB.from('lancamentos').insert(recs.map(_clean)).select();
+  if(error){console.error(error);alert('Erro ao importar no Supabase: '+error.message);return recs;}
+  return data;
+}
 async function dbUpdate(rec){
   if(!SB||rec.id==null) return;
   const {error}=await SB.from('lancamentos').update(_clean(rec)).eq('id',rec.id);
@@ -4477,11 +4483,13 @@ function xlsUpdCnt(){
 async function importXls(){
   // Filtra: selecionados E não duplicatas (proteção dupla)
   const sel=XLS_PARSED.filter(r=>r._sel&&!r._dup);if(!sel.length)return;
-  const btn=document.getElementById('xlsImportBtn');btn.disabled=true;btn.textContent='Importando...';
-  for(const r of sel){
-    const taxa=getTaxaForma(r.forma);
-    const saved=await dbInsert({placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:null,valor_pago:0,saldo:r.valor*(1-taxa),obs:r.obs});
-    NOVOS.push(saved);
+  const btn=document.getElementById('xlsImportBtn');btn.disabled=true;
+  const recs=sel.map(r=>{const taxa=getTaxaForma(r.forma);return{placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:null,valor_pago:0,saldo:r.valor*(1-taxa),obs:r.obs};});
+  const CHUNK=100;
+  for(let i=0;i<recs.length;i+=CHUNK){
+    btn.textContent=`Importando ${Math.min(i+CHUNK,recs.length)}/${recs.length}...`;
+    const saved=await dbInsertMany(recs.slice(i,i+CHUNK));
+    NOVOS.push(...saved);
   }
   rNovos();popSel();renderAll();
   closeXls();go('novo');
