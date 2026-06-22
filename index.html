@@ -2154,6 +2154,15 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       </div>
     </div>
 
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:14px;margin-bottom:12px">
+      <span style="font-size:18px">🧹</span>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:var(--ink)">Remover Duplicatas</div>
+        <div style="font-size:12px;color:var(--ink3)">Remove lançamentos com mesma placa e data de saída</div>
+      </div>
+      <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="dedupLancamentos()">Deduplicar</button>
+    </div>
+
     <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:14px;margin-bottom:24px">
       <span style="font-size:18px">🌙</span>
       <div style="flex:1">
@@ -2433,6 +2442,34 @@ async function dbUpdate(rec){
   if(!SB||rec.id==null) return;
   const {error}=await SB.from('lancamentos').update(_clean(rec)).eq('id',rec.id);
   if(error){console.error(error);alert('Erro ao atualizar no Supabase: '+error.message);}
+}
+async function dedupLancamentos(){
+  if(!SB){alert('Não conectado ao Supabase.');return;}
+  if(!confirm('Isso vai buscar e remover lançamentos duplicados (mesma placa + data de saída), mantendo o mais antigo. Continuar?'))return;
+  const {data:all,error}=await SB.from('lancamentos').select('id,placa,saida').order('id',{ascending:true});
+  if(error){alert('Erro ao buscar lançamentos: '+error.message);return;}
+  const normP=p=>String(p||'').toUpperCase().replace(/[\s\-]/g,'');
+  const seen=new Map();
+  const toDelete=[];
+  for(const r of (all||[])){
+    if(!r.placa||!r.saida){continue;}
+    const key=`${normP(r.placa)}|${r.saida}`;
+    if(seen.has(key)){toDelete.push(r.id);}
+    else{seen.set(key,r.id);}
+  }
+  if(!toDelete.length){alert('Nenhuma duplicata encontrada.');return;}
+  if(!confirm(`Encontradas ${toDelete.length} duplicata(s). Remover agora?`))return;
+  const CHUNK=100;
+  let removidos=0;
+  for(let i=0;i<toDelete.length;i+=CHUNK){
+    const chunk=toDelete.slice(i,i+CHUNK);
+    const {error:de}=await SB.from('lancamentos').delete().in('id',chunk);
+    if(de){alert('Erro ao deletar: '+de.message);return;}
+    removidos+=chunk.length;
+  }
+  DATA=DATA.filter(r=>!toDelete.includes(r.id));
+  renderAll();
+  alert(`✓ ${removidos} duplicata(s) removida(s). Recarregue para ver os totais atualizados.`);
 }
 async function dbDelete(id){
   if(!SB||id==null) return;
@@ -4447,6 +4484,7 @@ function handleXls(input){
         return`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
       };
       // Construir registros
+      const normPlaca=p=>String(p||'').toUpperCase().replace(/[\s\-]/g,'');
       const seen=new Set();
       XLS_PARSED=dataRows.map(row=>{
         let placa=str(row,ci.placa).toUpperCase().replace(/\s/g,'');
@@ -4454,10 +4492,10 @@ function handleXls(input){
         const saida=normDate(get(row,ci.saida));
         const valor=parseMoney(get(row,ci.valor));
         const valor_pago=parseMoney(get(row,ci.vp));
-        // Duplicata contra o banco
-        const dupDb=placa&&saida?allD().find(r=>r.placa===placa&&r.saida===saida):null;
+        // Duplicata contra o banco — compara placa sem hífen para evitar falsos negativos
+        const dupDb=placa&&saida?allD().find(r=>normPlaca(r.placa)===normPlaca(placa)&&r.saida===saida):null;
         // Duplicata dentro do próprio arquivo
-        const key=placa&&saida?`${placa}|${saida}`:null;
+        const key=placa&&saida?`${normPlaca(placa)}|${saida}`:null;
         const dupFile=key&&seen.has(key);
         if(key)seen.add(key);
         const dup=!!(dupDb||dupFile);
