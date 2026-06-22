@@ -4192,9 +4192,13 @@ function handleImg(input){
 function parseContrato(text){
   const t=text.toUpperCase();
   const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
-  // Placa: ABC-1234 ou Mercosul ABC1D23
-  const pm=t.match(/\b([A-Z]{3})[\s\-]?([0-9][A-Z0-9][0-9]{2})\b/);
-  const placa=pm?pm[1]+'-'+pm[2]:'';
+  // Placa: prioriza a linha com rótulo "Placa" (evita pegar código aleatório do texto)
+  const plateRe=/([A-Z]{3})[\s\-]?([0-9][A-Z0-9][0-9]{2})\b/;
+  let placa='';
+  for(const ln of lines){
+    if(/PLACA/i.test(ln)){const pm2=ln.toUpperCase().match(plateRe);if(pm2){placa=pm2[1]+'-'+pm2[2];break;}}
+  }
+  if(!placa){const mm=t.match(plateRe);if(mm)placa=mm[1]+'-'+mm[2];}
   // Cliente: remove rótulo, prefixo (| 7846 –), corta em campos vizinhos
   // e mantém só os tokens em CAIXA ALTA do nome (descarta lixo de OCR tipo "Sat")
   let cliente='';
@@ -4239,7 +4243,7 @@ function parseContrato(text){
   }
   // Data de pagamento = data que vem ANTES do horário (ticket do cartão: DD/MM/AAAA HH:MM)
   let dpago='';
-  const dtm=text.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})\s+\d{1,2}\s*[:hH]\s*\d{2}/);
+  const dtm=text.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})[\s,]+\d{1,2}\s*[:hH.]\s*\d{2}/);
   if(dtm)dpago=`${dtm[3]}-${dtm[2]}-${dtm[1]}`;
   // Valor: prioriza seção "Forma de Pagamento" (VALOR: R$X ou valor na linha de crédito/débito/boleto)
   let valor='';
@@ -4266,12 +4270,23 @@ function parseContrato(text){
   else if(/2\s*X|CR[EÉ]DITO\s+2/.test(t))forma='Crédito 2x';
   else if(/3\s*X|CR[EÉ]DITO\s+3/.test(t))forma='Crédito 3x';
   else if(/CR[EÉ]DITO/.test(t))forma='Crédito';
-  // OBS: últimos 4 dígitos do cartão (recibo anexo) — número mascarado
-  // OCR pode ler a máscara como *, x, ., •, # ou espaços; aceita também 3 dígitos finais
-  let obs='';
-  const cardM=text.match(/(?:[\*xX•·#.]\s*){3,}(\d{3,4})\b/)
-            ||t.match(/(?:FINAL|CART[AÃ]O|CARD)\s*:?\s*[^\d]{0,6}(\d{3,4})\b/);
-  if(cardM)obs='Cartão final '+cardM[1];
+  // OBS: número do cartão — aparece APÓS a Forma de Pagamento ("...NÚMERO 3974")
+  let obs='',cardNum='';
+  let inN=false;
+  for(const ln of lines){
+    if(/forma\s+de\s+pag|forma\s+pgto/i.test(ln))inN=true;
+    if(inN){
+      const cm=ln.match(/N[UÚ]MERO\s*:?\s*(\d{3,})/i);
+      if(cm){cardNum=cm[1].slice(-4);break;}
+    }
+  }
+  // fallbacks: número mascarado / rótulo "final" no recibo anexo
+  if(!cardNum){
+    const mk=text.match(/(?:[\*xX•·#.]\s*){3,}(\d{3,4})\b/)
+           ||t.match(/(?:FINAL|CART[AÃ]O|CARD)\s*:?\s*[^\d]{0,6}(\d{3,4})\b/);
+    if(mk)cardNum=mk[1];
+  }
+  if(cardNum)obs='Cartão final '+cardNum;
   return {placa,cliente,saida,retorno,valor,forma,obs,dpago};
 }
 function confirmAI(){
