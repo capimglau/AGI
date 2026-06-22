@@ -4418,6 +4418,7 @@ function handleXls(input){
         retorno: xlsColIdx(headers,['retorno','devolucao','devolução','fim','end']),
         forma:   xlsColIdx(headers,['forma','pagamento','payment']),
         valor:   xlsColIdx(headers,['valor','total','vlr','faturamento']),
+        vp:      xlsColIdx(headers,['pago','valor_pago','valor pago','recebido','baixado','baixa']),
         obs:     xlsColIdx(headers,['obs','observacao','observação','nota']),
       };
       // Se nenhuma coluna chave for detectada, mostrar os cabeçalhos encontrados
@@ -4428,7 +4429,6 @@ function handleXls(input){
       const get=(row,idx)=>idx>=0?String(row[idx]||'').trim():'';
       const normDate=s=>{
         if(!s)return null;
-        // Suporta DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
         let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if(m)return`${m[1]}-${m[2]}-${m[3]}`;
         m=s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
@@ -4436,12 +4436,22 @@ function handleXls(input){
         const y=m[3].length===2?'20'+m[3]:m[3];
         return`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
       };
+      // Construir registros
+      const seen=new Set();
       XLS_PARSED=dataRows.map(row=>{
         let placa=(get(row,ci.placa)||'').toUpperCase().replace(/\s/g,'');
         if(placa&&!/[-]/.test(placa)&&placa.length>=6)placa=placa.slice(0,3)+'-'+placa.slice(3);
         const saida=normDate(get(row,ci.saida));
-        const dup=placa&&saida?allD().find(r=>r.placa===placa&&r.saida===saida):null;
-        return{_sel:!dup,_dup:!!dup,placa,dono:get(row,ci.dono)||'Indefinido',cliente:get(row,ci.cliente),tipo:get(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:get(row,ci.forma)||'',valor:parseMoney(get(row,ci.valor)),obs:get(row,ci.obs)||null};
+        const valor=parseMoney(get(row,ci.valor));
+        const valor_pago=parseMoney(get(row,ci.vp));
+        // Duplicata contra o banco
+        const dupDb=placa&&saida?allD().find(r=>r.placa===placa&&r.saida===saida):null;
+        // Duplicata dentro do próprio arquivo
+        const key=placa&&saida?`${placa}|${saida}`:null;
+        const dupFile=key&&seen.has(key);
+        if(key)seen.add(key);
+        const dup=!!(dupDb||dupFile);
+        return{_sel:!dup,_dup:dup,_dupDb:!!dupDb,_dupFile:dupFile,placa,dono:get(row,ci.dono)||'Indefinido',cliente:get(row,ci.cliente),tipo:get(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:get(row,ci.forma)||'',valor,valor_pago,obs:get(row,ci.obs)||null};
       }).filter(r=>r.placa||r.cliente||r.valor);
       if(!XLS_PARSED.length){
         showXlsSt(`⚠ Nenhum registro válido. Cabeçalhos lidos: <code>${headers.join(' | ')}</code>`,'err');
@@ -4468,7 +4478,7 @@ function renderXlsPreview(headers,ci){
       <td style="font-size:11px">${r.retorno||'—'}</td>
       <td style="font-size:11px">${r.forma||'—'}</td>
       <td class="nr">${fR(r.valor)}</td>
-      <td>${r._dup?'<span style="color:var(--amber);font-size:11px">⚠ dup</span>':'<span style="color:var(--green);font-size:11px">✓</span>'}</td>
+      <td>${r._dup?`<span style="color:var(--amber);font-size:11px">⚠ ${r._dupFile?'dup arquivo':'já existe'}</span>`:r.valor_pago>0?'<span style="color:var(--blue);font-size:11px">✓ baixado</span>':'<span style="color:var(--green);font-size:11px">✓</span>'}</td>
     </tr>`).join('');
   document.getElementById('xlsPreview').style.display='block';
   document.getElementById('xlsChkAll').checked=XLS_PARSED.every(r=>r._sel);
@@ -4484,7 +4494,11 @@ async function importXls(){
   const sel=XLS_PARSED.filter(r=>r._sel&&!r._dup);if(!sel.length)return;
   const btn=document.getElementById('xlsImportBtn');btn.disabled=true;
   const info=document.getElementById('xlsInfo');
-  const recs=sel.map(r=>{const taxa=getTaxaForma(r.forma);return{placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:null,valor_pago:0,saldo:r.valor*(1-taxa),obs:r.obs};});
+  const recs=sel.map(r=>{
+    const taxa=getTaxaForma(r.forma);
+    const baixado=r.valor_pago>0;
+    return{placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:null,valor_pago:baixado?r.valor:0,saldo:baixado?0:r.valor*(1-taxa),obs:r.obs};
+  });
   const CHUNK=25;
   let importados=0;
   try{
