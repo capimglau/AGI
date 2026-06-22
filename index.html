@@ -2426,7 +2426,7 @@ async function dbInsert(rec){
 async function dbInsertMany(recs){
   if(!SB) return recs;
   const {data,error}=await SB.from('lancamentos').insert(recs.map(_clean)).select();
-  if(error){console.error(error);alert('Erro ao importar no Supabase: '+error.message);return recs;}
+  if(error) throw new Error(error.message||'Falha na conexão com Supabase');
   return data;
 }
 async function dbUpdate(rec){
@@ -4481,18 +4481,28 @@ function xlsUpdCnt(){
   document.getElementById('xlsImportBtn').disabled=n===0;
 }
 async function importXls(){
-  // Filtra: selecionados E não duplicatas (proteção dupla)
   const sel=XLS_PARSED.filter(r=>r._sel&&!r._dup);if(!sel.length)return;
   const btn=document.getElementById('xlsImportBtn');btn.disabled=true;
+  const info=document.getElementById('xlsInfo');
   const recs=sel.map(r=>{const taxa=getTaxaForma(r.forma);return{placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:null,valor_pago:0,saldo:r.valor*(1-taxa),obs:r.obs};});
-  const CHUNK=100;
-  for(let i=0;i<recs.length;i+=CHUNK){
-    btn.textContent=`Importando ${Math.min(i+CHUNK,recs.length)}/${recs.length}...`;
-    const saved=await dbInsertMany(recs.slice(i,i+CHUNK));
-    NOVOS.push(...saved);
+  const CHUNK=25;
+  let importados=0;
+  try{
+    for(let i=0;i<recs.length;i+=CHUNK){
+      const chunk=recs.slice(i,i+CHUNK);
+      btn.textContent=`Importando ${i+chunk.length}/${recs.length}...`;
+      info.textContent=`Enviando lote ${Math.floor(i/CHUNK)+1} de ${Math.ceil(recs.length/CHUNK)}…`;
+      const saved=await dbInsertMany(chunk);
+      NOVOS.push(...saved);
+      importados+=saved.length;
+    }
+    rNovos();popSel();renderAll();
+    closeXls();go('novo');
+  }catch(err){
+    btn.disabled=false;btn.textContent='Tentar novamente';
+    info.innerHTML=`<span style="color:var(--red)">⚠ Erro após ${importados} importados: ${err.message}<br>Verifique a conexão e tente novamente.</span>`;
+    if(importados>0){rNovos();popSel();renderAll();}
   }
-  rNovos();popSel();renderAll();
-  closeXls();go('novo');
 }
 // drag-and-drop no xlsDz
 (function(){
