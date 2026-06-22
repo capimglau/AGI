@@ -4493,9 +4493,14 @@ function xlsUpdCnt(){
   document.getElementById('xlsImportBtn').disabled=n===0;
 }
 async function importXls(){
-  const sel=XLS_PARSED.filter(r=>r._sel&&!r._dup);if(!sel.length)return;
+  const sel=XLS_PARSED.filter(r=>r._sel&&!r._dup);
+  if(!sel.length){
+    const info=document.getElementById('xlsInfo');info.style.display='block';
+    info.innerHTML='<span style="color:var(--orange)">Nenhum registro novo — todos já existem no sistema.</span>';
+    return;
+  }
   const btn=document.getElementById('xlsImportBtn');btn.disabled=true;
-  const info=document.getElementById('xlsInfo');
+  const info=document.getElementById('xlsInfo');info.style.display='block';
   const recs=sel.map(r=>{
     const taxa=getTaxaForma(r.forma);
     const baixado=r.valor_pago>0;
@@ -4508,24 +4513,32 @@ async function importXls(){
       else if(r.saida)pp=r.saida;
     }
     if(pp)pp=proxUtil(pp);
-    return{placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:pp,valor_pago:baixado?r.valor:0,saldo:baixado?0:r.valor*(1-taxa),obs:r.obs};
+    const vp=baixado?r.valor_pago:0;
+    const sl=baixado?Math.max(0,r.valor-r.valor_pago):r.valor*(1-taxa);
+    return{placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:pp,valor_pago:vp,saldo:sl,obs:r.obs};
   });
   const CHUNK=25;
   let importados=0;
+  const allSaved=[];
   try{
     for(let i=0;i<recs.length;i+=CHUNK){
       const chunk=recs.slice(i,i+CHUNK);
       btn.textContent=`Importando ${i+chunk.length}/${recs.length}...`;
       info.textContent=`Enviando lote ${Math.floor(i/CHUNK)+1} de ${Math.ceil(recs.length/CHUNK)}…`;
       const saved=await dbInsertMany(chunk);
-      // Adiciona direto em DATA com IDs do Supabase (evita dbLoad que pode falhar no mobile)
-      if(Array.isArray(saved)&&saved.length) DATA.push(...saved);
-      else DATA.push(...chunk); // fallback sem ID (offline ou select vazio)
-      importados+=chunk.length;
+      if(SB&&(!Array.isArray(saved)||saved.length===0))
+        throw new Error('Supabase não confirmou o salvamento. Verifique a conexão ou permissões da tabela.');
+      const toPush=Array.isArray(saved)&&saved.length?saved:chunk;
+      DATA.push(...toPush);
+      allSaved.push(...toPush);
+      importados+=toPush.length;
     }
-    btn.textContent=`✓ ${importados} importados — recarregando...`;
-    info.textContent='Aguarde…';
-    setTimeout(()=>window.location.reload(),1200);
+    // Navega para o mês mais recente dos registros importados (sem reload)
+    const meses=[...new Set(allSaved.map(r=>(r.prev_pgto||r.saida||'').substring(0,7)).filter(Boolean))].sort();
+    if(meses.length) curMes=meses[meses.length-1];
+    closeXls();
+    go('lancamentos');
+    setTimeout(()=>alert(`✓ ${importados} lançamentos importados!\nVisíveis em: ${meses.join(', ')}`),200);
   }catch(err){
     btn.disabled=false;btn.textContent='Tentar novamente';
     info.innerHTML=`<span style="color:var(--red)">⚠ Erro após ${importados} de ${recs.length}: ${err.message}</span>`;
