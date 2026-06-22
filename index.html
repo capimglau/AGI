@@ -4506,16 +4506,20 @@ async function importXls(){
       const chunk=recs.slice(i,i+CHUNK);
       btn.textContent=`Importando ${i+chunk.length}/${recs.length}...`;
       info.textContent=`Enviando lote ${Math.floor(i/CHUNK)+1} de ${Math.ceil(recs.length/CHUNK)}…`;
-      const saved=await dbInsertMany(chunk);
-      NOVOS.push(...saved);
-      importados+=saved.length;
+      await dbInsertMany(chunk);
+      importados+=chunk.length;
     }
-    rNovos();popSel();renderAll();
-    closeXls();go('novo');
+    // Recarrega tudo do Supabase para garantir que os registros apareçam com IDs corretos
+    info.textContent='Atualizando lista…';
+    DATA=await dbLoad();
+    NOVOS=[];
+    popSel();renderAll();
+    closeXls();
+    go('lancamentos');
   }catch(err){
     btn.disabled=false;btn.textContent='Tentar novamente';
     info.innerHTML=`<span style="color:var(--red)">⚠ Erro após ${importados} importados: ${err.message}<br>Verifique a conexão e tente novamente.</span>`;
-    if(importados>0){rNovos();popSel();renderAll();}
+    if(importados>0){DATA=await dbLoad();NOVOS=[];popSel();renderAll();}
   }
 }
 // drag-and-drop no xlsDz
