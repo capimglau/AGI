@@ -4515,9 +4515,19 @@ function handleXls(input){
       const str=get;
       const normDate=s=>{
         if(!s)return null;
+        // Objeto Date (cellDates:true)
+        if(s instanceof Date){
+          const y=s.getUTCFullYear(),mo=s.getUTCMonth()+1,d=s.getUTCDate();
+          return`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        }
         const t=String(s).trim();
         if(!t)return null;
-        // ISO: yyyy-mm-dd (retornado por dateNF:'yyyy-mm-dd')
+        // Número serial do Excel (ex: 45014 = 2026-06-01)
+        if(/^\d{5}$/.test(t)&&+t>40000){
+          const d=new Date(Math.round((+t-25569)*86400000));
+          return`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+        }
+        // ISO: yyyy-mm-dd
         let m=t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
         if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
         // BR: dd/mm/yyyy ou dd-mm-yyyy ou dd.mm.yyyy
@@ -4558,8 +4568,11 @@ function handleXls(input){
 }
 function renderXlsPreview(headers,ci){
   const dups=XLS_PARSED.filter(r=>r._dup).length;
+  const semData=XLS_PARSED.filter(r=>!r._dup&&!r.saida).length;
   const mapeado=Object.entries(ci||{}).filter(([,v])=>v>=0).map(([k,v])=>`${k}→col ${v+1}`).join(', ');
-  document.getElementById('xlsInfo').innerHTML=`${XLS_PARSED.length} registros · ${dups?`<span style="color:var(--amber)">⚠ ${dups} duplicado(s)</span> · `:''}Colunas: ${mapeado||'—'}`;
+  const primeiro=XLS_PARSED.find(r=>!r._dup);
+  const diagPrimeiro=primeiro?` · 1º: saída=${primeiro.saida||'⚠ null'} pp=${primeiro.prev_pgto||'—'} val=${primeiro.valor}`:'';
+  document.getElementById('xlsInfo').innerHTML=`${XLS_PARSED.length} registros · ${dups?`<span style="color:var(--amber)">⚠ ${dups} duplicado(s)</span> · `:''}${semData?`<span style="color:var(--red)">⚠ ${semData} sem data de saída</span> · `:''}Colunas: ${mapeado||'—'}${diagPrimeiro}`;
   document.getElementById('xlsBody').innerHTML=XLS_PARSED.map((r,i)=>`
     <tr style="${r._dup?'opacity:.65;background:var(--surface)':''}">
       <td><input type="checkbox" ${r._sel?'checked':''} ${r._dup?'disabled':''} onchange="XLS_PARSED[${i}]._sel=this.checked;xlsUpdCnt()"></td>
