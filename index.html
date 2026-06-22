@@ -2263,11 +2263,15 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <div class="fp"><label>Placa</label><input type="text" id="ai-p"></div>
       <div class="fp"><label>Proprietário</label><select id="ai-d"><option value="">Selecione</option></select></div>
       <div class="fp s2"><label>Cliente</label><input type="text" id="ai-c"></div>
+      <div class="fp"><label>Tipo</label>
+        <select id="ai-t"><option>Locação</option><option>Avarias</option><option>Lavagem</option><option>Multas</option><option>Outros</option></select></div>
+      <div class="fp"><label>Forma</label>
+        <select id="ai-f"><option>Crédito</option><option>Crédito 3x</option><option>Crédito 2x</option><option>Débito</option><option>Boleto</option><option>Depósito</option><option>Dinheiro</option></select></div>
       <div class="fp"><label>Saída</label><input type="date" id="ai-s"></div>
       <div class="fp"><label>Retorno</label><input type="date" id="ai-r"></div>
+      <div class="fp"><label>Data de pagamento</label><input type="date" id="ai-dp"></div>
       <div class="fp"><label>Valor</label><input type="number" id="ai-v" step="0.01"></div>
-      <div class="fp"><label>Forma</label>
-        <select id="ai-f"><option>Crédito</option><option>Crédito 3x</option><option>Boleto</option><option>Débito</option><option>Depósito</option><option>Dinheiro</option></select></div>
+      <div class="fp s2"><label>Obs / Referência</label><input type="text" id="ai-obs" placeholder="ex: cartão final 9974"></div>
       <div class="fp s2" style="display:flex;gap:8px;margin-top:4px">
         <button class="btn btn-blue" style="flex:1;justify-content:center" onclick="confirmAI()">✓ Confirmar</button>
         <button class="btn" onclick="clearAI()">Limpar</button>
@@ -4170,7 +4174,9 @@ function handleImg(input){
         document.getElementById('ai-c').value=p.cliente||'';
         document.getElementById('ai-s').value=p.saida||'';
         document.getElementById('ai-r').value=p.retorno||'';
+        document.getElementById('ai-dp').value=p.saida||'';   // cartão: cobrado na saída
         document.getElementById('ai-v').value=p.valor||'';
+        document.getElementById('ai-obs').value=p.obs||'';
         if(p.forma){const s=document.getElementById('ai-f');[...s.options].forEach(o=>{if(o.value===p.forma)s.value=o.value;});}
         if(p.placa){const norm=p.placa.replace(/[\s\-]/g,'').toUpperCase();const veic=VEICULOS.find(v=>(v.placa||'').replace(/[\s\-]/g,'').toUpperCase()===norm);if(veic&&veic.dono){const sd=document.getElementById('ai-d');[...sd.options].forEach(o=>{if(o.value===veic.dono)sd.value=o.value;});}}
       } else {
@@ -4192,7 +4198,7 @@ function parseContrato(text){
   // Cliente: remove rótulo, prefixo numérico tipo "7846 – " e barra final
   let cliente='';
   const stripCliente=s=>s.replace(/cliente|locat[aá]rio|nome do|:/gi,'').trim()
-                         .replace(/^\d[\d\s]*[\-–]\s*/,'').replace(/\s*\/\s*$/,'').trim();
+                         .replace(/^\d[\d\s]*[\-–]\s*/,'').replace(/[\s\/*•·]+$/,'').trim();
   for(let i=0;i<lines.length;i++){
     if(/cliente|locat[aá]rio|nome do/i.test(lines[i])){
       const val=stripCliente(lines[i]);
@@ -4241,28 +4247,38 @@ function parseContrato(text){
   else if(/BOLETO/.test(t))forma='Boleto';
   else if(/DINHEIRO|ESP[EÉ]CIE/.test(t))forma='Dinheiro';
   else if(/DEP[OÓ]SITO/.test(t))forma='Depósito';
+  else if(/2\s*X|CR[EÉ]DITO\s+2/.test(t))forma='Crédito 2x';
   else if(/3\s*X|CR[EÉ]DITO\s+3/.test(t))forma='Crédito 3x';
   else if(/CR[EÉ]DITO/.test(t))forma='Crédito';
-  return {placa,cliente,saida,retorno,valor,forma};
+  // OBS: últimos 4 dígitos do cartão (recibo anexo) — número mascarado
+  let obs='';
+  const cardM=text.match(/[\*xX•·#]{3,}\s*[\*xX•·#]*\s*(\d{4})/)||t.match(/(?:FINAL|CART[AÃ]O)\s*:?\s*\D{0,4}(\d{4})/);
+  if(cardM)obs='Cartão final '+cardM[1];
+  return {placa,cliente,saida,retorno,valor,forma,obs};
 }
 function confirmAI(){
   const p=document.getElementById('ai-p').value.trim().toUpperCase();
   const d=document.getElementById('ai-d').value;
   const c=document.getElementById('ai-c').value.trim();
+  const t=document.getElementById('ai-t').value;
+  const f=document.getElementById('ai-f').value;
   const s=document.getElementById('ai-s').value||null;
   const r=document.getElementById('ai-r').value||null;
+  const dp=document.getElementById('ai-dp').value||null;
   const v=parseFloat(document.getElementById('ai-v').value)||0;
-  const f=document.getElementById('ai-f').value;
+  const obs=document.getElementById('ai-obs').value||null;
   if(!p||!c||!v){alert('Placa, cliente e valor obrigatórios.');return;}
   const fl=f.toLowerCase();
   let pp=null;
+  // Cartão: a partir da Data de pagamento. Boleto: a partir do Retorno. (igual ao formulário completo)
   if(fl.includes('boleto')&&r)pp=addDUtil(r,PREM.prazoBoleto);
-  else if((fl.includes('90')||fl.includes('3x'))&&s)pp=addDUtil(s,90);
-  else if((fl.includes('60')||fl.includes('2x'))&&s)pp=addDUtil(s,60);
-  else if((fl.includes('crédito')||fl.includes('credito'))&&s)pp=addDUtil(s,PREM.prazoCredito);
-  else if((fl.includes('débito')||fl.includes('debito'))&&s)pp=addDUtil(s,PREM.prazoDebito);
+  else if((fl.includes('90')||fl.includes('3x'))&&dp)pp=addDUtil(dp,90);
+  else if((fl.includes('60')||fl.includes('2x'))&&dp)pp=addDUtil(dp,60);
+  else if((fl.includes('crédito')||fl.includes('credito'))&&dp)pp=addDUtil(dp,PREM.prazoCredito);
+  else if((fl.includes('débito')||fl.includes('debito'))&&dp)pp=addDUtil(dp,PREM.prazoDebito);
+  if(pp)pp=proxUtil(pp);
   const taxa=getTaxaForma(f);
-  const _rec={placa:p,dono:d||'Indefinido',saida:s,retorno:r,cliente:c,tipo:'Locação',valor:v,forma:f,prev_pgto:pp,valor_pago:v*(1-taxa),saldo:v*taxa,obs:null};
+  const _rec={placa:p,dono:d||'Indefinido',saida:s,retorno:r,cliente:c,tipo:t,valor:v,forma:f,prev_pgto:pp,valor_pago:0,saldo:v*(1-taxa),obs:obs};
   dbInsert(_rec).then(saved=>{NOVOS.push(saved);rNovos();popSel();renderAll();});
   closeCam();go('novo');
 }
