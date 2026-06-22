@@ -4523,14 +4523,12 @@ async function importXls(){
       else DATA.push(...chunk); // fallback sem ID (offline ou select vazio)
       importados+=chunk.length;
     }
-    NOVOS=[];
-    popSel();renderAll();
-    closeXls();
-    go('lancamentos');
+    btn.textContent=`✓ ${importados} importados — recarregando...`;
+    info.textContent='Aguarde…';
+    setTimeout(()=>window.location.reload(),1200);
   }catch(err){
     btn.disabled=false;btn.textContent='Tentar novamente';
     info.innerHTML=`<span style="color:var(--red)">⚠ Erro após ${importados} de ${recs.length}: ${err.message}</span>`;
-    if(importados>0){NOVOS=[];popSel();renderAll();}
   }
 }
 // drag-and-drop no xlsDz
