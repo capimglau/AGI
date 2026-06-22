@@ -2163,6 +2163,15 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="dedupLancamentos()">Deduplicar</button>
     </div>
 
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:14px;margin-bottom:12px">
+      <span style="font-size:18px">🗑️</span>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:var(--ink)">Limpar e Reimportar</div>
+        <div style="font-size:12px;color:var(--ink3)">Apaga todos os lançamentos e abre o importador de Excel</div>
+      </div>
+      <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="limparEReimportar()">Limpar tudo</button>
+    </div>
+
     <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:14px;margin-bottom:24px">
       <span style="font-size:18px">🌙</span>
       <div style="flex:1">
@@ -2486,6 +2495,26 @@ async function dedupLancamentos(){
   DATA=DATA.filter(r=>!toDelete.includes(r.id));
   renderAll();
   alert(`✓ ${removidos} registro(s) removido(s). Recarregue o app.`);
+}
+async function limparEReimportar(){
+  if(!SB){alert('Não conectado ao Supabase.');return;}
+  if(!confirm('Isso vai apagar TODOS os lançamentos do banco. Você reimportará tudo pelo Excel. Continuar?'))return;
+  if(!confirm('Tem certeza? Essa ação não pode ser desfeita.'))return;
+  const {data:all,error}=await SB.from('lancamentos').select('id');
+  if(error){alert('Erro ao buscar lançamentos: '+error.message);return;}
+  if(!all||!all.length){alert('Nenhum lançamento encontrado.');return;}
+  const ids=all.map(r=>r.id);
+  const CHUNK=100;let removidos=0;
+  for(let i=0;i<ids.length;i+=CHUNK){
+    const chunk=ids.slice(i,i+CHUNK);
+    const {error:de}=await SB.from('lancamentos').delete().in('id',chunk);
+    if(de){alert(`Erro ao deletar lote ${Math.floor(i/CHUNK)+1}: ${de.message}`);return;}
+    removidos+=chunk.length;
+  }
+  DATA=[];NOVOS=[];
+  renderAll();
+  alert(`✓ ${removidos} lançamentos removidos. Agora importe o Excel novamente.`);
+  setTimeout(()=>openXls(),300);
 }
 async function dbDelete(id){
   if(!SB||id==null) return;
