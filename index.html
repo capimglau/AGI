@@ -2277,6 +2277,11 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <button class="btn" onclick="clearAI()">Limpar</button>
       </div>
     </div>
+    <details id="aiRawWrap" style="display:none;margin-top:12px">
+      <summary style="cursor:pointer;font-size:12px;color:var(--ink3);font-weight:600">🔍 Ver texto lido pelo OCR (debug)</summary>
+      <textarea id="aiRaw" readonly style="width:100%;min-height:140px;margin-top:8px;font-size:11px;font-family:monospace;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--ink)"></textarea>
+      <button class="btn" style="margin-top:6px;font-size:12px" onclick="navigator.clipboard.writeText(document.getElementById('aiRaw').value);this.textContent='✓ Copiado!';setTimeout(()=>this.textContent='📋 Copiar texto',1500)">📋 Copiar texto</button>
+    </details>
   </div>
 </div>
 
@@ -4154,7 +4159,7 @@ function rNovos(){
 // ── CÂMERA ──
 function openCam(){document.getElementById('mCam').classList.add('on');}
 function closeCam(){document.getElementById('mCam').classList.remove('on');}
-function clearAI(){['aiForm','aiSt','prevImg'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('fi').value='';}
+function clearAI(){['aiForm','aiSt','prevImg','aiRawWrap'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('fi').value='';}
 function handleImg(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
@@ -4167,6 +4172,8 @@ function handleImg(input){
     document.getElementById('aiForm').style.display='none';
     try{
       const result=await Tesseract.recognize(src,'por',{logger:()=>{}});
+      document.getElementById('aiRaw').value=result.data.text||'(vazio)';
+      document.getElementById('aiRawWrap').style.display='block';
       const p=parseContrato(result.data.text);
       if(p.placa||p.cliente){
         st.className='ai-st ok';st.textContent='✓ Dados extraídos! Confira antes de confirmar.';
