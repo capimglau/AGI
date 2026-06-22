@@ -4628,13 +4628,11 @@ async function importXls(){
       allSaved.push(...toPush);
       importados+=toPush.length;
     }
-    // Navega para o mês mais recente dos registros importados (sem reload)
     const meses=[...new Set(allSaved.map(r=>(r.prev_pgto||r.saida||'').substring(0,7)).filter(Boolean))].sort();
-    if(meses.length) curMes=meses[meses.length-1];
-    closeXls();
-    go('lancamentos');
-    const diagFirst=allSaved[0]?`\nEx: ${allSaved[0].placa} saída=${allSaved[0].saida} pp=${allSaved[0].prev_pgto}`:'';
-    setTimeout(()=>alert(`✓ ${importados} lançamentos importados!\nVisíveis em: ${meses.join(', ')||'(sem datas)'}${diagFirst}`),200);
+    const mesMaisRecente=meses.length?meses[meses.length-1]:'';
+    if(mesMaisRecente) localStorage.setItem('agi_mes_import',mesMaisRecente);
+    alert(`✓ ${importados} lançamentos importados!\nRecarregando para confirmar no banco de dados…`);
+    window.location.reload();
   }catch(err){
     btn.disabled=false;btn.textContent='Tentar novamente';
     info.innerHTML=`<span style="color:var(--red)">⚠ Erro após ${importados} de ${recs.length}: ${err.message}</span>`;
@@ -4751,12 +4749,10 @@ async function boot(){
   initSwipe();
   showSkeleton();
   let rows = await dbLoad();
-  if(ONLINE && rows.length===0){
-    console.log('Tabela vazia — populando automaticamente com', DS.length, 'lançamentos...');
-    const ok = await dbSeed();
-    if(ok) rows = await dbLoad();
-  }
   DATA = rows.map(r=>({...r}));
+  // Restaura mês alvo salvo pela última importação
+  const mesSalvo=localStorage.getItem('agi_mes_import');
+  if(mesSalvo){curMes=mesSalvo;localStorage.removeItem('agi_mes_import');}
   DESPESAS = await despLoad();
   SALDOS = await saldoLoad();
   let veics = await veicLoad();
