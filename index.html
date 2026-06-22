@@ -4285,21 +4285,19 @@ function parseContrato(text){
     dpago=dtDates.find(d=>sDay&&d.slice(-2)===sDay)||dtDates[0];
   }
   if(!dpago)dpago=saida;
-  // Valor: prioriza seção "Forma de Pagamento" (VALOR: R$X ou valor na linha de crédito/débito/boleto)
+  // Valor: maior valor em formato BR válido (X.XXX,XX), ignorando linhas de pré-autorização
+  // (a linha "Forma de Pagamento" real costuma vir mangada pelo OCR; a pré-autorização
+  //  traz um valor de caução que NÃO é o total — por isso é descartada)
+  const isPre=ln=>/pr[eé][\s-]*autoriza/i.test(ln);
   let valor='';
-  let inPgto=false;
-  for(let i=0;i<lines.length;i++){
-    if(/forma\s+de\s+pag|forma\s+pgto/i.test(lines[i]))inPgto=true;
-    if(inPgto){
-      const vm=lines[i].match(/valor\s*:?\s*R?\$?\s*([\d][\d.,]*\d)/i)||lines[i].match(/R\$\s*([\d][\d.,]*\d)/);
-      if(vm){valor=parseMoney(vm[1]);break;}
+  {
+    const cands=[];
+    for(const ln of lines){
+      if(isPre(ln))continue;
+      let m;const re=/\b(\d{1,3}(?:\.\d{3})*,\d{2})\b/g;
+      while((m=re.exec(ln))!==null)cands.push(parseMoney(m[1]));
     }
-  }
-  // fallback: maior valor R$ do documento
-  if(!valor){
-    const all=[];let m;const vr=/R\$\s*([\d][\d.,]*\d)/g;
-    while((m=vr.exec(text))!==null)all.push(parseMoney(m[1]));
-    if(all.length)valor=Math.max(...all);
+    if(cands.length)valor=Math.max(...cands);
   }
   // Forma de pagamento
   let forma='Crédito';
@@ -4310,17 +4308,21 @@ function parseContrato(text){
   else if(/2\s*X|CR[EÉ]DITO\s+2/.test(t))forma='Crédito 2x';
   else if(/3\s*X|CR[EÉ]DITO\s+3/.test(t))forma='Crédito 3x';
   else if(/CR[EÉ]DITO/.test(t))forma='Crédito';
-  // OBS: número do cartão — aparece APÓS a Forma de Pagamento ("...NÚMERO 3974")
+  // OBS: número do cartão — "CRÉDITO/DÉBITO À VISTA NÚMERO 3974", ignorando pré-autorização
   let obs='',cardNum='';
-  let inN=false;
   for(const ln of lines){
-    if(/forma\s+de\s+pag|forma\s+pgto/i.test(ln))inN=true;
-    if(inN){
+    if(isPre(ln))continue;
+    const cm=ln.match(/(?:VISTA|CR[EÉ]DITO|D[EÉ]BITO|CART[AÃ]O)[^\d]{0,25}N[UÚ]MERO\s*:?\s*(\d{3,})/i);
+    if(cm){cardNum=cm[1].slice(-4);break;}
+  }
+  // fallbacks: NÚMERO solto (não pré-auth) / número mascarado / rótulo "final"
+  if(!cardNum){
+    for(const ln of lines){
+      if(isPre(ln))continue;
       const cm=ln.match(/N[UÚ]MERO\s*:?\s*(\d{3,})/i);
       if(cm){cardNum=cm[1].slice(-4);break;}
     }
   }
-  // fallbacks: número mascarado / rótulo "final" no recibo anexo
   if(!cardNum){
     const mk=text.match(/(?:[\*xX•·#.]\s*){3,}(\d{3,4})\b/)
            ||t.match(/(?:FINAL|CART[AÃ]O|CARD)\s*:?\s*[^\d]{0,6}(\d{3,4})\b/);
