@@ -2249,8 +2249,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <!-- ─── MODAL CÂMERA ─── -->
 <div class="overlay" id="mCam">
   <div class="modal">
-    <div class="mhd">📷 Ler contrato com IA <button class="mcl" onclick="closeCam()">✕</button></div>
-    <div style="display:inline-flex;align-items:center;gap:5px;background:var(--blue-soft);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:12px;letter-spacing:.03em">✦ CLAUDE VISION</div>
+    <div class="mhd">📷 Foto do contrato <button class="mcl" onclick="closeCam()">✕</button></div>
     <div class="dz" id="dz">
       <input type="file" id="fi" accept="image/*" capture="environment" onchange="handleImg(this)">
       <div style="font-size:40px;margin-bottom:10px">📄</div>
@@ -4151,32 +4150,16 @@ function rNovos(){
 function openCam(){document.getElementById('mCam').classList.add('on');}
 function closeCam(){document.getElementById('mCam').classList.remove('on');}
 function clearAI(){['aiForm','aiSt','prevImg'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('fi').value='';}
-async function handleImg(input){
+function handleImg(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=async e=>{
-    const b64=e.target.result.split(',')[1];
-    document.getElementById('prevImg').src=e.target.result;document.getElementById('prevImg').style.display='block';
-    const st=document.getElementById('aiSt');
-    st.style.display='block';st.className='ai-st load';st.textContent='⏳ Analisando contrato...';
-    document.getElementById('aiForm').style.display='none';
-    try{
-      const resp=await fetch((window.AUTOGEST_CONFIG&&window.AUTOGEST_CONFIG.aiProxy)||'https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'Analise este contrato de locadora brasileira. Responda APENAS JSON puro sem markdown: {"placa":"","cliente":"","saida":"YYYY-MM-DD","retorno":"YYYY-MM-DD","valor":0,"forma":"Crédito"}'}]}]})});
-      const data=await resp.json();
-      const txt=data.content?.[0]?.text||'{}';
-      let p={};try{p=JSON.parse(txt.replace(/```json?|```/g,'').trim());}catch(e){}
-      if(p.placa||p.cliente){
-        st.className='ai-st ok';st.textContent='✓ Dados extraídos com sucesso!';
-        document.getElementById('ai-p').value=p.placa||'';
-        document.getElementById('ai-c').value=p.cliente||'';
-        document.getElementById('ai-s').value=p.saida||'';
-        document.getElementById('ai-r').value=p.retorno||'';
-        document.getElementById('ai-v').value=p.valor||'';
-        if(p.forma){const s=document.getElementById('ai-f');[...s.options].forEach(o=>{if(o.value===p.forma)s.value=o.value;});}
-      } else {st.className='ai-st err';st.textContent='⚠ Não identificado. Preencha manualmente.';}
-      document.getElementById('aiForm').style.display='grid';
-    }catch(e){document.getElementById('aiSt').className='ai-st err';document.getElementById('aiSt').textContent='⚠ Erro na IA.';document.getElementById('aiForm').style.display='grid';}
-  };reader.readAsDataURL(file);
+  reader.onload=e=>{
+    document.getElementById('prevImg').src=e.target.result;
+    document.getElementById('prevImg').style.display='block';
+    document.getElementById('aiSt').style.display='none';
+    document.getElementById('aiForm').style.display='grid';
+  };
+  reader.readAsDataURL(file);
 }
 function confirmAI(){
   const p=document.getElementById('ai-p').value.trim().toUpperCase();
