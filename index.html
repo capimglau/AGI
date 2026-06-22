@@ -4137,6 +4137,7 @@ function addN(){
   const vp=parseFloat(document.getElementById('nf-vp').value)||0;
   const obs=document.getElementById('nf-obs').value||null;
   if(!p||!d||!c||!v){document.getElementById('nMsg').innerHTML='<span style="color:var(--red)">Preencha placa, proprietário, cliente e valor.</span>';return;}
+  if(s){const dup=allD().find(r=>r.placa===p&&r.saida===s);if(dup&&!confirm(`Já existe um lançamento para ${p} com saída ${s}.\nLançar mesmo assim?`))return;}
   const _rec={placa:p,dono:d,saida:s,retorno:rr,cliente:c,tipo:t,valor:v,forma:f,prev_pgto:pp,valor_pago:0,saldo:vp,obs:obs};
   dbInsert(_rec).then(saved=>{NOVOS.push(saved);rNovos();popSel();renderAll();});
   document.getElementById('nMsg').innerHTML='<span style="color:var(--green)">✓ Adicionado!</span>';
@@ -4343,6 +4344,7 @@ function confirmAI(){
   const v=parseFloat(document.getElementById('ai-v').value)||0;
   const obs=document.getElementById('ai-obs').value||null;
   if(!p||!c||!v){alert('Placa, cliente e valor obrigatórios.');return;}
+  if(s){const dup=allD().find(r=>r.placa===p&&r.saida===s);if(dup&&!confirm(`Já existe um lançamento para ${p} com saída ${s}.\nLançar mesmo assim?`))return;}
   const fl=f.toLowerCase();
   let pp=null;
   // Cartão: a partir da Data de pagamento. Boleto: a partir do Retorno. (igual ao formulário completo)
