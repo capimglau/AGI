@@ -2483,31 +2483,6 @@ async function dedupLancamentos(){
     }
   }
 
-  // PASSO 3: mesma placa com saida com ±1 dia (bug de fuso horário em importações anteriores)
-  // Remove o registro sem prev_pgto quando há um par com 1 dia de diferença
-  const vivos=(all||[]).filter(r=>r.placa&&r.saida&&!toDelete.includes(r.id));
-  const porPlaca=new Map();
-  for(const r of vivos){
-    const pn=normP(r.placa);
-    if(!porPlaca.has(pn))porPlaca.set(pn,[]);
-    porPlaca.get(pn).push(r);
-  }
-  for(const recs of porPlaca.values()){
-    if(recs.length<2)continue;
-    for(let i=0;i<recs.length;i++){
-      for(let j=i+1;j<recs.length;j++){
-        const diff=Math.abs(new Date(recs[i].saida)-new Date(recs[j].saida));
-        if(diff===86400000){ // exatamente 1 dia de diferença
-          // Mantém o com prev_pgto; se ambos têm ou ambos não têm, não remove
-          const semPP=[recs[i],recs[j]].filter(r=>!r.prev_pgto);
-          if(semPP.length===1&&!toDelete.includes(semPP[0].id)){
-            toDelete.push(semPP[0].id);
-          }
-        }
-      }
-    }
-  }
-
   if(!toDelete.length){alert('Nenhum registro para remover encontrado.');return;}
   if(!confirm(`Encontrados ${toDelete.length} registro(s) para remover. Continuar?`))return;
   const CHUNK=100;let removidos=0;
