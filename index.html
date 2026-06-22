@@ -4245,6 +4245,7 @@ function handleImg(input){
   reader.readAsDataURL(file);
 }
 function parseMoney(s){
+  if(typeof s==='number')return isNaN(s)?0:s;
   // aceita "2.617,80", "2,617,80", "2617,80", "2617.80" — separador decimal = último ,/. com 2 dígitos
   s=String(s).replace(/[^\d.,]/g,'');
   const m=s.match(/[.,](\d{2})$/);
@@ -4402,9 +4403,9 @@ function handleXls(input){
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const wb=XLSX.read(e.target.result,{type:'binary',cellDates:true});
       const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'dd/mm/yyyy'});
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
       if(!rows||rows.length<2){showXlsSt('⚠ Arquivo vazio ou sem dados.','err');return;}
       const headers=rows[0].map(h=>String(h||'').trim());
       const dataRows=rows.slice(1).filter(r=>r&&r.some(c=>String(c||'').trim()!==''));
@@ -4427,12 +4428,20 @@ function handleXls(input){
         showXlsSt(`⚠ Nenhuma coluna reconhecida. Cabeçalhos encontrados:<br><code>${headers.join(' | ')}</code><br>Renomeie para: Placa, Cliente, Saída, Retorno, Valor, Forma, Proprietário`,'err');
         return;
       }
-      const get=(row,idx)=>idx>=0?String(row[idx]||'').trim():'';
+      const get=(row,idx)=>idx>=0&&row[idx]!=null?row[idx]:'';
+      const str=(row,idx)=>String(get(row,idx)||'').trim();
       const normDate=s=>{
-        if(!s)return null;
-        let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if(m)return`${m[1]}-${m[2]}-${m[3]}`;
-        m=s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+        if(s==null||s==='')return null;
+        if(s instanceof Date){
+          if(isNaN(s))return null;
+          const y=s.getFullYear(),mo=s.getMonth()+1,d=s.getDate();
+          return`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        }
+        const t=String(s).trim();
+        if(!t)return null;
+        let m=t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+        if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+        m=t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
         if(!m)return null;
         const y=m[3].length===2?'20'+m[3]:m[3];
         return`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
@@ -4440,7 +4449,7 @@ function handleXls(input){
       // Construir registros
       const seen=new Set();
       XLS_PARSED=dataRows.map(row=>{
-        let placa=(get(row,ci.placa)||'').toUpperCase().replace(/\s/g,'');
+        let placa=str(row,ci.placa).toUpperCase().replace(/\s/g,'');
         if(placa&&!/[-]/.test(placa)&&placa.length>=6)placa=placa.slice(0,3)+'-'+placa.slice(3);
         const saida=normDate(get(row,ci.saida));
         const valor=parseMoney(get(row,ci.valor));
@@ -4453,7 +4462,7 @@ function handleXls(input){
         if(key)seen.add(key);
         const dup=!!(dupDb||dupFile);
         const prev_pgto=normDate(get(row,ci.pp))||null;
-        return{_sel:!dup,_dup:dup,_dupDb:!!dupDb,_dupFile:dupFile,placa,dono:get(row,ci.dono)||'Indefinido',cliente:get(row,ci.cliente),tipo:get(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:get(row,ci.forma)||'',valor,valor_pago,prev_pgto,obs:get(row,ci.obs)||null};
+        return{_sel:!dup,_dup:dup,_dupDb:!!dupDb,_dupFile:dupFile,placa,dono:str(row,ci.dono)||'Indefinido',cliente:str(row,ci.cliente),tipo:str(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:str(row,ci.forma)||'',valor,valor_pago,prev_pgto,obs:str(row,ci.obs)||null};
       }).filter(r=>r.placa||r.cliente||r.valor);
       if(!XLS_PARSED.length){
         showXlsSt(`⚠ Nenhum registro válido. Cabeçalhos lidos: <code>${headers.join(' | ')}</code>`,'err');
@@ -4538,7 +4547,8 @@ async function importXls(){
     if(meses.length) curMes=meses[meses.length-1];
     closeXls();
     go('lancamentos');
-    setTimeout(()=>alert(`✓ ${importados} lançamentos importados!\nVisíveis em: ${meses.join(', ')}`),200);
+    const diagFirst=allSaved[0]?`\nEx: ${allSaved[0].placa} saída=${allSaved[0].saida} pp=${allSaved[0].prev_pgto}`:'';
+    setTimeout(()=>alert(`✓ ${importados} lançamentos importados!\nVisíveis em: ${meses.join(', ')||'(sem datas)'}${diagFirst}`),200);
   }catch(err){
     btn.disabled=false;btn.textContent='Tentar novamente';
     info.innerHTML=`<span style="color:var(--red)">⚠ Erro após ${importados} de ${recs.length}: ${err.message}</span>`;
