@@ -4527,6 +4527,7 @@ function handleXls(input){
         forma:   xlsColIdx(headers,['forma','pagamento','payment']),
         valor:   xlsColIdx(headers,['valor','total','vlr','faturamento']),
         vp:      xlsColIdx(headers,['pago','valor_pago','valor pago','recebido','baixado','baixa']),
+        sl:      xlsColIdx(headers,['saldo','saldo pendente','pendente','a receber','restante']),
         pp:      xlsColIdx(headers,['prev_pgto','prev pgto','prev. pgto','pgto','vencimento','previsao','previsão','data pgto','data pag']),
         obs:     xlsColIdx(headers,['obs','observacao','observação','nota']),
       };
@@ -4559,6 +4560,7 @@ function handleXls(input){
         const saida=normDate(get(row,ci.saida));
         const valor=parseMoney(get(row,ci.valor));
         const valor_pago=parseMoney(get(row,ci.vp));
+        const saldo_xls=ci.sl>=0?parseMoney(get(row,ci.sl)):null;
         // Duplicata contra o banco — compara placa sem hífen para evitar falsos negativos
         const dupDb=placa&&saida?allD().find(r=>normPlaca(r.placa)===normPlaca(placa)&&r.saida===saida):null;
         // Duplicata dentro do próprio arquivo
@@ -4567,7 +4569,7 @@ function handleXls(input){
         if(key)seen.add(key);
         const dup=!!(dupDb||dupFile);
         const prev_pgto=normDate(get(row,ci.pp))||null;
-        return{_sel:!dup,_dup:dup,_dupDb:!!dupDb,_dupFile:dupFile,placa,dono:str(row,ci.dono)||'Indefinido',cliente:str(row,ci.cliente),tipo:str(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:str(row,ci.forma)||'',valor,valor_pago,prev_pgto,obs:str(row,ci.obs)||null};
+        return{_sel:!dup,_dup:dup,_dupDb:!!dupDb,_dupFile:dupFile,placa,dono:str(row,ci.dono)||'Indefinido',cliente:str(row,ci.cliente),tipo:str(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:str(row,ci.forma)||'',valor,valor_pago,saldo_xls,prev_pgto,obs:str(row,ci.obs)||null};
       }).filter(r=>r.placa||r.cliente||r.valor);
       if(!XLS_PARSED.length){
         showXlsSt(`⚠ Nenhum registro válido. Cabeçalhos lidos: <code>${headers.join(' | ')}</code>`,'err');
@@ -4617,7 +4619,9 @@ async function importXls(){
   const info=document.getElementById('xlsInfo');info.style.display='block';
   const recs=sel.map(r=>{
     const taxa=getTaxaForma(r.forma);
-    const baixado=r.valor_pago>0;
+    // baixado: pagou algo OU saldo do Excel é zero (quitado sem preencher valor_pago)
+    const saldoZero=r.saldo_xls!==null&&r.saldo_xls===0&&r.valor>0;
+    const baixado=r.valor_pago>0||saldoZero;
     const fl=(r.forma||'').toLowerCase();
     let pp=r.prev_pgto||null;
     if(!pp){
@@ -4627,8 +4631,10 @@ async function importXls(){
       else if(r.saida)pp=r.saida;
     }
     if(pp)pp=proxUtil(pp);
-    const vp=baixado?r.valor_pago:0;
-    const sl=baixado?Math.max(0,r.valor-r.valor_pago):r.valor*(1-taxa);
+    // vp: usa valor_pago se preenchido; se saldo é zero mas valor_pago vazio, assume quitado pelo valor total
+    const vp=r.valor_pago>0?r.valor_pago:saldoZero?r.valor:0;
+    // sl: usa saldo do Excel se disponível; senão calcula
+    const sl=r.saldo_xls!==null?r.saldo_xls:baixado?Math.max(0,r.valor-vp):r.valor*(1-taxa);
     return{placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:pp,valor_pago:vp,saldo:sl,obs:r.obs};
   });
   const CHUNK=25;
