@@ -4168,10 +4168,18 @@ function handleImg(input){
     document.getElementById('prevImg').src=src;
     document.getElementById('prevImg').style.display='block';
     const st=document.getElementById('aiSt');
-    st.style.display='block';st.className='ai-st load';st.textContent='⏳ Lendo texto do contrato...';
+    st.style.display='block';st.className='ai-st load';st.textContent='⏳ Carregando OCR...';
     document.getElementById('aiForm').style.display='none';
+    if(typeof Tesseract==='undefined'){
+      st.className='ai-st err';st.textContent='⚠ OCR não carregou (verifique a internet). Preencha manualmente.';
+      document.getElementById('aiForm').style.display='grid';return;
+    }
     try{
-      const result=await Tesseract.recognize(src,'por',{logger:()=>{}});
+      const result=await Tesseract.recognize(src,'por',{logger:m=>{
+        if(m.status==='recognizing text')st.textContent='⏳ Lendo contrato... '+Math.round((m.progress||0)*100)+'%';
+        else if(m.status==='loading language traineddata'||m.status==='downloading')st.textContent='⏳ Baixando idioma... '+Math.round((m.progress||0)*100)+'%';
+        else if(m.status)st.textContent='⏳ '+m.status+'...';
+      }});
       document.getElementById('aiRaw').value=result.data.text||'(vazio)';
       document.getElementById('aiRawWrap').style.display='block';
       const p=parseContrato(result.data.text);
@@ -4190,11 +4198,20 @@ function handleImg(input){
         st.className='ai-st err';st.textContent='⚠ Não identificado. Preencha manualmente.';
       }
     }catch(e){
-      st.className='ai-st err';st.textContent='⚠ Erro ao ler imagem. Preencha manualmente.';
+      st.className='ai-st err';st.textContent='⚠ Erro no OCR: '+((e&&e.message)||e||'desconhecido')+'. Preencha manualmente.';
     }
     document.getElementById('aiForm').style.display='grid';
   };
   reader.readAsDataURL(file);
+}
+function parseMoney(s){
+  // aceita "2.617,80", "2,617,80", "2617,80", "2617.80" — separador decimal = último ,/. com 2 dígitos
+  s=String(s).replace(/[^\d.,]/g,'');
+  const m=s.match(/[.,](\d{2})$/);
+  let dec='00',intp=s;
+  if(m){dec=m[1];intp=s.slice(0,-3);}
+  intp=intp.replace(/[.,]/g,'')||'0';
+  return parseFloat(intp+'.'+dec);
 }
 function parseContrato(text){
   const t=text.toUpperCase();
@@ -4220,6 +4237,7 @@ function parseContrato(text){
       if(letters===letters.toUpperCase())out.push(letters); // só nome em maiúsculas
       else break;                                           // para no 1º fragmento minúsculo
     }
+    while(out.length>1&&out[out.length-1].length<=1)out.pop(); // remove "A" solto no fim
     return out.join(' ').trim();
   };
   for(let i=0;i<lines.length;i++){
@@ -4231,14 +4249,20 @@ function parseContrato(text){
   }
   // Datas: busca contextualizada (Entrega→saída, Devolução→retorno)
   let saida='',retorno='';
+  const entregas=[];
   const dateRe=/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/;
   for(let i=0;i<lines.length;i++){
     const dm=lines[i].match(dateRe);
     if(!dm)continue;
     const ds=`${dm[3]}-${dm[2]}-${dm[1]}`;
     const ctx=((lines[i-1]||'')+' '+lines[i]).toUpperCase();
-    if(!saida&&/SA[IÍ]DA|ENTREGA|RETIRADA/.test(ctx))saida=ds;
+    if(/SA[IÍ]DA|ENTREGA|RETIRADA/.test(ctx))entregas.push(ds);
     else if(!retorno&&/RETORNO|DEVOLU|PREVISTA|DEVOLVE/.test(ctx))retorno=ds;
+  }
+  // saída: havendo várias datas de "entrega", prefere a que casa o dia do mês com o retorno
+  if(entregas.length){
+    const rDay=retorno?retorno.slice(-2):null;
+    saida=entregas.find(d=>rDay&&d.slice(-2)===rDay)||entregas[0];
   }
   // fallback: primeiras 2 datas únicas
   if(!saida||!retorno){
@@ -4248,24 +4272,33 @@ function parseContrato(text){
     if(!saida)saida=u[0]||'';
     if(!retorno)retorno=u[1]||'';
   }
-  // Data de pagamento = data que vem ANTES do horário (ticket do cartão: DD/MM/AAAA HH:MM)
+  // Data de pagamento = data com horário (entrega/ticket); ignora devolução; casa o dia com a saída
   let dpago='';
-  const dtm=text.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})[\s,]+\d{1,2}\s*[:hH.]\s*\d{2}/);
-  if(dtm)dpago=`${dtm[3]}-${dtm[2]}-${dtm[1]}`;
+  const dtRe=/(\d{2})[\/\-](\d{2})[\/\-](\d{4})[\s,]+\d{1,2}\s*[:hH.]\s*\d{2}/;
+  const dtDates=[];
+  for(const ln of lines){
+    const dm=ln.match(dtRe);
+    if(dm&&!/DEVOLU|PREVISTA|RETORNO|DEV:/i.test(ln))dtDates.push(`${dm[3]}-${dm[2]}-${dm[1]}`);
+  }
+  if(dtDates.length){
+    const sDay=saida?saida.slice(-2):null;
+    dpago=dtDates.find(d=>sDay&&d.slice(-2)===sDay)||dtDates[0];
+  }
+  if(!dpago)dpago=saida;
   // Valor: prioriza seção "Forma de Pagamento" (VALOR: R$X ou valor na linha de crédito/débito/boleto)
   let valor='';
   let inPgto=false;
   for(let i=0;i<lines.length;i++){
     if(/forma\s+de\s+pag|forma\s+pgto/i.test(lines[i]))inPgto=true;
     if(inPgto){
-      const vm=lines[i].match(/valor\s*:?\s*R?\$?\s*([\d.]+,\d{2})/i)||lines[i].match(/R\$\s*([\d.]+,\d{2})/);
-      if(vm){valor=parseFloat(vm[1].replace(/\./g,'').replace(',','.'))||'';break;}
+      const vm=lines[i].match(/valor\s*:?\s*R?\$?\s*([\d][\d.,]*\d)/i)||lines[i].match(/R\$\s*([\d][\d.,]*\d)/);
+      if(vm){valor=parseMoney(vm[1]);break;}
     }
   }
-  // fallback: maior valor R$ (evita pegar item parcial)
+  // fallback: maior valor R$ do documento
   if(!valor){
-    const all=[];let m;const vr=/R\$\s*([\d.]+,\d{2})/g;
-    while((m=vr.exec(text))!==null)all.push(parseFloat(m[1].replace(/\./g,'').replace(',','.')));
+    const all=[];let m;const vr=/R\$\s*([\d][\d.,]*\d)/g;
+    while((m=vr.exec(text))!==null)all.push(parseMoney(m[1]));
     if(all.length)valor=Math.max(...all);
   }
   // Forma de pagamento
