@@ -4189,14 +4189,15 @@ function parseContrato(text){
   // Placa: ABC-1234 ou Mercosul ABC1D23
   const pm=t.match(/\b([A-Z]{3})[\s\-]?([0-9][A-Z0-9][0-9]{2})\b/);
   const placa=pm?pm[1]+'-'+pm[2]:'';
-  // Cliente: remove prefixo numérico tipo "7846 – "
+  // Cliente: remove rótulo, prefixo numérico tipo "7846 – " e barra final
   let cliente='';
+  const stripCliente=s=>s.replace(/cliente|locat[aá]rio|nome do|:/gi,'').trim()
+                         .replace(/^\d[\d\s]*[\-–]\s*/,'').replace(/\s*\/\s*$/,'').trim();
   for(let i=0;i<lines.length;i++){
     if(/cliente|locat[aá]rio|nome do/i.test(lines[i])){
-      const strip=s=>s.replace(/cliente|locat[aá]rio|nome do|:/gi,'').replace(/^\d[\d\s]*[\-–]\s*/,'').trim();
-      const val=strip(lines[i]);
+      const val=stripCliente(lines[i]);
       if(val.length>2){cliente=val;break;}
-      if(lines[i+1]){const nxt=strip(lines[i+1]);if(nxt.length>2){cliente=nxt;break;}}
+      if(lines[i+1]){const nxt=stripCliente(lines[i+1]);if(nxt.length>2){cliente=nxt;break;}}
     }
   }
   // Datas: busca contextualizada (Entrega→saída, Devolução→retorno)
@@ -4218,13 +4219,14 @@ function parseContrato(text){
     if(!saida)saida=u[0]||'';
     if(!retorno)retorno=u[1]||'';
   }
-  // Valor: prioriza linha "Valor Total / Sub Total / Total Geral"
+  // Valor: prioriza seção "Forma de Pagamento" (VALOR: R$X ou valor na linha de crédito/débito/boleto)
   let valor='';
+  let inPgto=false;
   for(let i=0;i<lines.length;i++){
-    if(/valor total|total geral|sub.?total|valor com desconto/i.test(lines[i])){
-      const vm=lines[i].match(/(\d[\d.]*,\d{2})/);
+    if(/forma\s+de\s+pag|forma\s+pgto/i.test(lines[i]))inPgto=true;
+    if(inPgto){
+      const vm=lines[i].match(/valor\s*:?\s*R?\$?\s*([\d.]+,\d{2})/i)||lines[i].match(/R\$\s*([\d.]+,\d{2})/);
       if(vm){valor=parseFloat(vm[1].replace(/\./g,'').replace(',','.'))||'';break;}
-      if(lines[i+1]){const vm2=lines[i+1].match(/(\d[\d.]*,\d{2})/);if(vm2){valor=parseFloat(vm2[1].replace(/\./g,'').replace(',','.'))||'';break;}}
     }
   }
   // fallback: maior valor R$ (evita pegar item parcial)
