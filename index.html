@@ -2427,7 +2427,7 @@ async function dbInsertMany(recs){
   if(!SB) return recs;
   const {data,error}=await SB.from('lancamentos').insert(recs.map(_clean)).select();
   if(error) throw new Error(error.message||'Falha na conexão com Supabase');
-  return data;
+  return data||[];
 }
 async function dbUpdate(rec){
   if(!SB||rec.id==null) return;
@@ -4506,20 +4506,20 @@ async function importXls(){
       const chunk=recs.slice(i,i+CHUNK);
       btn.textContent=`Importando ${i+chunk.length}/${recs.length}...`;
       info.textContent=`Enviando lote ${Math.floor(i/CHUNK)+1} de ${Math.ceil(recs.length/CHUNK)}…`;
-      await dbInsertMany(chunk);
+      const saved=await dbInsertMany(chunk);
+      // Adiciona direto em DATA com IDs do Supabase (evita dbLoad que pode falhar no mobile)
+      if(Array.isArray(saved)&&saved.length) DATA.push(...saved);
+      else DATA.push(...chunk); // fallback sem ID (offline ou select vazio)
       importados+=chunk.length;
     }
-    // Recarrega tudo do Supabase para garantir que os registros apareçam com IDs corretos
-    info.textContent='Atualizando lista…';
-    DATA=await dbLoad();
     NOVOS=[];
     popSel();renderAll();
     closeXls();
     go('lancamentos');
   }catch(err){
     btn.disabled=false;btn.textContent='Tentar novamente';
-    info.innerHTML=`<span style="color:var(--red)">⚠ Erro após ${importados} importados: ${err.message}<br>Verifique a conexão e tente novamente.</span>`;
-    if(importados>0){DATA=await dbLoad();NOVOS=[];popSel();renderAll();}
+    info.innerHTML=`<span style="color:var(--red)">⚠ Erro após ${importados} de ${recs.length}: ${err.message}</span>`;
+    if(importados>0){NOVOS=[];popSel();renderAll();}
   }
 }
 // drag-and-drop no xlsDz
