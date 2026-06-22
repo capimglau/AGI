@@ -2721,8 +2721,10 @@ const fFormaLabel = f => {
   if(fl==='crédito 3x'||fl==='credito 3x'||fl==='crédito 90 dias'||fl==='credito 90 dias'||fl==='crédito 3×'||fl==='crédito parcelado 3x') return 'Crédito 3x';
   return f;
 };
-// Formata 'YYYY-MM-DD' -> 'DD/MM'
-const fDM = d => (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d.slice(8,10)+'/'+d.slice(5,7) : '—';
+// Formata 'YYYY-MM-DD' -> 'DD/MM/AA'
+const fD  = d => (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(2,4) : '—';
+// Formata 'YYYY-MM-DD' -> 'DD/MM' (compacto, sem ano)
+const fDM = d => (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(2,4) : '—';
 function addD(d,n){const dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);}
 function proxUtil(d){const dt=new Date(d+'T12:00:00');const wd=dt.getDay();if(wd===6)dt.setDate(dt.getDate()+2);else if(wd===0)dt.setDate(dt.getDate()+1);return dt.toISOString().slice(0,10);}
 function addDUtil(d,n){return proxUtil(addD(d,n));}
@@ -3101,10 +3103,10 @@ function renderLanc(){
       <td><span class="ddot" style="background:${col}"></span>${r.dono}</td>
       <td>${r.cliente}</td>
       <td>${tipTag(r.tipo)}</td>
-      <td style="font-size:12px;color:var(--ink3)">${r.saida||'—'}</td>
+      <td style="font-size:12px;color:var(--ink3)">${fD(r.saida)}</td>
       <td><span class="tag tag-forma">${fFormaLabel(r.forma)}</span></td>
       <td class="nr b">${fR(r.valor)}</td>
-      <td style="font-size:12px;color:var(--ink3)">${r.prev_pgto||'—'}</td>
+      <td style="font-size:12px;color:var(--ink3)">${fD(r.prev_pgto)}</td>
       <td>${stTag(r)}</td>
       <td class="nr g">${fR(r.valor_pago)}</td>
       <td class="nr ${fN(r.saldo)>0?'r':''}">${fR(r.saldo)}</td>
@@ -3684,7 +3686,7 @@ function confirmarBaixa(){
   // competência (prev_pgto). A data efetiva do pagamento fica na observação.
   r.valor_pago=fN(r.valor_pago)+val;
   r.saldo=Math.max(0,fN(r.saldo)-val);
-  const _ref=[obs,data?('pago '+data.split('-').reverse().join('/')):''].filter(Boolean).join(' · ');
+  const _ref=[obs,data?('pago '+fD(data)):''].filter(Boolean).join(' · ');
   if(_ref)r.obs=_ref;
   dbUpdate(r);
   closeEdit();renderAll();
@@ -4039,7 +4041,7 @@ function renderModalBoletos(){
       html += '<div class="mb-row" onclick="toggleBoletoFeito(' + gi + ')">';
       html += '<div class="mb-check' + (feito ? ' done' : '') + '">' + (feito ? '✓' : '') + '</div>';
       html += '<div class="mb-info">';
-      html += '<div class="mb-tipo"><span class="mb-placa">' + (r.placa||'') + '</span> ' + (r.tipo||'') + (r.prev_pgto ? ' · ' + r.prev_pgto.split('-').reverse().join('/') : '') + statusTxt + '</div>';
+      html += '<div class="mb-tipo"><span class="mb-placa">' + (r.placa||'') + '</span> ' + (r.tipo||'') + (r.prev_pgto ? ' · ' + fD(r.prev_pgto) : '') + statusTxt + '</div>';
       html += '</div>';
       html += '<div class="mb-val ' + valCls + '">' + fR(pago ? r.valor_pago : r.saldo) + '</div>';
       html += '</div>';
@@ -4074,7 +4076,7 @@ function confirmarLote(){
   const data=document.getElementById('bl-data').value;
   const obs=document.getElementById('bl-obs').value;
   if(!data){alert('Informe a data.');return;}
-  loteSel.forEach(i=>{const r=allD()[i];if(!r)return;r.valor_pago=fN(r.valor_pago)+fN(r.saldo);r.saldo=0;const _ref=[obs,data?('pago '+data.split('-').reverse().join('/')):''].filter(Boolean).join(' · ');if(_ref)r.obs=_ref;dbUpdate(r);});
+  loteSel.forEach(i=>{const r=allD()[i];if(!r)return;r.valor_pago=fN(r.valor_pago)+fN(r.saldo);r.saldo=0;const _ref=[obs,data?('pago '+fD(data)):''].filter(Boolean).join(' · ');if(_ref)r.obs=_ref;dbUpdate(r);});
   document.getElementById('mLote').classList.remove('on');
   loteSel=[];renderAll();
 }
@@ -4116,7 +4118,7 @@ function renderPremissas(){
   // Parcela preview
   const today = td();
   const [y,m,d] = today.split('-').map(Number);
-  const fmt = (dateStr) => { const [yy,mm,dd]=dateStr.split('-'); return `${dd}/${mm}/${yy.slice(2)}`; };
+  const fmt = fD;
   const p1 = addD(today, 30);
   const p2 = addD(today, 60);
   const p3 = addD(today, 90);
