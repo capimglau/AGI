@@ -4172,6 +4172,7 @@ function handleImg(input){
         document.getElementById('ai-r').value=p.retorno||'';
         document.getElementById('ai-v').value=p.valor||'';
         if(p.forma){const s=document.getElementById('ai-f');[...s.options].forEach(o=>{if(o.value===p.forma)s.value=o.value;});}
+        if(p.placa){const norm=p.placa.replace(/[\s\-]/g,'').toUpperCase();const veic=VEICULOS.find(v=>(v.placa||'').replace(/[\s\-]/g,'').toUpperCase()===norm);if(veic&&veic.dono){const sd=document.getElementById('ai-d');[...sd.options].forEach(o=>{if(o.value===veic.dono)sd.value=o.value;});}}
       } else {
         st.className='ai-st err';st.textContent='⚠ Não identificado. Preencha manualmente.';
       }
@@ -4188,29 +4189,59 @@ function parseContrato(text){
   // Placa: ABC-1234 ou Mercosul ABC1D23
   const pm=t.match(/\b([A-Z]{3})[\s\-]?([0-9][A-Z0-9][0-9]{2})\b/);
   const placa=pm?pm[1]+'-'+pm[2]:'';
-  // Cliente: linha após rótulo
+  // Cliente: remove prefixo numérico tipo "7846 – "
   let cliente='';
   for(let i=0;i<lines.length;i++){
     if(/cliente|locat[aá]rio|nome do/i.test(lines[i])){
-      const val=lines[i].replace(/cliente|locat[aá]rio|nome do|:/gi,'').trim();
+      const strip=s=>s.replace(/cliente|locat[aá]rio|nome do|:/gi,'').replace(/^\d[\d\s]*[\-–]\s*/,'').trim();
+      const val=strip(lines[i]);
       if(val.length>2){cliente=val;break;}
-      if(lines[i+1]&&lines[i+1].length>2){cliente=lines[i+1];break;}
+      if(lines[i+1]){const nxt=strip(lines[i+1]);if(nxt.length>2){cliente=nxt;break;}}
     }
   }
-  // Datas DD/MM/YYYY
-  const dates=[];const dr=/\b(\d{2})[\/\-](\d{2})[\/\-](\d{4})\b/g;let m;
-  while((m=dr.exec(text))!==null)dates.push(`${m[3]}-${m[2]}-${m[1]}`);
-  // Valor R$
-  let valor='';const vm=text.match(/R\$\s*(\d[\d.,]*)/);
-  if(vm)valor=parseFloat(vm[1].replace(/\./g,'').replace(',','.'))||'';
+  // Datas: busca contextualizada (Entrega→saída, Devolução→retorno)
+  let saida='',retorno='';
+  const dateRe=/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/;
+  for(let i=0;i<lines.length;i++){
+    const dm=lines[i].match(dateRe);
+    if(!dm)continue;
+    const ds=`${dm[3]}-${dm[2]}-${dm[1]}`;
+    const ctx=((lines[i-1]||'')+' '+lines[i]).toUpperCase();
+    if(!saida&&/SA[IÍ]DA|ENTREGA|RETIRADA/.test(ctx))saida=ds;
+    else if(!retorno&&/RETORNO|DEVOLU|PREVISTA|DEVOLVE/.test(ctx))retorno=ds;
+  }
+  // fallback: primeiras 2 datas únicas
+  if(!saida||!retorno){
+    const all=[];let m;const dr=/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/g;
+    while((m=dr.exec(text))!==null)all.push(`${m[3]}-${m[2]}-${m[1]}`);
+    const u=[...new Set(all)];
+    if(!saida)saida=u[0]||'';
+    if(!retorno)retorno=u[1]||'';
+  }
+  // Valor: prioriza linha "Valor Total / Sub Total / Total Geral"
+  let valor='';
+  for(let i=0;i<lines.length;i++){
+    if(/valor total|total geral|sub.?total|valor com desconto/i.test(lines[i])){
+      const vm=lines[i].match(/(\d[\d.]*,\d{2})/);
+      if(vm){valor=parseFloat(vm[1].replace(/\./g,'').replace(',','.'))||'';break;}
+      if(lines[i+1]){const vm2=lines[i+1].match(/(\d[\d.]*,\d{2})/);if(vm2){valor=parseFloat(vm2[1].replace(/\./g,'').replace(',','.'))||'';break;}}
+    }
+  }
+  // fallback: maior valor R$ (evita pegar item parcial)
+  if(!valor){
+    const all=[];let m;const vr=/R\$\s*([\d.]+,\d{2})/g;
+    while((m=vr.exec(text))!==null)all.push(parseFloat(m[1].replace(/\./g,'').replace(',','.')));
+    if(all.length)valor=Math.max(...all);
+  }
   // Forma de pagamento
   let forma='Crédito';
   if(/D[EÉ]BITO/.test(t))forma='Débito';
   else if(/BOLETO/.test(t))forma='Boleto';
   else if(/DINHEIRO|ESP[EÉ]CIE/.test(t))forma='Dinheiro';
   else if(/DEP[OÓ]SITO/.test(t))forma='Depósito';
-  else if(/3X|CR[EÉ]DITO\s+3/.test(t))forma='Crédito 3x';
-  return {placa,cliente,saida:dates[0]||'',retorno:dates[1]||'',valor,forma};
+  else if(/3\s*X|CR[EÉ]DITO\s+3/.test(t))forma='Crédito 3x';
+  else if(/CR[EÉ]DITO/.test(t))forma='Crédito';
+  return {placa,cliente,saida,retorno,valor,forma};
 }
 function confirmAI(){
   const p=document.getElementById('ai-p').value.trim().toUpperCase();
