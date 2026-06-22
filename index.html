@@ -2445,22 +2445,29 @@ async function dbUpdate(rec){
 }
 async function dedupLancamentos(){
   if(!SB){alert('Não conectado ao Supabase.');return;}
-  if(!confirm('Isso vai buscar e remover lançamentos duplicados (mesma placa + data de saída), mantendo o mais antigo. Continuar?'))return;
-  const {data:all,error}=await SB.from('lancamentos').select('id,placa,saida').order('id',{ascending:true});
+  if(!confirm('Isso vai remover lançamentos duplicados (mesma placa + saída), mantendo o que tem previsão de pagamento. Continuar?'))return;
+  const {data:all,error}=await SB.from('lancamentos').select('id,placa,saida,prev_pgto').order('id',{ascending:true});
   if(error){alert('Erro ao buscar lançamentos: '+error.message);return;}
   const normP=p=>String(p||'').toUpperCase().replace(/[\s\-]/g,'');
-  const seen=new Map();
-  const toDelete=[];
+  // Agrupa por placa normalizada + saida
+  const groups=new Map();
   for(const r of (all||[])){
-    if(!r.placa||!r.saida){continue;}
+    if(!r.placa||!r.saida)continue;
     const key=`${normP(r.placa)}|${r.saida}`;
-    if(seen.has(key)){toDelete.push(r.id);}
-    else{seen.set(key,r.id);}
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(r);
+  }
+  const toDelete=[];
+  for(const recs of groups.values()){
+    if(recs.length<=1)continue;
+    // Prefere o registro com prev_pgto; se empate, mantém menor id (mais antigo)
+    const comPP=recs.filter(r=>r.prev_pgto);
+    const keeper=(comPP.length?comPP:recs)[0];
+    for(const r of recs){if(r.id!==keeper.id)toDelete.push(r.id);}
   }
   if(!toDelete.length){alert('Nenhuma duplicata encontrada.');return;}
   if(!confirm(`Encontradas ${toDelete.length} duplicata(s). Remover agora?`))return;
-  const CHUNK=100;
-  let removidos=0;
+  const CHUNK=100;let removidos=0;
   for(let i=0;i<toDelete.length;i+=CHUNK){
     const chunk=toDelete.slice(i,i+CHUNK);
     const {error:de}=await SB.from('lancamentos').delete().in('id',chunk);
