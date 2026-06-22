@@ -2721,8 +2721,8 @@ function filtBaixas(o={}){
 function filtGeral(o={}){
   return allD().filter(r=>{
     if(o.dono&&r.dono!==o.dono)return false;
-    // usePrev: filtra por prev_pgto (competência de recebimento)
-    const campo=o.usePrev?(r.prev_pgto||''):(r.saida||'');
+    // usePrev: filtra por prev_pgto; quando null usa saida como fallback
+    const campo=o.usePrev?(r.prev_pgto||r.saida||''):(r.saida||'');
     if(campo.slice(0,7)!==curMes)return false;
     if(o.q){const q=o.q.toLowerCase();if(!(r.placa.toLowerCase().includes(q)||(r.cliente||'').toLowerCase().includes(q)))return false;}
     if(o.tipo&&r.tipo!==o.tipo)return false;
@@ -4419,6 +4419,7 @@ function handleXls(input){
         forma:   xlsColIdx(headers,['forma','pagamento','payment']),
         valor:   xlsColIdx(headers,['valor','total','vlr','faturamento']),
         vp:      xlsColIdx(headers,['pago','valor_pago','valor pago','recebido','baixado','baixa']),
+        pp:      xlsColIdx(headers,['prev_pgto','prev pgto','vencimento','previsao','previsão','data pgto','data pag']),
         obs:     xlsColIdx(headers,['obs','observacao','observação','nota']),
       };
       // Se nenhuma coluna chave for detectada, mostrar os cabeçalhos encontrados
@@ -4451,7 +4452,8 @@ function handleXls(input){
         const dupFile=key&&seen.has(key);
         if(key)seen.add(key);
         const dup=!!(dupDb||dupFile);
-        return{_sel:!dup,_dup:dup,_dupDb:!!dupDb,_dupFile:dupFile,placa,dono:get(row,ci.dono)||'Indefinido',cliente:get(row,ci.cliente),tipo:get(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:get(row,ci.forma)||'',valor,valor_pago,obs:get(row,ci.obs)||null};
+        const prev_pgto=normDate(get(row,ci.pp))||null;
+        return{_sel:!dup,_dup:dup,_dupDb:!!dupDb,_dupFile:dupFile,placa,dono:get(row,ci.dono)||'Indefinido',cliente:get(row,ci.cliente),tipo:get(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:get(row,ci.forma)||'',valor,valor_pago,prev_pgto,obs:get(row,ci.obs)||null};
       }).filter(r=>r.placa||r.cliente||r.valor);
       if(!XLS_PARSED.length){
         showXlsSt(`⚠ Nenhum registro válido. Cabeçalhos lidos: <code>${headers.join(' | ')}</code>`,'err');
@@ -4497,7 +4499,16 @@ async function importXls(){
   const recs=sel.map(r=>{
     const taxa=getTaxaForma(r.forma);
     const baixado=r.valor_pago>0;
-    return{placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:null,valor_pago:baixado?r.valor:0,saldo:baixado?0:r.valor*(1-taxa),obs:r.obs};
+    const fl=(r.forma||'').toLowerCase();
+    let pp=r.prev_pgto||null;
+    if(!pp){
+      if(fl.includes('boleto')&&r.retorno)pp=addDUtil(r.retorno,PREM.prazoBoleto);
+      else if((fl.includes('crédito')||fl.includes('credito'))&&r.saida)pp=addDUtil(r.saida,PREM.prazoCredito);
+      else if((fl.includes('débito')||fl.includes('debito'))&&r.saida)pp=addDUtil(r.saida,PREM.prazoDebito);
+      else if(r.saida)pp=r.saida;
+    }
+    if(pp)pp=proxUtil(pp);
+    return{placa:r.placa,dono:r.dono,saida:r.saida,retorno:r.retorno,cliente:r.cliente,tipo:r.tipo,valor:r.valor,forma:r.forma,prev_pgto:pp,valor_pago:baixado?r.valor:0,saldo:baixado?0:r.valor*(1-taxa),obs:r.obs};
   });
   const CHUNK=25;
   let importados=0;
