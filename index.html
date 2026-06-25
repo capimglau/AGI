@@ -4556,7 +4556,9 @@ function handleXls(input){
         if(key)seen.add(key);
         const dup=!!(dupDb||dupFile);
         const prev_pgto=normDate(get(row,ci.pp))||null;
-        return{_sel:!dup,_dup:dup,_dupDb:!!dupDb,_dupFile:dupFile,placa,dono:str(row,ci.dono)||'Indefinido',cliente:str(row,ci.cliente),tipo:str(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:str(row,ci.forma)||'',valor,valor_pago,saldo_xls,prev_pgto,obs:str(row,ci.obs)||null};
+        const _obsRaw=ci.obs>=0?row[ci.obs]:null;
+        const _obsStr=(()=>{if(_obsRaw===null||_obsRaw===undefined)return null;const s=String(_obsRaw).trim();if(!s)return null;const n=Number(s);if(Number.isInteger(n)&&String(n)===s)return`final ${n}`;return s;})();
+        return{_sel:!dup,_dup:dup,_dupDb:!!dupDb,_dupFile:dupFile,placa,dono:str(row,ci.dono)||'Indefinido',cliente:str(row,ci.cliente),tipo:str(row,ci.tipo)||'Locação',saida,retorno:normDate(get(row,ci.retorno)),forma:str(row,ci.forma)||'',valor,valor_pago,saldo_xls,prev_pgto,obs:_obsStr};
       }).filter(r=>r.placa||r.cliente||r.valor);
       if(!XLS_PARSED.length){
         showXlsSt(`⚠ Nenhum registro válido. Cabeçalhos lidos: <code>${headers.join(' | ')}</code>`,'err');
