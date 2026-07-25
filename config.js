@@ -14,7 +14,7 @@
 //  de contrato por foto para a API da Anthropic. Veja supabase/functions.
 // ─────────────────────────────────────────────────────────────
 window.AUTOGEST_CONFIG = {
-  url: "https://niagjkpjvdkmryhkugbg.supabase.co",
-  key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pYWdqa3BqdmRrbXJ5aGt1Z2JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NTU1MTYsImV4cCI6MjA5NjUzMTUxNn0._uL2KkA4riJPC6oCpa21ahsmJMAKf8lnPdYPepnykik",
+  url: "https://gymvzfwbkteleyzdpcyl.supabase.co",
+  key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5bXZ6Zndia3RlbGV5emRwY3lsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMDA5OTcsImV4cCI6MjEwMDU3Njk5N30.FwfWCo36bmk8BvHO7dMAW3zYzTsTl7LAXbKpaU-p3j0",
   aiProxy: ""
 };
