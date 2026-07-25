@@ -864,7 +864,9 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rb-bg2 .rb-f { position: absolute; left: 0; top: 0; border-radius: 5px; }
 .rb-v2 { width: 176px; display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; white-space: nowrap; }
 .rb-v2 .rb-rec { color: var(--green); font-weight: 700; }
-.rb-v2 .rb-prev { color: var(--ink2); font-weight: 700; }
+/* Texto usa o --amber (amarelo escurecido no tema claro): o --bar-rec das
+   barras é claro demais para ler sobre fundo branco. */
+.rb-v2 .rb-prev { color: var(--amber); font-weight: 700; }
 .rb-v2 .rb-sep { color: var(--ink3); font-weight: 400; }
 /* Cabeçalho da coluna de valores — legenda em cima do que ela nomeia. */
 .rb-cab { margin-bottom: 8px; }
@@ -3390,11 +3392,10 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
   let lista=itens.filter(([,o])=>o.prev>0||o.rec>0).sort((a,b)=>b[1].prev-a[1].prev);
   if(top)lista=lista.slice(0,top);
   if(!lista.length)return vazio;
-  // Cabeçalho alinhado à coluna dos valores: diz qual número é qual.
-  // O quadradinho do Previsto é meio verde meio amarelo porque o previsto é a
-  // barra inteira — o recebido (verde) mais o que falta entrar (amarelo).
+  // Cabeçalho alinhado à coluna dos valores: diz qual número é qual, na cor
+  // da faixa que representa — verde o recebido, amarelo o previsto.
   const leg=`<div class="rb rb-cab"><div class="rb-l"></div><div class="rb-bg rb-bg-vazio"></div>
-    <div class="rb-v rb-v2"><span class="rb-rec"><i style="background:var(--green)"></i>Recebido</span><span class="rb-sep">/</span><span class="rb-prev"><i style="background:linear-gradient(90deg,var(--green) 50%,var(--bar-rec) 50%)"></i>Previsto</span></div></div>`;
+    <div class="rb-v rb-v2"><span class="rb-rec"><i style="background:var(--green)"></i>Recebido</span><span class="rb-sep">/</span><span class="rb-prev"><i style="background:var(--bar-rec)"></i>Previsto</span></div></div>`;
   return leg+lista.map(([k,o],i)=>{
     const pct=o.prev>0?Math.min(100,o.rec/o.prev*100):(o.rec>0?100:0);
     // piso de 1.5% para que recebimento pequeno (mas real) apareça
