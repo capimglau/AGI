@@ -868,14 +868,17 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
    se dissolver para fora, como no print — não é sombra embaixo, é gradiente
    nas duas bordas. */
 .rb-f-prev { background: var(--bar-rec); box-shadow: 0 0 7px 2px rgba(242,176,30,.30); }
+.rb-f-atr { background: var(--red); box-shadow: 0 0 7px 2px rgba(191,37,24,.24); }
 .rb-f-rec { background: var(--green); box-shadow: 0 0 7px 2px rgba(10,100,57,.22); }
 html[data-theme="dark"] .rb-f-prev { box-shadow: 0 0 8px 2px rgba(247,201,72,.24); }
+html[data-theme="dark"] .rb-f-atr { box-shadow: 0 0 8px 2px rgba(255,107,107,.24); }
 html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22); }
 .rb-pt { position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 50%;
   background: var(--green); border: 2px solid var(--card); transform: translate(-50%, -50%);
   box-shadow: 0 0 0 1px rgba(0,0,0,.05); transition: left .6s ease; }
 .rb-v2 { width: 176px; display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; white-space: nowrap; }
 .rb-v2 .rb-rec { color: var(--green); font-weight: 700; }
+.rb-cab .rb-atr { color: var(--red); font-weight: 700; margin-left: 8px; }
 /* Texto usa o --amber (amarelo escurecido no tema claro): o --bar-rec das
    barras é claro demais para ler sobre fundo branco. */
 .rb-v2 .rb-prev { color: var(--amber); font-weight: 700; }
@@ -3380,9 +3383,10 @@ function agrupaPrevRec(rows,chave){
   rows.forEach(r=>{
     const k=chave(r);
     if(k===null||k===undefined||k==='')return;
-    const o=g[k]||(g[k]={prev:0,rec:0});
+    const o=g[k]||(g[k]={prev:0,rec:0,atr:0});
     o.prev+=fN(r.valor);
     if(isPago(r))o.rec+=fN(r.valor_pago);
+    else if(isVenc(r))o.atr+=fN(r.saldo);
   });
   return Object.entries(g);
 }
@@ -3401,17 +3405,25 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
   if(top)lista=lista.slice(0,top);
   if(!lista.length)return vazio;
   // Cabeçalho alinhado à coluna dos valores: diz qual número é qual, na cor
-  // da faixa que representa — verde o recebido, amarelo o previsto.
+  // da faixa que representa — verde o recebido, amarelo o previsto. O vermelho
+  // não tem número próprio; é a parte atrasada de dentro do previsto.
+  const temAtraso=lista.some(([,o])=>o.atr>0);
   const leg=`<div class="rb rb-cab"><div class="rb-l"></div><div class="rb-bg rb-bg-vazio"></div>
-    <div class="rb-v rb-v2"><span class="rb-rec"><i style="background:var(--green)"></i>Recebido</span><span class="rb-sep">/</span><span class="rb-prev"><i style="background:var(--bar-rec)"></i>Previsto</span></div></div>`;
+    <div class="rb-v rb-v2"><span class="rb-rec"><i style="background:var(--green)"></i>Recebido</span>${temAtraso?`<span class="rb-atr"><i style="background:var(--red)"></i>Atrasado</span>`:''}<span class="rb-sep">/</span><span class="rb-prev"><i style="background:var(--bar-rec)"></i>Previsto</span></div></div>`;
   return leg+lista.map(([k,o],i)=>{
     const pct=o.prev>0?Math.min(100,o.rec/o.prev*100):(o.rec>0?100:0);
     // piso de 1.5% para que recebimento pequeno (mas real) apareça
     const wR=pct>0?Math.max(1.5,pct).toFixed(1):'0';
-    return`<div class="rb" title="${k}: recebido ${fR(o.rec)} de ${fR(o.prev)} previstos (${Math.round(pct)}%)">
+    // Faixa vermelha: o atrasado começa onde o recebido termina. Desenhada
+    // entre o amarelo e o verde, então sobra amarelo só no que ainda vai vencer.
+    const pctA=o.prev>0?Math.min(100,(o.rec+o.atr)/o.prev*100):0;
+    const wA=o.atr>0?Math.max(+wR+1.5,pctA).toFixed(1):'0';
+    const tAtr=o.atr>0?` · atrasado ${fR(o.atr)}`:'';
+    return`<div class="rb" title="${k}: recebido ${fR(o.rec)} de ${fR(o.prev)} previstos (${Math.round(pct)}%)${tAtr}">
       <div class="rb-l">${rank?`<span class="rb-rank">${i+1}</span>`:''}${label(k)}</div>
       <div class="rb-bg rb-bg2">
         <div class="rb-f rb-f-prev" style="width:100%"></div>
+        ${o.atr>0?`<div class="rb-f rb-f-atr" style="width:${wA}%"></div>`:''}
         <div class="rb-f rb-f-rec" style="width:${wR}%"></div>
         ${o.rec>0?`<span class="rb-pt" style="left:${wR}%"></span>`:''}
       </div>
@@ -3456,15 +3468,22 @@ function renderResumo(){
   ['cMes','cAcum'].forEach(id=>{const c=document.getElementById(id);if(c&&c.parentElement)c.parentElement.style.minWidth=tsMinW+'px';});
   // Recebido × A receber por mês
   const recM={},pendM={};
-  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m)return;recM[m]=(recM[m]||0)+(isPago(r)?fN(r.valor_pago):0);pendM[m]=(pendM[m]||0)+(isPend(r)?fN(r.saldo):0);});
-  let recA=mShown.map(k=>recM[k]||0), pendA=mShown.map(k=>pendM[k]||0);
-  if(resAcum){recA=cumArr(recA);pendA=cumArr(pendA);}
+  // Pendente separado em atrasado (venceu e não entrou) e a vencer.
+  const atrsM={};
+  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m)return;
+    recM[m]=(recM[m]||0)+(isPago(r)?fN(r.valor_pago):0);
+    atrsM[m]=(atrsM[m]||0)+(isVenc(r)?fN(r.saldo):0);
+    pendM[m]=(pendM[m]||0)+((isPend(r)&&!isVenc(r))?fN(r.saldo):0);});
+  let recA=mShown.map(k=>recM[k]||0), pendA=mShown.map(k=>pendM[k]||0), atrsA=mShown.map(k=>atrsM[k]||0);
+  if(resAcum){recA=cumArr(recA);pendA=cumArr(pendA);atrsA=cumArr(atrsA);}
   const hdMes=document.getElementById('hdMes');
-  if(hdMes) hdMes.textContent=(resBase==='caixa'?'Recebido por mês':'Previsto por mês (recebido × a receber)')+acumSfx;
+  if(hdMes) hdMes.textContent=(resBase==='caixa'?'Recebido por mês':'Previsto por mês (recebido × atrasado × a vencer)')+acumSfx;
+  const temAtrsMes=atrsA.some(v=>v>0);
   const dsMes = resBase==='caixa'
     ? [{label:'Recebido',data:recA,backgroundColor:'#34c759',borderRadius:6,borderSkipped:false,maxBarThickness:46}]
     : [{label:'Recebido',data:recA,backgroundColor:'#34c759',stack:'s',borderRadius:{bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46},
-       {label:'A receber',data:pendA,backgroundColor:'#f0b429',stack:'s',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46}];
+       ...(temAtrsMes?[{label:'Atrasado',data:atrsA,backgroundColor:'#bf2518',stack:'s',borderSkipped:false,maxBarThickness:46}]:[]),
+       {label:'A vencer',data:pendA,backgroundColor:'#f0b429',stack:'s',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46}];
   mkC('cMes',{type:'bar',data:{labels:labelsT,datasets:dsMes},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>items.length>1?'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0)):''}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:false}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   // Os painéis de barra mostram previsto E recebido juntos, então não seguem
   // o seletor previsto/recebido (que continua valendo para os gráficos).
@@ -3510,44 +3529,42 @@ function renderResumo(){
   document.getElementById('resForma').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.forma));
   document.getElementById('resVeic').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.placa),{rank:true,top:10,label:p=>`<span class="placa">${p}</span>`});
   document.getElementById('resClientes').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>(r.cliente||'').trim()||'—'),{rank:true,top:10});
-  // ── Projeção 90 dias: uma barra por semana, do vencimento ──
-  // Eixo contínuo: as 13 semanas sempre aparecem, mesmo zeradas, senão o
-  // gráfico pula datas e some a noção de quando o dinheiro entra.
+  // ── Projeção 90 dias: uma barra por DIA de vencimento ──
+  // Eixo contínuo (todos os 91 dias, mesmo zerados) e barras finas o bastante
+  // para o período inteiro caber na largura do cartão, sem rolagem lateral.
   const t=td(),tF=addD(t,90);
   const projPend=allD().filter(r=>isPend(r)&&r.prev_pgto&&(!selDono||r.dono===selDono));
-  const sem={},semQt={};
-  const sK=[],sLbl=[];
-  for(let w=0;w<13;w++){
-    const ini=addD(t,w*7), fim=addD(t,w*7+6);
-    sK.push(ini);sem[ini]=0;semQt[ini]=0;
-    const [,mi,di]=ini.split('-'), [,mf,df]=fim.split('-');
-    sLbl.push([`${di}/${mi}`,`a ${df}/${mf}`]);   // rótulo em duas linhas
+  const dia={},diaQt={},dK=[],dLbl=[];
+  for(let n=0;n<=90;n++){
+    const d=addD(t,n);
+    dK.push(d);dia[d]=0;diaQt[d]=0;
+    const [,mm,dd]=d.split('-');
+    dLbl.push(`${dd}/${mm}`);
   }
   projPend.forEach(r=>{
     if(r.prev_pgto<t||r.prev_pgto>tF)return;
-    const w=Math.floor((new Date(r.prev_pgto+'T12:00:00')-new Date(t+'T12:00:00'))/(7*86400000));
-    const k=sK[Math.max(0,Math.min(12,w))];
-    sem[k]+=fN(r.saldo);semQt[k]++;
+    dia[r.prev_pgto]=(dia[r.prev_pgto]||0)+fN(r.saldo);
+    diaQt[r.prev_pgto]=(diaQt[r.prev_pgto]||0)+1;
   });
   // Vencidos entram como a primeira barra, em vermelho: é dinheiro a receber
   // que já deveria ter entrado, e some do gráfico se olhar só para a frente.
   const projVenc=projPend.filter(r=>r.prev_pgto<t);
   const projVencVal=projVenc.reduce((a,r)=>a+fN(r.saldo),0);
   const temVenc=projVencVal>0;
-  const projLbl=temVenc?[['Vencidos',`${projVenc.length} lanç.`],...sLbl]:sLbl;
-  const projVal=temVenc?[projVencVal,...sK.map(k=>sem[k])]:sK.map(k=>sem[k]);
-  const projQt=temVenc?[projVenc.length,...sK.map(k=>semQt[k])]:sK.map(k=>semQt[k]);
+  const projLbl=temVenc?['Vencidos',...dLbl]:dLbl;
+  const projVal=temVenc?[projVencVal,...dK.map(k=>dia[k])]:dK.map(k=>dia[k]);
+  const projQt=temVenc?[projVenc.length,...dK.map(k=>diaQt[k])]:dK.map(k=>diaQt[k]);
   const projCor=projVal.map((_,i)=>(temVenc&&i===0)?'#bf2518':'#f2b01e');
-  {const c=document.getElementById('cProj');if(c&&c.parentElement)c.parentElement.style.minWidth=Math.max(480,projLbl.length*62)+'px';}
-  mkC('cProj',{type:'bar',data:{labels:projLbl,datasets:[{data:projVal,backgroundColor:projCor,borderRadius:6,borderSkipped:false,maxBarThickness:34}]},
-    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},
-    plugins:{legend:{display:false},
-      barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},
+  // sem minWidth: com 91 dias o gráfico se ajusta à largura disponível
+  {const c=document.getElementById('cProj');if(c&&c.parentElement)c.parentElement.style.minWidth='';}
+  mkC('cProj',{type:'bar',data:{labels:projLbl,datasets:[{data:projVal,backgroundColor:projCor,borderRadius:2,borderSkipped:false,maxBarThickness:7,categoryPercentage:.9,barPercentage:.9}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:8}},
+    plugins:{legend:{display:false},barLabels:{display:false},
       tooltip:{callbacks:{
-        title:it=>{const l=it[0].label;return Array.isArray(l)?l.join(' '):l;},
+        title:it=>it[0].label==='Vencidos'?'Vencidos':'Vence em '+it[0].label,
         label:ctx=>' '+fR(ctx.raw)+' · '+(projQt[ctx.dataIndex]||0)+' lançamento(s)'}}},
-    scales:{y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}},
-      x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:10.5,family:'DM Sans'}}}}}});
+    scales:{y:{beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}},
+      x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:13,font:{size:10,family:'DM Sans'}}}}}});
   requestAnimationFrame(()=>centerResScroll(mShown));
 }
 
