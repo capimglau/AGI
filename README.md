@@ -28,13 +28,20 @@ ler e gravar de verdade.
 
 ## Passo 1 — Criar o banco no Supabase
 
-1. Crie um projeto em https://supabase.com.
-2. Abra **SQL Editor** e rode, nesta ordem:
-   - `supabase/schema.sql` (cria a tabela `lancamentos` e as políticas)
-   - `supabase/seed.sql` (carrega os 603 lançamentos iniciais)
+1. Crie um projeto em https://supabase.com. Guarde a senha do banco.
+2. Abra **SQL Editor → New query**, cole o conteúdo de **`supabase/setup.sql`**
+   e clique em **Run**. É um script único: cria as 4 tabelas com as políticas,
+   carrega a frota (184 veículos) e os 603 lançamentos da planilha.
 3. Em **Project Settings → API**, copie:
    - **Project URL**
    - chave **anon public**
+
+> Os scripts avulsos (`schema.sql`, `seed.sql`, `veiculos.sql`,
+> `boleto_feito.sql`) continuam no repositório para rodar uma parte de cada
+> vez. O `setup.sql` é a soma deles, na ordem certa.
+>
+> Cuidado: a PARTE 4 do `setup.sql` começa com `truncate` nos lançamentos.
+> Em banco novo é o desejado; em banco já em uso, pule essa parte.
 
 ## Passo 2 — Conectar o app
 
@@ -93,8 +100,11 @@ políticas em `schema.sql` para usuários autenticados.
 ```
 index.html                          App (front-end)
 config.js                           Credenciais do Supabase (edite aqui)
-supabase/schema.sql                 Cria a tabela e as políticas
+supabase/setup.sql                  INSTALAÇÃO COMPLETA (rode este em banco novo)
+supabase/schema.sql                 Cria as 4 tabelas e as políticas
 supabase/seed.sql                   Carrega os 603 lançamentos iniciais
+supabase/veiculos.sql               Carrega a frota (184 veículos)
+supabase/boleto_feito.sql           Coluna boleto_feito nos lançamentos
 supabase/functions/ai-contrato/     Edge Function opcional (IA por foto)
 .github/workflows/deploy.yml        Publicação automática no GitHub Pages
 ```
