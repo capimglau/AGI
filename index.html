@@ -2761,8 +2761,9 @@ let editIdx = null;
 let loteSel = [];
 let selDono = '';
 
-// Estado do mês principal — começa no mês corrente de prev_pgto com mais dados
-let curMes = '2026-06';
+// Estado do mês principal — sempre abre no mês atual (data local, não UTC:
+// perto da virada do mês o toISOString() do td() já estaria no mês seguinte).
+let curMes = (()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;})();
 
 const DC = {Silvio:'#1f5fa8',Arnaldo:'#0d6e3e',Leandro:'#92600a',Eliana:'#c42b1c','Silvio 2':'#5b35d5',Lucélia:'#0a7272',Lorenzo:'#555'};
 
