@@ -872,6 +872,22 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rb-tip-v { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rb-tip-mais { color: var(--ink3); font-size: 11px; padding-top: 5px; }
 @media (max-width: 560px) { .rb-tip { left: 0; min-width: 0; max-width: 88vw; } }
+/* Boletos do mês: mesma anatomia das outras linhas + marcador de emitido. */
+.rb-bol { cursor: pointer; padding: 2px 4px; border-radius: 8px; transition: background .12s; }
+.rb-bol:hover { background: var(--surface); }
+.bol-ck {
+  width: 17px; height: 17px; flex-shrink: 0; border-radius: 5px; border: 1.5px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff; background: var(--card);
+}
+.bol-feito .bol-ck { background: var(--green); border-color: var(--green); }
+.bol-feito .bol-l { color: var(--ink3); text-decoration: line-through; }
+.bol-l { width: 168px; font-size: 12.5px; }
+.bol-l small { display: block; color: var(--ink3); font-size: 10.5px; text-decoration: none; }
+.rb-bol-leg { color: var(--ink3); font-weight: 500; font-size: 10.5px; }
+.bol-rodape { margin-top: 9px; font-size: 12px; font-weight: 700; color: var(--red); }
+.bol-rodape.ok { color: var(--green); }
+@media (max-width: 560px) { .bol-l { width: 108px; } }
 .rb-l { font-size: 12.5px; width: 90px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rb-bg { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
 .rb-f { height: 100%; border-radius: 3px; transition: width .6s ease; }
@@ -1899,6 +1915,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <button class="on" onclick="setResCtrl('base','comp',this)" data-v="comp">Previsto</button>
       <button onclick="setResCtrl('base','caixa',this)" data-v="caixa">Recebido</button>
     </div>
+    <select class="rc-sel" id="rc-ano" onchange="setResAno(this.value)" title="Ano dos gráficos mensais"></select>
     <select class="rc-sel" id="rc-acum" onchange="setResAcum(this.value)">
       <option value="0">Mensal</option>
       <option value="1">Acumulado</option>
@@ -1935,6 +1952,10 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   <div class="card">
     <div class="card-hd" id="hdClientes">Top 10 clientes</div>
     <div id="resClientes"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd" id="hdBoletos">Boletos do mês</div>
+    <div id="resBoletos"></div>
   </div>
   <div class="card">
     <div class="card-hd">Projeção de recebimentos — próximos 60 dias</div>
@@ -2292,25 +2313,6 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <button class="btn btn-red" onclick="deleteRow()">🗑 Excluir</button>
       </div>
     </details>
-  </div>
-</div>
-
-<!-- ─── MODAL GESTÃO DE BOLETOS ─── -->
-<div class="overlay" id="mBoletos">
-  <div class="modal" style="max-width:560px;max-height:88vh;display:flex;flex-direction:column">
-    <div class="mhd" style="flex-shrink:0">
-      <span>Boletos do Mês</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span id="mbResume" style="font-size:11px;font-weight:600;color:var(--ink3)"></span>
-        <button class="mcl" onclick="document.getElementById('mBoletos').classList.remove('on')">✕</button>
-      </div>
-    </div>
-    <div style="display:flex;gap:6px;padding:8px 14px 6px;flex-shrink:0;border-bottom:1px solid var(--line)">
-      <button id="mbf-todos"   class="mb-filt-btn mb-filt-on" onclick="setMbFiltro('todos')">Todos</button>
-      <button id="mbf-feitos"  class="mb-filt-btn"            onclick="setMbFiltro('feitos')">Feitos</button>
-      <button id="mbf-afazer"  class="mb-filt-btn"            onclick="setMbFiltro('afazer')">A fazer</button>
-    </div>
-    <div id="mBoletosBody" style="overflow-y:auto;flex:1;padding:2px 0 8px"></div>
   </div>
 </div>
 
@@ -3118,7 +3120,6 @@ function renderBaixas(){
     <div class="mc blue"><div class="mc-label">Vencem hoje</div><div class="mc-value">${nHoje}</div></div>
     <div class="mc red"><div class="mc-label">Já vencidos</div><div class="mc-value">${nVenc}</div></div>
   `;
-  renderBoletosBanner();
 
   // Indicador de filtro ativo
   const fdot=document.getElementById('filtDot');
@@ -3327,20 +3328,23 @@ function setResCtrl(kind,val,el){
   renderResumo();
 }
 function setResAcum(v){ resAcum=(v==='1'); renderResumo(); }
-// Conjunto de meses 'YYYY-MM' a exibir nas séries temporais.
-// Sempre a partir de janeiro/2026 para frente; o período define a janela.
+function setResAno(v){ resAno=v; renderResumo(); }
+// Ano dos gráficos mensais. Começa no ano do mês em que o app abriu.
+let resAno=curMes.slice(0,4);
+// Anos com lançamento, para o seletor. Inclui sempre o ano corrente, mesmo
+// que ainda não haja nada lançado nele.
+function resAnos(){
+  const s=new Set(allD().map(r=>(r.prev_pgto||'').slice(0,4)).filter(a=>/^\d{4}$/.test(a)));
+  s.add(curMes.slice(0,4));s.add(resAno);
+  return [...s].sort();
+}
+// Os gráficos mensais mostram os 12 meses do ano selecionado, sempre — assim
+// a comparação entre meses não muda de escala conforme a base cresce.
 const RES_MIN_MES='2026-01';
-function resMonths(present){
-  const last=present.length?present[present.length-1]:curMes;
-  const lastM=last>curMes?last:curMes;
-  let start, end=lastM;
-  if(resPeriodo==='ano'){ start='2026-01'; end='2026-12'; }
-  else if(resPeriodo==='tudo'){ start=RES_MIN_MES; }
-  else { const n=parseInt(resPeriodo); start=mesAdd(lastM,-(n-1)); }
-  if(start<RES_MIN_MES) start=RES_MIN_MES;
-  const arr=[]; let m=start, guard=0;
-  while(m<=end && guard++<180){ arr.push(m); m=mesAdd(m,1); }
-  return arr.length?arr:[RES_MIN_MES];
+function resMonths(){
+  const arr=[];
+  for(let m=1;m<=12;m++)arr.push(`${resAno}-${String(m).padStart(2,'0')}`);
+  return arr;
 }
 // Valor de um lançamento conforme a base selecionada.
 function valBase(r){ return resBase==='caixa' ? (isPago(r)?fN(r.valor_pago):0) : fN(r.valor); }
@@ -3486,6 +3490,45 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
   }).join('');
 }
 
+// ── Boletos do mês: uma linha por boleto, com o "feito" na própria linha ──
+// Mesma anatomia dos outros painéis (rótulo · traço · valor à direita), só que
+// o traço mostra a situação do boleto e o clique marca se já foi emitido.
+function renderBoletosPainel(rows){
+  const el=document.getElementById('resBoletos');
+  if(!el)return;
+  const bol=rows.filter(r=>(r.forma||'').toLowerCase()==='boleto')
+    .sort((a,b)=>(a.prev_pgto||'').localeCompare(b.prev_pgto||'')||(a.cliente||'').localeCompare(b.cliente||''));
+  const hd=document.getElementById('hdBoletos');
+  if(!bol.length){
+    if(hd)hd.textContent='Boletos do mês';
+    el.innerHTML='<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Nenhum boleto no mês.</div>';
+    return;
+  }
+  const feitos=bol.filter(r=>r.boleto_feito).length;
+  const totFazer=bol.filter(r=>!r.boleto_feito).reduce((a,r)=>a+fN(r.valor),0);
+  if(hd)hd.textContent=`Boletos do mês — ${feitos} de ${bol.length} emitidos`;
+  const leg=`<div class="rb rb-cab"><div class="rb-l"></div><div class="rb-bg rb-bg-vazio"></div>
+    <div class="rb-v rb-v2"><span class="rb-bol-leg">clique para marcar como emitido</span></div></div>`;
+  const linhas=bol.map(r=>{
+    const i=allD().indexOf(r);
+    const pago=isPago(r), venc=isVenc(r);
+    // traço: verde já recebido · vermelho vencido em aberto · amarelo a vencer
+    const cls=pago?'rb-f-rec':venc?'rb-f-atr':'rb-f-prev';
+    const situacao=pago?'recebido':venc?'vencido':'a vencer';
+    const [,mm,dd]=(r.prev_pgto||'--- - -').split('-');
+    return`<div class="rb rb-bol${r.boleto_feito?' bol-feito':''}" onclick="toggleBoletoFeito(${i})"
+        title="${esc(r.cliente||'—')} · ${esc(r.placa||'')} · vence ${r.prev_pgto?dd+'/'+mm:'—'} · ${situacao}${r.boleto_feito?' · boleto emitido':' · boleto a emitir'}">
+      <span class="bol-ck">${r.boleto_feito?'✓':''}</span>
+      <div class="rb-l bol-l">${esc(r.cliente||'—')}<small>${esc(r.placa||'')} · ${r.prev_pgto?dd+'/'+mm:'—'}</small></div>
+      <div class="rb-bg rb-bg2"><div class="rb-f ${cls}" style="left:0;width:100%"></div></div>
+      <div class="rb-v rb-v2"><span class="rb-prev">${vDuplo(pago?r.valor_pago:r.saldo)}</span></div>
+    </div>`;
+  }).join('');
+  const rodape=totFazer>0?`<div class="bol-rodape">Faltam emitir ${bol.length-feitos} boleto(s) · ${fR(totFazer)}</div>`:
+    `<div class="bol-rodape ok">Todos os boletos do mês já foram emitidos ✓</div>`;
+  el.innerHTML=leg+linhas+rodape;
+}
+
 function renderResumo(){
   // Todos os lançamentos com prev_pgto no mês (competência de caixa)
   const rows=allD().filter(r=>(!selDono||r.dono===selDono)&&rfMatch(r)&&(r.prev_pgto||'').startsWith(curMes));
@@ -3512,9 +3555,13 @@ function renderResumo(){
     <div class="mc red"><div class="mc-label">Inadimplência</div><div class="mc-value">${inad.toFixed(1)}%</div><div class="mc-sub">${fR(vencVal)} vencido</div></div>
   `;
   renderRecebHoje();
-  // Meses exibidos nas séries temporais, conforme o período selecionado
-  const presentMonths=[...new Set(baseRows.map(r=>(r.prev_pgto||'').slice(0,7)).filter(Boolean))].sort();
-  const mShown=resMonths(presentMonths);
+  // Seletor de ano dos gráficos mensais
+  {const sel=document.getElementById('rc-ano');
+   if(sel){const anos=resAnos();
+     if(!anos.includes(resAno))resAno=anos[anos.length-1];
+     sel.innerHTML=anos.map(a=>`<option value="${a}"${a===resAno?' selected':''}>${a}</option>`).join('');}}
+  // Séries temporais: sempre os 12 meses do ano selecionado
+  const mShown=resMonths();
   const labelsT=mShown.map(mLabel);
   const acumSfx=resAcum?' — acumulado':'';
   // Largura mínima das séries temporais → habilita rolagem lateral quando há muitos meses
@@ -3538,7 +3585,7 @@ function renderResumo(){
     : [{label:'Recebido',data:recA,backgroundColor:'#34c759',stack:'s',borderRadius:{bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46},
        ...(temAtrsMes?[{label:'Atrasado',data:atrsA,backgroundColor:'#bf2518',stack:'s',borderSkipped:false,maxBarThickness:46}]:[]),
        {label:'A vencer',data:pendA,backgroundColor:'#f0b429',stack:'s',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46}];
-  mkC('cMes',{type:'bar',data:{labels:labelsT,datasets:dsMes},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>items.length>1?'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0)):''}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:false}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+  mkC('cMes',{type:'bar',data:{labels:labelsT,datasets:dsMes},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',align:'start',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:5,boxHeight:5,padding:9,font:{size:10}}},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>items.length>1?'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0)):''}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:false}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   // Os painéis de barra mostram previsto E recebido juntos, então não seguem
   // o seletor previsto/recebido (que continua valendo para os gráficos).
   const hd=(id,txt)=>{const el=document.getElementById(id);if(el)el.textContent=txt;};
@@ -3569,20 +3616,21 @@ function renderResumo(){
     mkC('cAcum',{type:'line',data:{labels:labelsT,datasets:[
       {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.10)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5},
       dsAtraso
-    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'start',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:5,boxHeight:5,padding:9,font:{size:10}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   } else {
     if(hdAcum) hdAcum.textContent='Previsto × recebido × atrasado'+(resAcum?' — acumulado':' — mensal');
     mkC('cAcum',{type:'line',data:{labels:labelsT,datasets:[
       {label:'Previsto',data:fatA,borderColor:c=>vGrad(c,'#d99a0b','#f7c948'),backgroundColor:'rgba(242,176,30,.12)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#d99a0b',pointBorderColor:'#fff',pointBorderWidth:1.5},
       {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.08)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5},
       dsAtraso
-    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}}); 
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'start',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:5,boxHeight:5,padding:9,font:{size:10}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}}); 
   }
 
   document.getElementById('resRecDono').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.dono),{rank:true});
   document.getElementById('resForma').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.forma));
   document.getElementById('resVeic').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.placa),{rank:true,top:10,label:p=>`<span class="placa">${p}</span>`});
   document.getElementById('resClientes').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>(r.cliente||'').trim()||'—'),{rank:true,top:10});
+  renderBoletosPainel(rows);
   // ── Projeção 60 dias: uma barra por DIA de vencimento ──
   // Eixo contínuo (todos os 61 dias, mesmo zerados) e barras finas o bastante
   // para o período inteiro caber na largura do cartão, sem rolagem lateral.
@@ -4181,71 +4229,14 @@ function initSwipe(){
 // ── BAIXA EM LOTE ──
 let _todosOn=false;
 
-// ── BANNER BOLETOS ──
-function renderBoletosBanner(){
-  // Banner removido da tela inicial — Boletos agora ficam no dock do Resumo.
-  if(!document.getElementById('boletosBanner')) return;
-  const hoje = td();
-  const boletos = filtBaixas({}).filter(r => (r.forma||'').toLowerCase() === 'boleto');
-  if(!boletos.length){
-    const bn = document.getElementById('boletosBanner');
-    if(bn) bn.style.display = 'none';
-    return;
-  }
-  const bn = document.getElementById('boletosBanner');
-  if(bn) bn.style.display = 'flex';
-
-  const feitos   = boletos.filter(r => r.boleto_feito);
-  const aFazer   = boletos.filter(r => !r.boleto_feito);
-  const vencidos = boletos.filter(r => isVenc(r) && !r.boleto_feito);
-
-  const totFazer  = aFazer.reduce((a,r)=>a+fN(r.saldo),0);
-  const totFeitos = feitos.reduce((a,r)=>a+fN(r.valor),0);
-  const totVenc   = vencidos.reduce((a,r)=>a+fN(r.saldo),0);
-  const totGeral  = boletos.reduce((a,r)=>a+fN(r.valor),0);
-
-  const el = id => document.getElementById(id);
-  el('bnTotalVal').textContent = fR(totGeral);
-
-  const chips = [];
-  chips.push(`<span class="boletos-banner-chip boletos-chip-feito">${feitos.length} feito${feitos.length>1?'s':''} · ${fR(totFeitos)}</span>`);
-  chips.push(`<span class="boletos-banner-chip boletos-chip-fazer">${aFazer.length} a fazer · ${fR(totFazer)}</span>`);
-  el('bnChips').innerHTML = chips.join('');
-}
-window._mbFiltro = 'todos';
-
-function setMbFiltro(f){
-  window._mbFiltro = f;
-  ['todos','feitos','afazer'].forEach(k => {
-    const btn = document.getElementById('mbf-' + k);
-    if(btn) btn.classList.toggle('mb-filt-on', k === f);
-  });
-  renderModalBoletos();
-}
-
-function filtrarBoletos(){
-  abrirModalBoletos();
-}
-
-function abrirModalBoletos(){
-  const modal = document.getElementById('mBoletos');
-  if(!modal) return;
-  window._mbFiltro = 'todos';
-  ['todos','feitos','afazer'].forEach(k => {
-    const btn = document.getElementById('mbf-' + k);
-    if(btn) btn.classList.toggle('mb-filt-on', k === 'todos');
-  });
-  renderModalBoletos();
-  modal.classList.add('on');
-}
+// ── BOLETOS ──
 
 function toggleBoletoFeito(idx){
   const r = allD()[idx];
   if(!r) return;
   r.boleto_feito = !r.boleto_feito;
   persistBoletoFeito(r);
-  renderModalBoletos();
-  renderBoletosBanner();
+  renderResumo();
 }
 // Persiste apenas o flag "boleto_feito". Isolado e tolerante a erro: se a coluna
 // ainda não existir no banco (rode supabase/boleto_feito.sql), apenas avisa no
@@ -4256,57 +4247,6 @@ async function persistBoletoFeito(r){
   if(error) console.warn('Coluna "boleto_feito" indisponível ('+error.message+'). Rode supabase/boleto_feito.sql para sincronizar.');
 }
 
-function renderModalBoletos(){
-  const hoje = td();
-  const todos = filtBaixas({}).filter(r => (r.forma||'').toLowerCase() === 'boleto');
-
-  // Aplicar filtro ativo
-  let boletos;
-  if(window._mbFiltro === 'feitos')      boletos = todos.filter(r => r.boleto_feito);
-  else if(window._mbFiltro === 'afazer') boletos = todos.filter(r => !r.boleto_feito);
-  else                                   boletos = todos;
-
-  // Agrupar por cliente
-  const grupos = {};
-  boletos.forEach(r => {
-    const c = r.cliente || 'Sem cliente';
-    if(!grupos[c]) grupos[c] = [];
-    grupos[c].push(r);
-  });
-
-  const nFeitos = todos.filter(r => r.boleto_feito).length;
-  const resumeEl = document.getElementById('mbResume');
-  if(resumeEl) resumeEl.textContent = nFeitos + '/' + todos.length + ' feitos';
-
-  const body = document.getElementById('mBoletosBody');
-  if(!body) return;
-
-  let html = '';
-  Object.keys(grupos).sort().forEach(cliente => {
-    const items = grupos[cliente];
-    html += '<div class="mb-group">';
-    html += '<div class="mb-group-hd">' + cliente + '</div>';
-    items.forEach(r => {
-      const gi = allD().indexOf(r);
-      const feito = !!r.boleto_feito;
-      const pago  = isPago(r);
-      const venc  = isVenc(r);
-      const valCls    = pago ? 'pago' : venc ? 'venc' : '';
-      const statusTxt = pago ? ' · Pago' : venc ? ' · Vencido' : '';
-      html += '<div class="mb-row" onclick="toggleBoletoFeito(' + gi + ')">';
-      html += '<div class="mb-check' + (feito ? ' done' : '') + '">' + (feito ? '✓' : '') + '</div>';
-      html += '<div class="mb-info">';
-      html += '<div class="mb-tipo"><span class="mb-placa">' + (r.placa||'') + '</span> ' + (r.tipo||'') + (r.prev_pgto ? ' · ' + fD(r.prev_pgto) : '') + statusTxt + '</div>';
-      html += '</div>';
-      html += '<div class="mb-val ' + valCls + '">' + fR(pago ? r.valor_pago : r.saldo) + '</div>';
-      html += '</div>';
-    });
-    html += '</div>';
-  });
-
-  if(!html) html = '<div style="padding:24px;text-align:center;color:var(--ink3);font-size:13px">Nenhum boleto</div>';
-  body.innerHTML = html;
-}
 
 function selTodos(){
   _todosOn=!_todosOn;
@@ -5020,7 +4960,7 @@ function go(id){
   renderAll();
 }
 
-['mEdit','mLote','mCam','mSearch','mDono','mBoletos'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
+['mEdit','mLote','mCam','mSearch','mDono'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
 
 // ── BOOT ──
 async function boot(){
@@ -5060,7 +5000,6 @@ boot();
   <div id="dock-main" style="display:flex;flex:1;gap:0">
     <button class="ntab on" onclick="go('resumo')" data-pg="resumo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nt-short">Resumo</span></button>
     <button class="ntab" onclick="go('proprietarios')" data-pg="proprietarios"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nt-short">Donos</span></button>
-    <button class="ntab" onclick="abrirModalBoletos()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="13.5" y1="9" x2="13.5" y2="15"/><line x1="17" y1="9" x2="17" y2="15"/></svg></span><span class="nt-short">Boleto</span></button>
     <button class="ntab" onclick="go('novo')" data-pg="novo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nt-short">Novo</span></button>
     <button class="ntab" onclick="openSearch()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg></span><span class="nt-short">Buscar</span></button>
     <!-- Separador visível só na sidebar desktop -->
