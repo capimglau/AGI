@@ -31,6 +31,9 @@
   --red-soft: #fce9e8;
   --amber: #8a5a07;
   --amber-soft: #fdf0dc;
+  /* Amarelo de preenchimento de barra: o --amber puxa para ocre e some ao
+     lado do verde. Este é só para área colorida, nunca para texto. */
+  --bar-rec: #f2b01e;
   --purple: #5530c8;
   --purple-soft: #ede9ff;
   --teal: #076b72;
@@ -856,6 +859,20 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rb-f { height: 100%; border-radius: 3px; transition: width .6s ease; }
 .rb-v { font-size: 12.5px; font-weight: 600; width: 90px; text-align: right; flex-shrink: 0; }
 #resClientes .rb-l { width: 150px; }
+/* Barra dupla numa linha só: verde = previsto, amarela = recebido por cima. */
+.rb-bg2 { position: relative; height: 9px; border-radius: 5px; }
+.rb-bg2 .rb-f { position: absolute; left: 0; top: 0; border-radius: 5px; }
+.rb-v2 { width: 176px; display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; white-space: nowrap; }
+.rb-v2 .rb-rec { color: var(--amber); font-weight: 700; }
+.rb-v2 .rb-prev { color: var(--green); font-weight: 700; }
+.rb-v2 .rb-sep { color: var(--ink3); font-weight: 400; }
+.rb-leg { display: flex; gap: 14px; margin: 0 0 10px; font-size: 11.5px; color: var(--ink3); }
+.rb-leg span { display: inline-flex; align-items: center; gap: 5px; }
+.rb-leg i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+@media (max-width: 560px) {
+  .rb-v2 { width: 132px; font-size: 11px; gap: 3px; }
+  .rb-l { width: 68px; }
+}
 .rb-rank { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 5px; background: var(--surface); font-size: 10px; font-weight: 700; color: var(--ink3); margin-right: 6px; flex-shrink: 0; }
 .mc-delta { font-weight: 700; }
 .mc-delta.up { color: var(--green); }
@@ -1641,6 +1658,7 @@ html[data-theme="dark"] {
   --red-soft: rgba(255,107,107,.16);
   --amber: #f7b955;
   --amber-soft: rgba(247,185,85,.16);
+  --bar-rec: #f7c948;
   --purple: #b18bf0;
   --purple-soft: rgba(177,139,240,.18);
   --shadow-sm: 0 1px 3px rgba(0,0,0,.45);
@@ -1862,7 +1880,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cResLiq" role="img" aria-label="resultado líquido mensal"></canvas></div></div>
   </div>
   <div class="card">
-    <div class="card-hd" id="hdRecDono">Previsto por proprietário</div>
+    <div class="card-hd" id="hdRecDono">Por proprietário — previsto × recebido</div>
     <div id="resRecDono"></div>
   </div>
   <div class="g2">
@@ -3388,7 +3406,8 @@ function renderResumo(){
   const mxt=tK.length?bT[tK[0]]:1;
   const _elTipoHd=document.getElementById('hdTipo');if(_elTipoHd)_elTipoHd.textContent='Por tipo'+(resBase==='caixa'?' (recebido)':'');
   const _sfx=resBase==='caixa'?' (recebido)':'';
-  const _elDono=document.getElementById('hdRecDono');if(_elDono)_elDono.textContent='Por proprietário'+_sfx;
+  // Este painel mostra previsto E recebido juntos, então não segue o seletor.
+  const _elDono=document.getElementById('hdRecDono');if(_elDono)_elDono.textContent='Por proprietário — previsto × recebido';
   const _elForma=document.getElementById('hdForma');if(_elForma)_elForma.textContent='Por forma de recebimento'+_sfx;
   const _elVeic=document.getElementById('hdVeic');if(_elVeic)_elVeic.textContent='Top 10 veículos'+_sfx;
   const _elCli=document.getElementById('hdClientes');if(_elCli)_elCli.textContent='Top 10 clientes'+_sfx;
@@ -3423,11 +3442,33 @@ function renderResumo(){
   const hdResLiq=document.getElementById('hdResLiq'); if(hdResLiq) hdResLiq.textContent='Resultado líquido (receitas − despesas)'+acumSfx;
   mkC('cResLiq',{type:'bar',data:{labels:labelsT,datasets:[{label:'Resultado',data:resArr,backgroundColor:resArr.map(v=>v>=0?'#34c759':'#c42b1c'),borderRadius:6,borderSkipped:false,maxBarThickness:46}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
 
-  // ── Previsto por proprietário (barras horizontais, estilo Top 10) ──
-  const bRD={};rows.forEach(r=>{if(!r.dono)return;const _vrd=valBase(r);if(_vrd>0)bRD[r.dono]=(bRD[r.dono]||0)+_vrd;});
-  const srd=Object.entries(bRD).sort((a,b)=>b[1]-a[1]);
-  const mxrd=srd[0]?srd[0][1]:1;
-  document.getElementById('resRecDono').innerHTML=srd.length?srd.map(([d,v],i)=>`<div class="rb"><div class="rb-l"><span class="rb-rank">${i+1}</span>${d}</div><div class="rb-bg"><div class="rb-f" style="width:${(v/(mxrd||1)*100).toFixed(1)}%;background:${DC[d]||'#1f5fa8'}"></div></div><div class="rb-v">${fR(v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
+  // ── Por proprietário: previsto e recebido na MESMA linha ──
+  // Uma barra só por dono: verde = previsto (todo o mês), amarela = o que já
+  // entrou, desenhada por cima. As duas na mesma escala (maior previsto = 100%).
+  const bRD={};
+  rows.forEach(r=>{
+    if(!r.dono)return;
+    const o=bRD[r.dono]||(bRD[r.dono]={prev:0,rec:0});
+    o.prev+=fN(r.valor);
+    if(isPago(r))o.rec+=fN(r.valor_pago);
+  });
+  const srd=Object.entries(bRD).filter(([,o])=>o.prev>0||o.rec>0).sort((a,b)=>b[1].prev-a[1].prev);
+  const mxrd=srd.length?Math.max(...srd.map(([,o])=>Math.max(o.prev,o.rec)))||1:1;
+  const legRD=`<div class="rb-leg"><span><i style="background:var(--green)"></i>Previsto</span><span><i style="background:var(--bar-rec)"></i>Recebido</span></div>`;
+  document.getElementById('resRecDono').innerHTML=srd.length?legRD+srd.map(([d,o],i)=>{
+    // piso de 1.5% para que valor pequeno (mas real) não vire barra invisível
+    const larg=v=>v>0?Math.max(1.5,Math.min(100,v/mxrd*100)).toFixed(1):'0';
+    const wP=larg(o.prev), wR=larg(o.rec);
+    const pctRec=o.prev>0?Math.round(o.rec/o.prev*100):0;
+    return`<div class="rb" title="${d}: recebido ${fR(o.rec)} de ${fR(o.prev)} previstos (${pctRec}%)">
+      <div class="rb-l"><span class="rb-rank">${i+1}</span>${d}</div>
+      <div class="rb-bg rb-bg2">
+        <div class="rb-f" style="width:${wP}%;background:var(--green)"></div>
+        <div class="rb-f" style="width:${wR}%;background:var(--bar-rec)"></div>
+      </div>
+      <div class="rb-v rb-v2"><span class="rb-rec">${fR(o.rec)}</span><span class="rb-sep">/</span><span class="rb-prev">${fR(o.prev)}</span></div>
+    </div>`;
+  }).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
   const bF={};rows.forEach(r=>{const _vf=valBase(r);if(_vf>0)bF[r.forma]=(bF[r.forma]||0)+_vf;});
   const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
   const maxF=bF[fK[0]]||1;
