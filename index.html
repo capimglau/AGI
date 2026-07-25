@@ -2420,11 +2420,44 @@ const SB = (_cfg.url && _cfg.key && window.supabase) ? window.supabase.createCli
 const ONLINE = !!SB;
 const COLS = ['placa','dono','saida','retorno','cliente','tipo','valor','forma','prev_pgto','valor_pago','saldo','obs'];
 function _clean(r){const o={};COLS.forEach(k=>o[k]=(r[k]===undefined||r[k]==='')?null:r[k]);return o;}
+// O PostgREST devolve no máximo 1000 linhas por requisição (limite do Supabase),
+// então toda leitura de tabela cheia precisa paginar — senão o app "perde" o que
+// passar de 1000 registros (some da tela, escapa do dedup, sobra na limpeza).
+async function sbFetchAll(build){
+  const REQ=1000;const out=[];let passo=REQ;
+  for(let de=0;;de+=passo){
+    const {data,error}=await build().range(de,de+REQ-1);
+    if(error)throw new Error(error.message||'Falha ao ler do Supabase');
+    if(!data||!data.length)break;
+    out.push(...data);
+    if(de===0&&data.length<REQ)passo=data.length;   // servidor limita a página
+    if(!passo||data.length<passo)break;
+  }
+  return out;
+}
+async function dbCount(){
+  const {count,error}=await SB.from('lancamentos').select('id',{count:'exact',head:true});
+  if(error)throw new Error(error.message||'Falha ao contar no Supabase');
+  return count||0;
+}
 async function dbLoad(){
   if(!SB) return DS.map(r=>({...r}));
-  const {data,error}=await SB.from('lancamentos').select('*').order('prev_pgto',{ascending:true});
-  if(error){console.error(error);alert('Erro ao carregar do Supabase: '+error.message);return DS.map(r=>({...r}));}
-  return data;
+  try{
+    return await sbFetchAll(()=>SB.from('lancamentos').select('*').order('prev_pgto',{ascending:true}));
+  }catch(err){
+    console.error(err);alert('Erro ao carregar do Supabase: '+err.message);
+    return DS.map(r=>({...r}));
+  }
+}
+// Diagnóstico rápido pelo console do navegador: agiDiag()
+async function agiDiag(){
+  if(!SB){console.warn('MODO DEMO — sem Supabase configurado.');return;}
+  const total=await dbCount();
+  const rows=await sbFetchAll(()=>SB.from('lancamentos').select('id,prev_pgto'));
+  const meses={};rows.forEach(r=>{const m=(r.prev_pgto||'sem data').substring(0,7);meses[m]=(meses[m]||0)+1;});
+  console.log(`Supabase · ${total} lançamentos no banco · ${DATA.length} carregados na tela`);
+  console.table(meses);
+  return{total,carregados:DATA.length,meses};
 }
 // Popula a tabela automaticamente na primeira vez (quando está vazia).
 async function dbSeed(){
@@ -2455,8 +2488,9 @@ async function dbUpdate(rec){
 async function dedupLancamentos(){
   if(!SB){alert('Não conectado ao Supabase.');return;}
   if(!confirm('Isso vai remover duplicatas e registros sem data de saída que tenham o mesmo veículo com saída válida. Continuar?'))return;
-  const {data:all,error}=await SB.from('lancamentos').select('id,placa,saida,prev_pgto').order('id',{ascending:true});
-  if(error){alert('Erro ao buscar lançamentos: '+error.message);return;}
+  let all;
+  try{ all=await sbFetchAll(()=>SB.from('lancamentos').select('id,placa,saida,prev_pgto').order('id',{ascending:true})); }
+  catch(err){ alert('Erro ao buscar lançamentos: '+err.message);return; }
   const normP=p=>String(p||'').toUpperCase().replace(/[\s\-]/g,'');
   const toDelete=[];
 
@@ -2500,21 +2534,33 @@ async function limparEReimportar(){
   if(!SB){alert('Não conectado ao Supabase.');return;}
   if(!confirm('Isso vai apagar TODOS os lançamentos do banco. Você reimportará tudo pelo Excel. Continuar?'))return;
   if(!confirm('Tem certeza? Essa ação não pode ser desfeita.'))return;
-  const {data:all,error}=await SB.from('lancamentos').select('id');
-  if(error){alert('Erro ao buscar lançamentos: '+error.message);return;}
-  if(!all||!all.length){alert('Nenhum lançamento encontrado.');return;}
-  const ids=all.map(r=>r.id);
   const CHUNK=100;let removidos=0;
-  for(let i=0;i<ids.length;i+=CHUNK){
-    const chunk=ids.slice(i,i+CHUNK);
-    const {error:de}=await SB.from('lancamentos').delete().in('id',chunk);
-    if(de){alert(`Erro ao deletar lote ${Math.floor(i/CHUNK)+1}: ${de.message}`);return;}
-    removidos+=chunk.length;
+  try{
+    const total=await dbCount();
+    if(!total){alert('Nenhum lançamento encontrado — o banco já está vazio.');return;}
+    // Rodadas até esvaziar: cada leitura traz no máximo uma página do PostgREST.
+    for(let rodada=0;rodada<50;rodada++){
+      const ids=(await sbFetchAll(()=>SB.from('lancamentos').select('id'))).map(r=>r.id);
+      if(!ids.length)break;
+      for(let i=0;i<ids.length;i+=CHUNK){
+        const chunk=ids.slice(i,i+CHUNK);
+        const {error:de}=await SB.from('lancamentos').delete().in('id',chunk);
+        if(de)throw new Error(de.message);
+        removidos+=chunk.length;
+      }
+    }
+    const restante=await dbCount();
+    DATA=[];NOVOS=[];
+    renderAll();
+    if(restante){
+      alert(`⚠ ${removidos} removidos de ${total}, mas ainda restam ${restante} no banco.\nVerifique as permissões (RLS) da tabela no Supabase.`);
+      return;
+    }
+    alert(`✓ ${removidos} lançamentos removidos — banco vazio (confirmado).\nAgora importe o Excel novamente.`);
+    setTimeout(()=>openXls(),300);
+  }catch(err){
+    alert(`Erro ao limpar${removidos?` (${removidos} já removidos)`:''}: ${err.message}`);
   }
-  DATA=[];NOVOS=[];
-  renderAll();
-  alert(`✓ ${removidos} lançamentos removidos. Agora importe o Excel novamente.`);
-  setTimeout(()=>openXls(),300);
 }
 async function dbDelete(id){
   if(!SB||id==null) return;
