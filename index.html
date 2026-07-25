@@ -1724,6 +1724,11 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <body>
 
 <!-- ─── HEADER ─── -->
+<div id="offBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#b3261e;color:#fff;padding:10px 14px;font-size:13px;font-weight:600;align-items:center;gap:10px;line-height:1.4">
+  <span id="offMsg" style="flex:1"></span>
+  <button onclick="this.parentNode.style.display='none'" style="background:rgba(255,255,255,.22);border:0;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-weight:700">✕</button>
+</div>
+
 <div class="header">
   <div class="logo">
     <img class="logo-img" src="logo-agi.png" alt="AGI Locadora">
@@ -2440,24 +2445,56 @@ async function dbCount(){
   if(error)throw new Error(error.message||'Falha ao contar no Supabase');
   return count||0;
 }
+// "Failed to fetch" = o navegador nem chegou no servidor. O motivo mais comum
+// é o projeto do Supabase pausado (plano free pausa após dias sem uso).
+let SB_OFF=false;
+function ehErroDeRede(err){
+  return /failed to fetch|networkerror|load failed|err_name_not_resolved/i.test(String(err&&err.message||err));
+}
+function msgErro(err){
+  const m=String(err&&err.message||err);
+  return ehErroDeRede(err)
+    ? `${m}\n\nO navegador não conseguiu falar com o Supabase. Verifique se o projeto não está pausado no painel do Supabase e se você está online.`
+    : m;
+}
+function marcarOffline(err){
+  SB_OFF=true;
+  const b=document.getElementById('offBanner');if(!b)return;
+  document.getElementById('offMsg').textContent=ehErroDeRede(err)
+    ? `⚠ Sem conexão com o Supabase (${_cfg.url||'sem URL'} — projeto pausado, apagado ou endereço errado no config.js). Você está vendo DADOS DE EXEMPLO — nada aqui está salvo no banco.`
+    : `⚠ Erro ao ler o Supabase: ${String(err&&err.message||err)}. Você está vendo DADOS DE EXEMPLO — nada aqui está salvo no banco.`;
+  b.style.display='flex';
+}
 async function dbLoad(){
   if(!SB) return DS.map(r=>({...r}));
   try{
-    return await sbFetchAll(()=>SB.from('lancamentos').select('*').order('prev_pgto',{ascending:true}));
+    const rows=await sbFetchAll(()=>SB.from('lancamentos').select('*').order('prev_pgto',{ascending:true}));
+    SB_OFF=false;
+    return rows;
   }catch(err){
-    console.error(err);alert('Erro ao carregar do Supabase: '+err.message);
+    // Sem o banco o app cai nos dados embutidos (DS). Isso PRECISA ficar visível:
+    // senão parece que o banco está cheio quando na verdade não foi lido.
+    console.error(err);
+    marcarOffline(err);
     return DS.map(r=>({...r}));
   }
 }
 // Diagnóstico rápido pelo console do navegador: agiDiag()
 async function agiDiag(){
-  if(!SB){console.warn('MODO DEMO — sem Supabase configurado.');return;}
-  const total=await dbCount();
-  const rows=await sbFetchAll(()=>SB.from('lancamentos').select('id,prev_pgto'));
-  const meses={};rows.forEach(r=>{const m=(r.prev_pgto||'sem data').substring(0,7);meses[m]=(meses[m]||0)+1;});
-  console.log(`Supabase · ${total} lançamentos no banco · ${DATA.length} carregados na tela`);
-  console.table(meses);
-  return{total,carregados:DATA.length,meses};
+  if(!SB){console.warn('MODO DEMO — sem Supabase configurado em config.js.');return{modo:'demo'};}
+  console.log('Testando', _cfg.url, '…');
+  try{
+    const total=await dbCount();
+    const rows=await sbFetchAll(()=>SB.from('lancamentos').select('id,prev_pgto'));
+    const meses={};rows.forEach(r=>{const m=(r.prev_pgto||'sem data').substring(0,7);meses[m]=(meses[m]||0)+1;});
+    console.log(`Supabase OK · ${total} lançamentos no banco · ${DATA.length} carregados na tela`);
+    console.table(meses);
+    return{ok:true,total,carregados:DATA.length,meses};
+  }catch(err){
+    console.error('Supabase inacessível:',err);
+    console.warn(msgErro(err));
+    return{ok:false,url:_cfg.url,erro:String(err&&err.message||err)};
+  }
 }
 // Popula a tabela automaticamente na primeira vez (quando está vazia).
 async function dbSeed(){
@@ -2490,7 +2527,7 @@ async function dedupLancamentos(){
   if(!confirm('Isso vai remover duplicatas e registros sem data de saída que tenham o mesmo veículo com saída válida. Continuar?'))return;
   let all;
   try{ all=await sbFetchAll(()=>SB.from('lancamentos').select('id,placa,saida,prev_pgto').order('id',{ascending:true})); }
-  catch(err){ alert('Erro ao buscar lançamentos: '+err.message);return; }
+  catch(err){ if(ehErroDeRede(err))marcarOffline(err); alert('Erro ao buscar lançamentos: '+msgErro(err));return; }
   const normP=p=>String(p||'').toUpperCase().replace(/[\s\-]/g,'');
   const toDelete=[];
 
@@ -2559,7 +2596,8 @@ async function limparEReimportar(){
     alert(`✓ ${removidos} lançamentos removidos — banco vazio (confirmado).\nAgora importe o Excel novamente.`);
     setTimeout(()=>openXls(),300);
   }catch(err){
-    alert(`Erro ao limpar${removidos?` (${removidos} já removidos)`:''}: ${err.message}`);
+    if(ehErroDeRede(err))marcarOffline(err);
+    alert(`Erro ao limpar${removidos?` (${removidos} já removidos)`:''}: ${msgErro(err)}`);
   }
 }
 async function dbDelete(id){
@@ -4837,7 +4875,9 @@ async function boot(){
   autoFillDono('nf-p','nf-d');
   autoFillDono('e-p','e-d');
   setTimeout(renderPremissas, 100);
-  if(ONLINE) console.log('AGI Locadora · Supabase ONLINE ·', DATA.length, 'lançamentos');
+  // ONLINE só diz que existe config — SB_OFF diz se o banco respondeu de fato.
+  if(ONLINE&&!SB_OFF) console.log('AGI Locadora · Supabase ONLINE ·', DATA.length, 'lançamentos');
+  else if(ONLINE) console.warn('AGI Locadora · Supabase INACESSÍVEL ·', _cfg.url, '— exibindo', DATA.length, 'dados de exemplo, SEM persistência.');
   else console.warn('AGI Locadora · MODO DEMO (sem persistência). Edite config.js para conectar ao Supabase.');
 }
 boot();
