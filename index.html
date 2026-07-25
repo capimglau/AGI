@@ -1953,7 +1953,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <div id="resClientes"></div>
   </div>
   <div class="card">
-    <div class="card-hd">Projeção de recebimentos — próximos 60 dias</div>
+    <div class="card-hd">Projeção de recebimentos — próximos 90 dias</div>
     <div class="cw-scroll"><div class="cw" style="height:250px"><canvas id="cProj" role="img" aria-label="projeção de recebimentos por dia"></canvas></div></div>
   </div>
   <div class="card">
@@ -3630,11 +3630,11 @@ function renderResumo(){
   document.getElementById('resVeic').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.placa),{rank:true,top:10,label:p=>`<span class="placa">${p}</span>`});
   document.getElementById('resClientes').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>(r.cliente||'').trim()||'—'),{rank:true,top:10});
   renderBoletosPainel(rows);
-  // ── Projeção 60 dias: uma barra por dia COM vencimento ──
+  // ── Projeção 90 dias: uma barra por dia COM vencimento ──
   // Só os dias que têm algo a receber. Dia vazio não vira espaço em branco —
   // as barras se distribuem pela largura toda e ficam largas o suficiente para
   // caber o valor escrito em cima.
-  const t=td(),tF=addD(t,60);
+  const t=td(),tF=addD(t,90);
   const projPend=allD().filter(r=>isPend(r)&&r.prev_pgto&&(!selDono||r.dono===selDono));
   const dia={},diaQt={};
   projPend.forEach(r=>{
@@ -3653,8 +3653,10 @@ function renderResumo(){
   const projVal=temVenc?[projVencVal,...dK.map(k=>dia[k])]:dK.map(k=>dia[k]);
   const projQt=temVenc?[projVenc.length,...dK.map(k=>diaQt[k])]:dK.map(k=>diaQt[k]);
   const projCor=projVal.map((_,i)=>(temVenc&&i===0)?'#bf2518':'#f2b01e');
-  // sem minWidth: as barras se espalham pela largura disponível do cartão
-  {const c=document.getElementById('cProj');if(c&&c.parentElement)c.parentElement.style.minWidth='';}
+  // Largura mínima de 40px por barra: no desktop os 90 dias cabem sem rolar,
+  // no celular a área rola de lado em vez de espremer as barras até sumirem.
+  {const c=document.getElementById('cProj');
+   if(c&&c.parentElement)c.parentElement.style.minWidth=Math.max(480,projLbl.length*40)+'px';}
   mkC('cProj',{type:'bar',data:{labels:projLbl,datasets:[{data:projVal,backgroundColor:projCor,borderRadius:5,borderSkipped:false,maxBarThickness:38,categoryPercentage:.86,barPercentage:.92}]},
     options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24}},
     plugins:{legend:{display:false},barLabels:{display:true,size:13,fmt:v=>v>=1000?(v/1000).toFixed(1).replace('.',',')+'k':String(Math.round(v))},
