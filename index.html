@@ -1894,8 +1894,8 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     </div>
   </div>
   <div class="card">
-    <div class="card-hd" id="hdAcum">Faturado × recebido — mensal</div>
-    <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cAcum" role="img" aria-label="faturado e recebido acumulado"></canvas></div></div>
+    <div class="card-hd" id="hdAcum">Previsto × recebido × atrasado — mensal</div>
+    <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cAcum" role="img" aria-label="previsto, recebido e atrasado por mês"></canvas></div></div>
   </div>
   <div class="card">
     <div class="card-hd" id="hdRecDono">Por proprietário — previsto × recebido</div>
@@ -1916,8 +1916,8 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <div id="resClientes"></div>
   </div>
   <div class="card">
-    <div class="card-hd">Projeção — próximos 90 dias</div>
-    <div class="cw-scroll"><div class="cw" style="height:180px"><canvas id="cProj" role="img" aria-label="projeção"></canvas></div></div>
+    <div class="card-hd">Projeção de recebimentos — próximos 90 dias</div>
+    <div class="cw-scroll"><div class="cw" style="height:210px"><canvas id="cProj" role="img" aria-label="projeção de recebimentos por semana"></canvas></div></div>
   </div>
 </div>
 
@@ -3476,23 +3476,33 @@ function renderResumo(){
   hd('hdClientes','Top 10 clientes — previsto × recebido');
   document.getElementById('resTipo').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.tipo));
 
-  // ── Faturado × Recebido acumulado (linhas) — respeita seletor previsto/recebido ──
-  const fatM={},rcvM={};
-  baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(!m)return;fatM[m]=(fatM[m]||0)+fN(r.valor);rcvM[m]=(rcvM[m]||0)+(isPago(r)?fN(r.valor_pago):0);});
-  let fatA=mShown.map(k=>fatM[k]||0), rcvA=mShown.map(k=>rcvM[k]||0);
-  if(resAcum){fatA=cumArr(fatA);rcvA=cumArr(rcvA);}
+  // ── Previsto × Recebido × Atrasado (linhas) — respeita seletor previsto/recebido ──
+  // Mesmas cores do resto do resumo: amarelo previsto, verde recebido. Atrasado
+  // (pendente com vencimento já passado) entra em vermelho.
+  const fatM={},rcvM={},atrM={};
+  baseRows.forEach(r=>{
+    const m=(r.prev_pgto||'').slice(0,7);if(!m)return;
+    fatM[m]=(fatM[m]||0)+fN(r.valor);
+    rcvM[m]=(rcvM[m]||0)+(isPago(r)?fN(r.valor_pago):0);
+    atrM[m]=(atrM[m]||0)+(isVenc(r)?fN(r.saldo):0);
+  });
+  let fatA=mShown.map(k=>fatM[k]||0), rcvA=mShown.map(k=>rcvM[k]||0), atrA=mShown.map(k=>atrM[k]||0);
+  if(resAcum){fatA=cumArr(fatA);rcvA=cumArr(rcvA);atrA=cumArr(atrA);}
+  const dsAtraso={label:'Atrasado',data:atrA,borderColor:c=>vGrad(c,'#bf2518','#ff6b6b'),backgroundColor:'rgba(191,37,24,.08)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#bf2518',pointBorderColor:'#fff',pointBorderWidth:1.5};
   const hdAcum=document.getElementById('hdAcum');
   // No modo "caixa" (Recebido), mostra só recebido; no modo "comp" (Previsto), mostra faturado vs recebido
   if(resBase==='caixa'){
-    if(hdAcum) hdAcum.textContent='Recebido'+(resAcum?' — acumulado':' — mensal');
+    if(hdAcum) hdAcum.textContent='Recebido × atrasado'+(resAcum?' — acumulado':' — mensal');
     mkC('cAcum',{type:'line',data:{labels:labelsT,datasets:[
-      {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.10)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5}
+      {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.10)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5},
+      dsAtraso
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   } else {
-    if(hdAcum) hdAcum.textContent=(resAcum?'Faturado × recebido — acumulado':'Faturado × recebido — mensal');
+    if(hdAcum) hdAcum.textContent='Previsto × recebido × atrasado'+(resAcum?' — acumulado':' — mensal');
     mkC('cAcum',{type:'line',data:{labels:labelsT,datasets:[
-      {label:'Faturado',data:fatA,borderColor:c=>vGrad(c,'#1f5fa8','#7cb3ec'),backgroundColor:'rgba(31,95,168,.10)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#1f5fa8',pointBorderColor:'#fff',pointBorderWidth:1.5},
-      {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.08)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5}
+      {label:'Previsto',data:fatA,borderColor:c=>vGrad(c,'#d99a0b','#f7c948'),backgroundColor:'rgba(242,176,30,.12)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#d99a0b',pointBorderColor:'#fff',pointBorderWidth:1.5},
+      {label:'Recebido',data:rcvA,borderColor:c=>vGrad(c,'#0d6e3e','#52c98c'),backgroundColor:'rgba(13,110,62,.08)',fill:true,borderWidth:3,tension:.35,pointRadius:2.5,pointHoverRadius:5,pointBackgroundColor:'#0d6e3e',pointBorderColor:'#fff',pointBorderWidth:1.5},
+      dsAtraso
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'10%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}}); 
   }
 
@@ -3500,13 +3510,44 @@ function renderResumo(){
   document.getElementById('resForma').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.forma));
   document.getElementById('resVeic').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.placa),{rank:true,top:10,label:p=>`<span class="placa">${p}</span>`});
   document.getElementById('resClientes').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>(r.cliente||'').trim()||'—'),{rank:true,top:10});
+  // ── Projeção 90 dias: uma barra por semana, do vencimento ──
+  // Eixo contínuo: as 13 semanas sempre aparecem, mesmo zeradas, senão o
+  // gráfico pula datas e some a noção de quando o dinheiro entra.
   const t=td(),tF=addD(t,90);
-  const pendFut=allD().filter(r=>isPend(r)&&r.prev_pgto&&r.prev_pgto>=t&&r.prev_pgto<=tF&&(!selDono||r.dono===selDono));
-  const sem={};
-  pendFut.forEach(r=>{const dt=new Date(r.prev_pgto),tDt=new Date(t);const wk=Math.max(0,Math.floor((dt-tDt)/(7*86400000)));const ws=new Date(tDt);ws.setDate(ws.getDate()+wk*7);const key=ws.toISOString().slice(0,10);sem[key]=(sem[key]||0)+fN(r.saldo);});
-  const sK=Object.keys(sem).sort();
-  {const c=document.getElementById('cProj');if(c&&c.parentElement)c.parentElement.style.minWidth=Math.max(420,sK.length*64)+'px';}
-  mkC('cProj',{type:'bar',data:{labels:sK.map(k=>{const[y,m,d]=k.split('-');return`${d}/${m}`;}),datasets:[{data:sK.map(k=>sem[k]),backgroundColor:'#1f5fa820',borderColor:'#1f5fa8',borderWidth:2,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
+  const projPend=allD().filter(r=>isPend(r)&&r.prev_pgto&&(!selDono||r.dono===selDono));
+  const sem={},semQt={};
+  const sK=[],sLbl=[];
+  for(let w=0;w<13;w++){
+    const ini=addD(t,w*7), fim=addD(t,w*7+6);
+    sK.push(ini);sem[ini]=0;semQt[ini]=0;
+    const [,mi,di]=ini.split('-'), [,mf,df]=fim.split('-');
+    sLbl.push([`${di}/${mi}`,`a ${df}/${mf}`]);   // rótulo em duas linhas
+  }
+  projPend.forEach(r=>{
+    if(r.prev_pgto<t||r.prev_pgto>tF)return;
+    const w=Math.floor((new Date(r.prev_pgto+'T12:00:00')-new Date(t+'T12:00:00'))/(7*86400000));
+    const k=sK[Math.max(0,Math.min(12,w))];
+    sem[k]+=fN(r.saldo);semQt[k]++;
+  });
+  // Vencidos entram como a primeira barra, em vermelho: é dinheiro a receber
+  // que já deveria ter entrado, e some do gráfico se olhar só para a frente.
+  const projVenc=projPend.filter(r=>r.prev_pgto<t);
+  const projVencVal=projVenc.reduce((a,r)=>a+fN(r.saldo),0);
+  const temVenc=projVencVal>0;
+  const projLbl=temVenc?[['Vencidos',`${projVenc.length} lanç.`],...sLbl]:sLbl;
+  const projVal=temVenc?[projVencVal,...sK.map(k=>sem[k])]:sK.map(k=>sem[k]);
+  const projQt=temVenc?[projVenc.length,...sK.map(k=>semQt[k])]:sK.map(k=>semQt[k]);
+  const projCor=projVal.map((_,i)=>(temVenc&&i===0)?'#bf2518':'#f2b01e');
+  {const c=document.getElementById('cProj');if(c&&c.parentElement)c.parentElement.style.minWidth=Math.max(480,projLbl.length*62)+'px';}
+  mkC('cProj',{type:'bar',data:{labels:projLbl,datasets:[{data:projVal,backgroundColor:projCor,borderRadius:6,borderSkipped:false,maxBarThickness:34}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},
+    plugins:{legend:{display:false},
+      barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},
+      tooltip:{callbacks:{
+        title:it=>{const l=it[0].label;return Array.isArray(l)?l.join(' '):l;},
+        label:ctx=>' '+fR(ctx.raw)+' · '+(projQt[ctx.dataIndex]||0)+' lançamento(s)'}}},
+    scales:{y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}},
+      x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:10.5,family:'DM Sans'}}}}}});
   requestAnimationFrame(()=>centerResScroll(mShown));
 }
 
