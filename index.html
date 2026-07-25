@@ -863,15 +863,23 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rb-bg2 { position: relative; height: 9px; border-radius: 5px; }
 .rb-bg2 .rb-f { position: absolute; left: 0; top: 0; border-radius: 5px; }
 .rb-v2 { width: 176px; display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; white-space: nowrap; }
-.rb-v2 .rb-rec { color: var(--amber); font-weight: 700; }
-.rb-v2 .rb-prev { color: var(--green); font-weight: 700; }
+.rb-v2 .rb-rec { color: var(--green); font-weight: 700; }
+.rb-v2 .rb-prev { color: var(--ink2); font-weight: 700; }
 .rb-v2 .rb-sep { color: var(--ink3); font-weight: 400; }
-.rb-leg { display: flex; gap: 14px; margin: 0 0 10px; font-size: 11.5px; color: var(--ink3); }
-.rb-leg span { display: inline-flex; align-items: center; gap: 5px; }
-.rb-leg i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+/* Cabeçalho da coluna de valores — legenda em cima do que ela nomeia. */
+.rb-cab { margin-bottom: 8px; }
+.rb-cab .rb-v2 { font-size: 11px; }
+.rb-cab .rb-bg-vazio { background: none; }
+.rb-v2 i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+.rb-v2 b { font-weight: inherit; }
+.rb-v2 .v-curto { display: none; }
 @media (max-width: 560px) {
-  .rb-v2 { width: 132px; font-size: 11px; gap: 3px; }
-  .rb-l { width: 68px; }
+  .rb-v2 { width: 112px; font-size: 11px; gap: 3px; }
+  .rb-cab .rb-v2 { font-size: 10px; }
+  .rb-v2 i { display: none; }
+  .rb-v2 .v-full { display: none; }
+  .rb-v2 .v-curto { display: inline; }
+  .rb-l { width: 64px; }
 }
 .rb-rank { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 5px; background: var(--surface); font-size: 10px; font-weight: 700; color: var(--ink3); margin-right: 6px; flex-shrink: 0; }
 .mc-delta { font-weight: 700; }
@@ -3354,6 +3362,54 @@ function renderRecebHoje(){
   </div>`;
 }
 
+// ── Painéis de barra do resumo: previsto × recebido na mesma linha ──
+// Agrupa os lançamentos do mês por uma chave qualquer (dono, tipo, forma,
+// placa, cliente) somando o previsto (valor) e o recebido (valor_pago).
+function agrupaPrevRec(rows,chave){
+  const g={};
+  rows.forEach(r=>{
+    const k=chave(r);
+    if(k===null||k===undefined||k==='')return;
+    const o=g[k]||(g[k]={prev:0,rec:0});
+    o.prev+=fN(r.valor);
+    if(isPago(r))o.rec+=fN(r.valor_pago);
+  });
+  return Object.entries(g);
+}
+// Valor por extenso no desktop e abreviado no celular (o CSS escolhe qual
+// aparece). Sem isso os dois valores estouram a coluna e espremem a barra.
+const fRk=v=>{const n=fN(v);return n>=1000?'R$ '+(n/1000).toFixed(1).replace('.',',')+'k':'R$ '+Math.round(n);};
+const vDuplo=v=>`<b class="v-full">${fR(v)}</b><b class="v-curto">${fRk(v)}</b>`;
+// Uma linha por item: amarelo = previsto (barra toda), verde = recebido por
+// cima. As duas na mesma escala (maior previsto do painel = 100%).
+function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
+  const vazio='<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
+  let lista=itens.filter(([,o])=>o.prev>0||o.rec>0).sort((a,b)=>b[1].prev-a[1].prev);
+  if(top)lista=lista.slice(0,top);
+  if(!lista.length)return vazio;
+  const mx=Math.max(...lista.map(([,o])=>Math.max(o.prev,o.rec)))||1;
+  // piso de 1.5% para que valor pequeno (mas real) não vire barra invisível
+  const larg=v=>v>0?Math.max(1.5,Math.min(100,v/mx*100)).toFixed(1):'0';
+  // Cabeçalho alinhado à coluna dos valores: diz qual número é qual.
+  // O quadradinho do Previsto é meio verde meio amarelo porque o previsto é a
+  // barra inteira — o recebido (verde) mais o que falta entrar (amarelo).
+  const leg=`<div class="rb rb-cab"><div class="rb-l"></div><div class="rb-bg rb-bg-vazio"></div>
+    <div class="rb-v rb-v2"><span class="rb-rec"><i style="background:var(--green)"></i>Recebido</span><span class="rb-sep">/</span><span class="rb-prev"><i style="background:linear-gradient(90deg,var(--green) 50%,var(--bar-rec) 50%)"></i>Previsto</span></div></div>`;
+  return leg+lista.map(([k,o],i)=>{
+    const pct=o.prev>0?Math.round(o.rec/o.prev*100):0;
+    // Amarelo = previsto (a barra toda). Verde = recebido, por cima. Quando
+    // tudo entra, o verde cobre o amarelo e a barra fica inteira verde.
+    return`<div class="rb" title="${k}: recebido ${fR(o.rec)} de ${fR(o.prev)} previstos (${pct}%)">
+      <div class="rb-l">${rank?`<span class="rb-rank">${i+1}</span>`:''}${label(k)}</div>
+      <div class="rb-bg rb-bg2">
+        <div class="rb-f" style="width:${larg(o.prev)}%;background:var(--bar-rec)"></div>
+        <div class="rb-f" style="width:${larg(o.rec)}%;background:var(--green)"></div>
+      </div>
+      <div class="rb-v rb-v2"><span class="rb-rec">${vDuplo(o.rec)}</span><span class="rb-sep">/</span><span class="rb-prev">${vDuplo(o.prev)}</span></div>
+    </div>`;
+  }).join('');
+}
+
 function renderResumo(){
   // Todos os lançamentos com prev_pgto no mês (competência de caixa)
   const rows=allD().filter(r=>(!selDono||r.dono===selDono)&&rfMatch(r)&&(r.prev_pgto||'').startsWith(curMes));
@@ -3400,18 +3456,15 @@ function renderResumo(){
     : [{label:'Recebido',data:recA,backgroundColor:'#34c759',stack:'s',borderRadius:{bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46},
        {label:'A receber',data:pendA,backgroundColor:'#f0b429',stack:'s',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46}];
   mkC('cMes',{type:'bar',data:{labels:labelsT,datasets:dsMes},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,padding:14,font:{size:11.5}}},barLabels:{display:true,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>items.length>1?'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0)):''}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:false}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
-  const bT={};rows.forEach(r=>{const _v=valBase(r);if(_v>0)bT[r.tipo]=(bT[r.tipo]||0)+_v;});
-  const tK=Object.keys(bT).sort((a,b)=>bT[b]-bT[a]);
-  const tC={Locação:'#1f5fa8',Avarias:'#c42b1c',Lavagem:'#0d6e3e',Multas:'#92600a',Outros:'#888','Taxa Mario':'#5b35d5','Taxa Alfredo':'#5b35d5','Taxa Bruno':'#5b35d5'};
-  const mxt=tK.length?bT[tK[0]]:1;
-  const _elTipoHd=document.getElementById('hdTipo');if(_elTipoHd)_elTipoHd.textContent='Por tipo'+(resBase==='caixa'?' (recebido)':'');
-  const _sfx=resBase==='caixa'?' (recebido)':'';
-  // Este painel mostra previsto E recebido juntos, então não segue o seletor.
-  const _elDono=document.getElementById('hdRecDono');if(_elDono)_elDono.textContent='Por proprietário — previsto × recebido';
-  const _elForma=document.getElementById('hdForma');if(_elForma)_elForma.textContent='Por forma de recebimento'+_sfx;
-  const _elVeic=document.getElementById('hdVeic');if(_elVeic)_elVeic.textContent='Top 10 veículos'+_sfx;
-  const _elCli=document.getElementById('hdClientes');if(_elCli)_elCli.textContent='Top 10 clientes'+_sfx;
-  document.getElementById('resTipo').innerHTML=tK.length?tK.map(k=>`<div class="rb"><div class="rb-l">${k}</div><div class="rb-bg"><div class="rb-f" style="width:${(bT[k]/(mxt||1)*100).toFixed(1)}%;background:${tC[k]||'#888'}"></div></div><div class="rb-v">${fR(bT[k])}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
+  // Os painéis de barra mostram previsto E recebido juntos, então não seguem
+  // o seletor previsto/recebido (que continua valendo para os gráficos).
+  const hd=(id,txt)=>{const el=document.getElementById(id);if(el)el.textContent=txt;};
+  hd('hdTipo','Por tipo — previsto × recebido');
+  hd('hdRecDono','Por proprietário — previsto × recebido');
+  hd('hdForma','Por forma de recebimento — previsto × recebido');
+  hd('hdVeic','Top 10 veículos — previsto × recebido');
+  hd('hdClientes','Top 10 clientes — previsto × recebido');
+  document.getElementById('resTipo').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.tipo));
 
   // ── Faturado × Recebido acumulado (linhas) — respeita seletor previsto/recebido ──
   const fatM={},rcvM={};
@@ -3442,47 +3495,10 @@ function renderResumo(){
   const hdResLiq=document.getElementById('hdResLiq'); if(hdResLiq) hdResLiq.textContent='Resultado líquido (receitas − despesas)'+acumSfx;
   mkC('cResLiq',{type:'bar',data:{labels:labelsT,datasets:[{label:'Resultado',data:resArr,backgroundColor:resArr.map(v=>v>=0?'#34c759':'#c42b1c'),borderRadius:6,borderSkipped:false,maxBarThickness:46}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:false},barLabels:{display:true,fmt:v=>v?'R$'+Math.round(v/1000)+'k':''},tooltip:{callbacks:{label:ctx=>' '+fR(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false,font:{size:11,family:'DM Sans'}}},y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
 
-  // ── Por proprietário: previsto e recebido na MESMA linha ──
-  // Uma barra só por dono: verde = previsto (todo o mês), amarela = o que já
-  // entrou, desenhada por cima. As duas na mesma escala (maior previsto = 100%).
-  const bRD={};
-  rows.forEach(r=>{
-    if(!r.dono)return;
-    const o=bRD[r.dono]||(bRD[r.dono]={prev:0,rec:0});
-    o.prev+=fN(r.valor);
-    if(isPago(r))o.rec+=fN(r.valor_pago);
-  });
-  const srd=Object.entries(bRD).filter(([,o])=>o.prev>0||o.rec>0).sort((a,b)=>b[1].prev-a[1].prev);
-  const mxrd=srd.length?Math.max(...srd.map(([,o])=>Math.max(o.prev,o.rec)))||1:1;
-  const legRD=`<div class="rb-leg"><span><i style="background:var(--green)"></i>Previsto</span><span><i style="background:var(--bar-rec)"></i>Recebido</span></div>`;
-  document.getElementById('resRecDono').innerHTML=srd.length?legRD+srd.map(([d,o],i)=>{
-    // piso de 1.5% para que valor pequeno (mas real) não vire barra invisível
-    const larg=v=>v>0?Math.max(1.5,Math.min(100,v/mxrd*100)).toFixed(1):'0';
-    const wP=larg(o.prev), wR=larg(o.rec);
-    const pctRec=o.prev>0?Math.round(o.rec/o.prev*100):0;
-    return`<div class="rb" title="${d}: recebido ${fR(o.rec)} de ${fR(o.prev)} previstos (${pctRec}%)">
-      <div class="rb-l"><span class="rb-rank">${i+1}</span>${d}</div>
-      <div class="rb-bg rb-bg2">
-        <div class="rb-f" style="width:${wP}%;background:var(--green)"></div>
-        <div class="rb-f" style="width:${wR}%;background:var(--bar-rec)"></div>
-      </div>
-      <div class="rb-v rb-v2"><span class="rb-rec">${fR(o.rec)}</span><span class="rb-sep">/</span><span class="rb-prev">${fR(o.prev)}</span></div>
-    </div>`;
-  }).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
-  const bF={};rows.forEach(r=>{const _vf=valBase(r);if(_vf>0)bF[r.forma]=(bF[r.forma]||0)+_vf;});
-  const fK=Object.keys(bF).sort((a,b)=>bF[b]-bF[a]);
-  const maxF=bF[fK[0]]||1;
-  const fC=['#1f5fa8','#0d6e3e','#92600a','#c42b1c','#5b35d5','#0a7272','#555'];
-  document.getElementById('resForma').innerHTML=fK.map((k,i)=>`<div class="rb"><div class="rb-l">${k}</div><div class="rb-bg"><div class="rb-f" style="width:${(bF[k]/maxF*100).toFixed(1)}%;background:${fC[i%fC.length]}"></div></div><div class="rb-v">${fR(bF[k])}</div></div>`).join('');
-  const bV={};rows.forEach(r=>{const _vv=valBase(r);if(_vv>0){if(!bV[r.placa])bV[r.placa]={v:0,d:r.dono};bV[r.placa].v+=_vv;}});
-  const sv=Object.entries(bV).sort((a,b)=>b[1].v-a[1].v).slice(0,10);
-  const mx=sv[0]?sv[0][1].v:1;
-  document.getElementById('resVeic').innerHTML=sv.length?sv.map(([p,o],i)=>`<div class="rb"><div class="rb-l"><span class="rb-rank">${i+1}</span><span class="placa">${p}</span></div><div class="rb-bg"><div class="rb-f" style="width:${(o.v/mx*100).toFixed(1)}%;background:${DC[o.d]||'#1f5fa8'}"></div></div><div class="rb-v">${fR(o.v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
-  // Top 10 clientes
-  const bC={};rows.forEach(r=>{const c=(r.cliente||'').trim()||'—';const _vc=valBase(r);if(_vc>0){if(!bC[c])bC[c]=0;bC[c]+=_vc;}});
-  const sc=Object.entries(bC).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const mxc=sc[0]?sc[0][1]:1;
-  document.getElementById('resClientes').innerHTML=sc.length?sc.map(([c,v],i)=>`<div class="rb"><div class="rb-l" title="${c}"><span class="rb-rank">${i+1}</span>${c}</div><div class="rb-bg"><div class="rb-f" style="width:${(v/mxc*100).toFixed(1)}%;background:rgba(31,95,168,${(1-i*0.07).toFixed(2)})"></div></div><div class="rb-v">${fR(v)}</div></div>`).join(''):'<div style="color:var(--ink3);font-size:12.5px;padding:8px 0">Sem dados no período.</div>';
+  document.getElementById('resRecDono').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.dono),{rank:true});
+  document.getElementById('resForma').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.forma));
+  document.getElementById('resVeic').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.placa),{rank:true,top:10,label:p=>`<span class="placa">${p}</span>`});
+  document.getElementById('resClientes').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>(r.cliente||'').trim()||'—'),{rank:true,top:10});
   const t=td(),tF=addD(t,90);
   const pendFut=allD().filter(r=>isPend(r)&&r.prev_pgto&&r.prev_pgto>=t&&r.prev_pgto<=tF&&(!selDono||r.dono===selDono));
   const sem={};
