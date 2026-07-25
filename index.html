@@ -853,7 +853,25 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .cw-scroll .cw { width: auto; }
 
 /* RANK BAR */
-.rb { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.rb { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; position: relative; }
+/* Lista de atrasados ao passar o mouse na barra. */
+.rb-tip {
+  display: none; position: absolute; left: 92px; top: calc(100% + 5px); z-index: 60;
+  min-width: 300px; max-width: 440px; padding: 10px 12px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--line);
+  box-shadow: 0 12px 32px rgba(15,25,45,.18); font-size: 12px; color: var(--ink);
+  text-align: left; white-space: normal; cursor: default;
+}
+.rb:hover .rb-tip { display: block; }
+.rb-tip-hd { font-weight: 700; color: var(--red); margin-bottom: 7px; font-size: 12px; }
+.rb-tip-l { display: grid; grid-template-columns: 46px 1fr auto; gap: 4px 9px; align-items: baseline; padding: 3px 0; border-top: 1px solid var(--line); }
+.rb-tip-l:first-of-type { border-top: 0; }
+.rb-tip-d { color: var(--red); font-weight: 700; font-variant-numeric: tabular-nums; }
+.rb-tip-c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rb-tip-c small { color: var(--ink3); font-size: 10.5px; margin-left: 5px; }
+.rb-tip-v { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rb-tip-mais { color: var(--ink3); font-size: 11px; padding-top: 5px; }
+@media (max-width: 560px) { .rb-tip { left: 0; min-width: 0; max-width: 88vw; } }
 .rb-l { font-size: 12.5px; width: 90px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rb-bg { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
 .rb-f { height: 100%; border-radius: 3px; transition: width .6s ease; }
@@ -1886,23 +1904,23 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <option value="1">Acumulado</option>
     </select>
   </div>
-  <div class="g2">
-    <div class="card">
-      <div class="card-hd" id="hdMes">Faturado por mês</div>
-      <div class="cw-scroll"><div class="cw" style="height:220px"><canvas id="cMes" role="img" aria-label="mensal"></canvas></div></div>
-    </div>
-    <div class="card">
-      <div class="card-hd" id="hdTipo">Por tipo</div>
-      <div id="resTipo"></div>
-    </div>
+  <div class="card">
+    <div class="card-hd" id="hdMes">Faturado por mês</div>
+    <div class="cw-scroll"><div class="cw" style="height:260px"><canvas id="cMes" role="img" aria-label="mensal"></canvas></div></div>
   </div>
   <div class="card">
     <div class="card-hd" id="hdAcum">Previsto × recebido × atrasado — mensal</div>
     <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cAcum" role="img" aria-label="previsto, recebido e atrasado por mês"></canvas></div></div>
   </div>
-  <div class="card">
-    <div class="card-hd" id="hdRecDono">Por proprietário — previsto × recebido</div>
-    <div id="resRecDono"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd" id="hdRecDono">Por proprietário — previsto × recebido</div>
+      <div id="resRecDono"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd" id="hdTipo">Por tipo</div>
+      <div id="resTipo"></div>
+    </div>
   </div>
   <div class="g2">
     <div class="card">
@@ -3383,12 +3401,31 @@ function agrupaPrevRec(rows,chave){
   rows.forEach(r=>{
     const k=chave(r);
     if(k===null||k===undefined||k==='')return;
-    const o=g[k]||(g[k]={prev:0,rec:0,atr:0});
+    const o=g[k]||(g[k]={prev:0,rec:0,atr:0,atrRows:[]});
     o.prev+=fN(r.valor);
     if(isPago(r))o.rec+=fN(r.valor_pago);
-    else if(isVenc(r))o.atr+=fN(r.saldo);
+    else if(isVenc(r)){o.atr+=fN(r.saldo);o.atrRows.push(r);}
   });
   return Object.entries(g);
+}
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// Lista de atrasados que aparece ao passar o mouse na barra: quem, quanto,
+// quando venceu e há quantos dias. Ordenada do mais antigo para o mais novo,
+// que é a ordem em que se cobra.
+function tipAtraso(o){
+  if(!o.atr||!o.atrRows||!o.atrRows.length)return '';
+  const hoje=td();
+  const lista=[...o.atrRows].sort((a,b)=>(a.prev_pgto||'').localeCompare(b.prev_pgto||''));
+  const MAX=12;
+  const linhas=lista.slice(0,MAX).map(r=>{
+    const d=Math.round((new Date(hoje+'T12:00:00')-new Date(r.prev_pgto+'T12:00:00'))/86400000);
+    const[,m,dd]=r.prev_pgto.split('-');
+    return`<div class="rb-tip-l"><span class="rb-tip-d">${dd}/${m}</span>
+      <span class="rb-tip-c">${esc(r.cliente||'—')}<small>${esc(r.placa||'')} · ${d}d</small></span>
+      <span class="rb-tip-v">${fR(r.saldo)}</span></div>`;
+  }).join('');
+  const resto=lista.length>MAX?`<div class="rb-tip-mais">+${lista.length-MAX} lançamento(s)…</div>`:'';
+  return`<div class="rb-tip"><div class="rb-tip-hd">⚠ ${lista.length} atrasado(s) · ${fR(o.atr)}</div>${linhas}${resto}</div>`;
 }
 // Valor por extenso no desktop e abreviado no celular (o CSS escolhe qual
 // aparece). Sem isso os dois valores estouram a coluna e espremem a barra.
@@ -3428,6 +3465,7 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
         ${o.rec>0?`<span class="rb-pt" style="left:${wR}%"></span>`:''}
       </div>
       <div class="rb-v rb-v2"><span class="rb-rec">${vDuplo(o.rec)}</span><span class="rb-sep">/</span><span class="rb-prev">${vDuplo(o.prev)}</span></div>
+      ${tipAtraso(o)}
     </div>`;
   }).join('');
 }
