@@ -859,9 +859,19 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rb-f { height: 100%; border-radius: 3px; transition: width .6s ease; }
 .rb-v { font-size: 12.5px; font-weight: 600; width: 90px; text-align: right; flex-shrink: 0; }
 #resClientes .rb-l { width: 150px; }
-/* Barra dupla numa linha só: verde = previsto, amarela = recebido por cima. */
-.rb-bg2 { position: relative; height: 9px; border-radius: 5px; }
-.rb-bg2 .rb-f { position: absolute; left: 0; top: 0; border-radius: 5px; }
+/* Barra dupla numa linha só: amarela = previsto, verde = recebido por cima.
+   Traço fino de pontas arredondadas, com um ponto marcando onde o recebido
+   termina — mesmo acabamento das barras de contratos/despesas. */
+.rb-bg2 { position: relative; height: 5px; border-radius: 999px; overflow: visible; }
+.rb-bg2 .rb-f { position: absolute; left: 0; top: 0; border-radius: 999px; }
+/* Halo suave por baixo do traço, como nas barras do print. */
+.rb-f-prev { background: var(--bar-rec); box-shadow: 0 1px 5px rgba(242,176,30,.45); }
+.rb-f-rec { background: var(--green); box-shadow: 0 1px 5px rgba(10,100,57,.32); }
+html[data-theme="dark"] .rb-f-prev { box-shadow: 0 1px 6px rgba(247,201,72,.32); }
+html[data-theme="dark"] .rb-f-rec { box-shadow: 0 1px 6px rgba(54,211,153,.28); }
+.rb-pt { position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--green); border: 2px solid var(--card); transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.05); transition: left .6s ease; }
 .rb-v2 { width: 176px; display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; white-space: nowrap; }
 .rb-v2 .rb-rec { color: var(--green); font-weight: 700; }
 /* Texto usa o --amber (amarelo escurecido no tema claro): o --bar-rec das
@@ -3403,8 +3413,9 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
     return`<div class="rb" title="${k}: recebido ${fR(o.rec)} de ${fR(o.prev)} previstos (${Math.round(pct)}%)">
       <div class="rb-l">${rank?`<span class="rb-rank">${i+1}</span>`:''}${label(k)}</div>
       <div class="rb-bg rb-bg2">
-        <div class="rb-f" style="width:100%;background:var(--bar-rec)"></div>
-        <div class="rb-f" style="width:${wR}%;background:var(--green)"></div>
+        <div class="rb-f rb-f-prev" style="width:100%"></div>
+        <div class="rb-f rb-f-rec" style="width:${wR}%"></div>
+        ${o.rec>0?`<span class="rb-pt" style="left:${wR}%"></span>`:''}
       </div>
       <div class="rb-v rb-v2"><span class="rb-rec">${vDuplo(o.rec)}</span><span class="rb-sep">/</span><span class="rb-prev">${vDuplo(o.prev)}</span></div>
     </div>`;
