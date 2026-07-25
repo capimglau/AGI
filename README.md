@@ -31,7 +31,7 @@ ler e gravar de verdade.
 1. Crie um projeto em https://supabase.com.
 2. Abra **SQL Editor** e rode, nesta ordem:
    - `supabase/schema.sql` (cria a tabela `lancamentos` e as políticas)
-   - `supabase/seed.sql` (carrega os 597 lançamentos iniciais)
+   - `supabase/seed.sql` (carrega os 603 lançamentos iniciais)
 3. Em **Project Settings → API**, copie:
    - **Project URL**
    - chave **anon public**
@@ -94,7 +94,7 @@ políticas em `schema.sql` para usuários autenticados.
 index.html                          App (front-end)
 config.js                           Credenciais do Supabase (edite aqui)
 supabase/schema.sql                 Cria a tabela e as políticas
-supabase/seed.sql                   Carrega os 597 lançamentos iniciais
+supabase/seed.sql                   Carrega os 603 lançamentos iniciais
 supabase/functions/ai-contrato/     Edge Function opcional (IA por foto)
 .github/workflows/deploy.yml        Publicação automática no GitHub Pages
 ```
