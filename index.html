@@ -882,6 +882,9 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 }
 .bol-feito .bol-ck { background: var(--green); border-color: var(--green); }
 .bol-feito .bol-l { color: var(--ink3); text-decoration: line-through; }
+/* Emitido sai de cena: linha inteira esmaecida — traço, valor e visto junto. */
+.rb-bol.bol-feito { opacity: .42; }
+.rb-bol.bol-feito:hover { opacity: .72; }
 .bol-l { width: 168px; font-size: 12.5px; }
 .bol-l small { display: block; color: var(--ink3); font-size: 10.5px; text-decoration: none; }
 .rb-bol-leg { color: var(--ink3); font-weight: 500; font-size: 10.5px; }
@@ -2990,7 +2993,7 @@ if(window.Chart){
       for(let d=n-1;d>=0;d--){const m=chart.getDatasetMeta(d);if(!m.hidden){topMeta=m;break;}}
       if(!topMeta)return;
       ctx.save();
-      ctx.font=(opts.vert?'600 9px':'600 10px')+' "DM Sans", sans-serif';
+      ctx.font=`700 ${opts.size||(opts.vert?9:10)}px "DM Sans", sans-serif`;
       ctx.fillStyle='#3a3a44'; ctx.textAlign=opts.vert?'left':'center';
       topMeta.data.forEach((bar,i)=>{
         let tot=0;for(let d=0;d<n;d++){if(chart.getDatasetMeta(d).hidden)continue;tot+=ds[d].data[i]||0;}
@@ -3631,23 +3634,20 @@ function renderResumo(){
   document.getElementById('resVeic').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.placa),{rank:true,top:10,label:p=>`<span class="placa">${p}</span>`});
   document.getElementById('resClientes').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>(r.cliente||'').trim()||'—'),{rank:true,top:10});
   renderBoletosPainel(rows);
-  // ── Projeção 60 dias: uma barra por DIA de vencimento ──
-  // Eixo contínuo (todos os 61 dias, mesmo zerados) e barras finas o bastante
-  // para o período inteiro caber na largura do cartão, sem rolagem lateral.
+  // ── Projeção 60 dias: uma barra por dia COM vencimento ──
+  // Só os dias que têm algo a receber. Dia vazio não vira espaço em branco —
+  // as barras se distribuem pela largura toda e ficam largas o suficiente para
+  // caber o valor escrito em cima.
   const t=td(),tF=addD(t,60);
   const projPend=allD().filter(r=>isPend(r)&&r.prev_pgto&&(!selDono||r.dono===selDono));
-  const dia={},diaQt={},dK=[],dLbl=[];
-  for(let n=0;n<=60;n++){
-    const d=addD(t,n);
-    dK.push(d);dia[d]=0;diaQt[d]=0;
-    const [,mm,dd]=d.split('-');
-    dLbl.push(`${dd}/${mm}`);
-  }
+  const dia={},diaQt={};
   projPend.forEach(r=>{
     if(r.prev_pgto<t||r.prev_pgto>tF)return;
     dia[r.prev_pgto]=(dia[r.prev_pgto]||0)+fN(r.saldo);
     diaQt[r.prev_pgto]=(diaQt[r.prev_pgto]||0)+1;
   });
+  const dK=Object.keys(dia).sort();
+  const dLbl=dK.map(d=>{const[,mm,dd]=d.split('-');return`${dd}/${mm}`;});
   // Vencidos entram como a primeira barra, em vermelho: é dinheiro a receber
   // que já deveria ter entrado, e some do gráfico se olhar só para a frente.
   const projVenc=projPend.filter(r=>r.prev_pgto<t);
@@ -3657,16 +3657,16 @@ function renderResumo(){
   const projVal=temVenc?[projVencVal,...dK.map(k=>dia[k])]:dK.map(k=>dia[k]);
   const projQt=temVenc?[projVenc.length,...dK.map(k=>diaQt[k])]:dK.map(k=>diaQt[k]);
   const projCor=projVal.map((_,i)=>(temVenc&&i===0)?'#bf2518':'#f2b01e');
-  // sem minWidth: com 91 dias o gráfico se ajusta à largura disponível
+  // sem minWidth: as barras se espalham pela largura disponível do cartão
   {const c=document.getElementById('cProj');if(c&&c.parentElement)c.parentElement.style.minWidth='';}
-  mkC('cProj',{type:'bar',data:{labels:projLbl,datasets:[{data:projVal,backgroundColor:projCor,borderRadius:2,borderSkipped:false,maxBarThickness:7,categoryPercentage:.9,barPercentage:.9}]},
-    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:46}},
-    plugins:{legend:{display:false},barLabels:{display:true,vert:true,fmt:v=>v>=1000?'R$ '+(v/1000).toFixed(1).replace('.',',')+'k':'R$ '+Math.round(v)},
+  mkC('cProj',{type:'bar',data:{labels:projLbl,datasets:[{data:projVal,backgroundColor:projCor,borderRadius:5,borderSkipped:false,maxBarThickness:38,categoryPercentage:.86,barPercentage:.92}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24}},
+    plugins:{legend:{display:false},barLabels:{display:true,size:13,fmt:v=>v>=1000?(v/1000).toFixed(1).replace('.',',')+'k':String(Math.round(v))},
       tooltip:{callbacks:{
         title:it=>it[0].label==='Vencidos'?'Vencidos':'Vence em '+it[0].label,
         label:ctx=>' '+fR(ctx.raw)+' · '+(projQt[ctx.dataIndex]||0)+' lançamento(s)'}}},
-    scales:{y:{beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}},
-      x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:13,font:{size:10,family:'DM Sans'}}}}}});
+    scales:{y:{beginAtZero:true,grace:'14%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5,font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{display:false,dash:[4,4]}},
+      x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,font:{size:11,family:'DM Sans'}}}}}});
   requestAnimationFrame(()=>centerResScroll(mShown));
 }
 
