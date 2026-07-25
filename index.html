@@ -1937,8 +1937,8 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <div id="resClientes"></div>
   </div>
   <div class="card">
-    <div class="card-hd">Projeção de recebimentos — próximos 90 dias</div>
-    <div class="cw-scroll"><div class="cw" style="height:210px"><canvas id="cProj" role="img" aria-label="projeção de recebimentos por semana"></canvas></div></div>
+    <div class="card-hd">Projeção de recebimentos — próximos 60 dias</div>
+    <div class="cw-scroll"><div class="cw" style="height:250px"><canvas id="cProj" role="img" aria-label="projeção de recebimentos por semana"></canvas></div></div>
   </div>
 </div>
 
@@ -2988,12 +2988,17 @@ if(window.Chart){
       for(let d=n-1;d>=0;d--){const m=chart.getDatasetMeta(d);if(!m.hidden){topMeta=m;break;}}
       if(!topMeta)return;
       ctx.save();
-      ctx.font='600 10px "DM Sans", sans-serif';
-      ctx.fillStyle='#3a3a44'; ctx.textAlign='center';
+      ctx.font=(opts.vert?'600 9px':'600 10px')+' "DM Sans", sans-serif';
+      ctx.fillStyle='#3a3a44'; ctx.textAlign=opts.vert?'left':'center';
       topMeta.data.forEach((bar,i)=>{
         let tot=0;for(let d=0;d<n;d++){if(chart.getDatasetMeta(d).hidden)continue;tot+=ds[d].data[i]||0;}
         if(!tot)return;
-        ctx.fillText((opts.fmt?opts.fmt(tot):tot), bar.x, bar.y-6);
+        const txt=(opts.fmt?opts.fmt(tot):tot);
+        if(opts.vert){
+          // Rótulo em pé: com uma barra por dia, deitado um encavala no outro.
+          ctx.save();ctx.translate(bar.x+3,bar.y-5);ctx.rotate(-Math.PI/2);
+          ctx.fillText(txt,0,0);ctx.restore();
+        } else ctx.fillText(txt, bar.x, bar.y-6);
       });
       ctx.restore();
     }
@@ -3409,6 +3414,28 @@ function agrupaPrevRec(rows,chave){
   return Object.entries(g);
 }
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// Faixas da barra, lado a lado e sem sobreposição: verde o recebido, vermelho
+// o atrasado, amarelo o que ainda vai vencer. Lado a lado, e não empilhadas,
+// porque cada faixa tem o seu halo colorido — uma camada amarela por baixo do
+// verde faria o brilho vazar e uma barra 100% recebida pareceria amarelada.
+function faixas(o){
+  const tot=o.prev>0?o.prev:(o.rec+o.atr);
+  if(!(tot>0))return '';
+  const resto=Math.max(0,tot-o.rec-o.atr);
+  let seg=[['rb-f-rec',o.rec],['rb-f-atr',o.atr],['rb-f-prev',resto]]
+    .filter(([,v])=>v>0).map(([cls,v])=>[cls,Math.max(1.5,v/tot*100)]);
+  if(!seg.length)return '';
+  // o piso pode estourar os 100%: desconta do maior pedaço
+  const som=seg.reduce((a,[,w])=>a+w,0);
+  if(som>100){const i=seg.reduce((m,s,j)=>s[1]>seg[m][1]?j:m,0);seg[i][1]-=som-100;}
+  let x=0;
+  return seg.map(([cls,w],i)=>{
+    const bd=`border-radius:${i===0?'999px':'0'} ${i===seg.length-1?'999px':'0'} ${i===seg.length-1?'999px':'0'} ${i===0?'999px':'0'}`;
+    const html=`<div class="rb-f ${cls}" style="left:${x.toFixed(1)}%;width:${w.toFixed(1)}%;${bd}"></div>`;
+    x+=w;
+    return html;
+  }).join('')+(o.rec>0&&resto+o.atr>0?`<span class="rb-pt" style="left:${Math.min(100,Math.max(1.5,o.rec/tot*100)).toFixed(1)}%"></span>`:'');
+}
 // Lista de atrasados que aparece ao passar o mouse na barra: quem, quanto,
 // quando venceu e há quantos dias. Ordenada do mais antigo para o mais novo,
 // que é a ordem em que se cobra.
@@ -3449,21 +3476,10 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
     <div class="rb-v rb-v2"><span class="rb-rec"><i style="background:var(--green)"></i>Recebido</span>${temAtraso?`<span class="rb-atr"><i style="background:var(--red)"></i>Atrasado</span>`:''}<span class="rb-sep">/</span><span class="rb-prev"><i style="background:var(--bar-rec)"></i>Previsto</span></div></div>`;
   return leg+lista.map(([k,o],i)=>{
     const pct=o.prev>0?Math.min(100,o.rec/o.prev*100):(o.rec>0?100:0);
-    // piso de 1.5% para que recebimento pequeno (mas real) apareça
-    const wR=pct>0?Math.max(1.5,pct).toFixed(1):'0';
-    // Faixa vermelha: o atrasado começa onde o recebido termina. Desenhada
-    // entre o amarelo e o verde, então sobra amarelo só no que ainda vai vencer.
-    const pctA=o.prev>0?Math.min(100,(o.rec+o.atr)/o.prev*100):0;
-    const wA=o.atr>0?Math.max(+wR+1.5,pctA).toFixed(1):'0';
     const tAtr=o.atr>0?` · atrasado ${fR(o.atr)}`:'';
     return`<div class="rb" title="${k}: recebido ${fR(o.rec)} de ${fR(o.prev)} previstos (${Math.round(pct)}%)${tAtr}">
       <div class="rb-l">${rank?`<span class="rb-rank">${i+1}</span>`:''}${label(k)}</div>
-      <div class="rb-bg rb-bg2">
-        <div class="rb-f rb-f-prev" style="width:100%"></div>
-        ${o.atr>0?`<div class="rb-f rb-f-atr" style="width:${wA}%"></div>`:''}
-        <div class="rb-f rb-f-rec" style="width:${wR}%"></div>
-        ${o.rec>0?`<span class="rb-pt" style="left:${wR}%"></span>`:''}
-      </div>
+      <div class="rb-bg rb-bg2">${faixas(o)}</div>
       <div class="rb-v rb-v2"><span class="rb-rec">${vDuplo(o.rec)}</span><span class="rb-sep">/</span><span class="rb-prev">${vDuplo(o.prev)}</span></div>
       ${tipAtraso(o)}
     </div>`;
@@ -3567,13 +3583,13 @@ function renderResumo(){
   document.getElementById('resForma').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.forma));
   document.getElementById('resVeic').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.placa),{rank:true,top:10,label:p=>`<span class="placa">${p}</span>`});
   document.getElementById('resClientes').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>(r.cliente||'').trim()||'—'),{rank:true,top:10});
-  // ── Projeção 90 dias: uma barra por DIA de vencimento ──
-  // Eixo contínuo (todos os 91 dias, mesmo zerados) e barras finas o bastante
+  // ── Projeção 60 dias: uma barra por DIA de vencimento ──
+  // Eixo contínuo (todos os 61 dias, mesmo zerados) e barras finas o bastante
   // para o período inteiro caber na largura do cartão, sem rolagem lateral.
-  const t=td(),tF=addD(t,90);
+  const t=td(),tF=addD(t,60);
   const projPend=allD().filter(r=>isPend(r)&&r.prev_pgto&&(!selDono||r.dono===selDono));
   const dia={},diaQt={},dK=[],dLbl=[];
-  for(let n=0;n<=90;n++){
+  for(let n=0;n<=60;n++){
     const d=addD(t,n);
     dK.push(d);dia[d]=0;diaQt[d]=0;
     const [,mm,dd]=d.split('-');
@@ -3596,8 +3612,8 @@ function renderResumo(){
   // sem minWidth: com 91 dias o gráfico se ajusta à largura disponível
   {const c=document.getElementById('cProj');if(c&&c.parentElement)c.parentElement.style.minWidth='';}
   mkC('cProj',{type:'bar',data:{labels:projLbl,datasets:[{data:projVal,backgroundColor:projCor,borderRadius:2,borderSkipped:false,maxBarThickness:7,categoryPercentage:.9,barPercentage:.9}]},
-    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:8}},
-    plugins:{legend:{display:false},barLabels:{display:false},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:46}},
+    plugins:{legend:{display:false},barLabels:{display:true,vert:true,fmt:v=>v>=1000?'R$ '+(v/1000).toFixed(1).replace('.',',')+'k':'R$ '+Math.round(v)},
       tooltip:{callbacks:{
         title:it=>it[0].label==='Vencidos'?'Vencidos':'Vence em '+it[0].label,
         label:ctx=>' '+fR(ctx.raw)+' · '+(projQt[ctx.dataIndex]||0)+' lançamento(s)'}}},
