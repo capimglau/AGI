@@ -916,6 +916,8 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 }
 .vc-chip i { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .vc-chip b { font-weight: 700; color: var(--ink3); font-size: 11px; }
+.vc-dia b { color: var(--ink); font-size: 12px; font-variant-numeric: tabular-nums; }
+.vc-dia small { color: var(--ink3); font-size: 10.5px; }
 .vc-chip em { font-style: normal; font-weight: 700; color: var(--red); }
 .vc-datas { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 11.5px; color: var(--ink3); }
 /* Os dois cartões lado a lado: mesma altura, sem margem dupla entre eles. */
@@ -3022,7 +3024,8 @@ if(window.Chart){
       if(!topMeta)return;
       ctx.save();
       ctx.font=`700 ${opts.size||(opts.vert?9:10)}px "DM Sans", sans-serif`;
-      ctx.fillStyle='#3a3a44'; ctx.textAlign=opts.vert?'left':'center';
+      // no tema escuro o cinza-chumbo some no fundo: o rótulo segue o tema
+      ctx.fillStyle=isDark()?'#e8ecf4':'#3a3a44'; ctx.textAlign=opts.vert?'left':'center';
       topMeta.data.forEach((bar,i)=>{
         let tot=0;for(let d=0;d<n;d++){if(chart.getDatasetMeta(d).hidden)continue;tot+=ds[d].data[i]||0;}
         if(!tot)return;
@@ -3415,19 +3418,18 @@ function renderRecebHoje(){
   // ── Esquerda: vencidos, em resumo (quem, quanto, de quando) ──
   let cardVenc;
   if(vencidos.length){
-    const porDono={};
-    vencidos.forEach(r=>{const d=r.dono||'—';const o=porDono[d]||(porDono[d]={n:0,v:0});o.n++;o.v+=fN(r.saldo);});
-    const donos=Object.entries(porDono).sort((a,b)=>b[1].v-a[1].v);
-    const datas=vencidos.map(r=>r.prev_pgto).filter(Boolean).sort();
-    const maisAntigo=datas[0], maisNovo=datas[datas.length-1];
+    // Uma pastilha por DIA de vencimento, do mais antigo para o mais novo —
+    // é o que diz o tamanho do atraso e a ordem em que se cobra. Antes era por
+    // proprietário, que não responde "de quando é esse dinheiro".
+    const porDia={};
+    vencidos.forEach(r=>{const d=r.prev_pgto||'—';const o=porDia[d]||(porDia[d]={n:0,v:0});o.n++;o.v+=fN(r.saldo);});
+    const listaDias=Object.entries(porDia).sort((a,b)=>a[0].localeCompare(b[0]));
     cardVenc=`<div class="receb-hoje modo-venc vc-resumo" role="button" tabindex="0" onclick="irVencidos()" title="Ver todos os vencidos">
       <div class="rh-hd"><span>⚠ Recebimentos vencidos</span><span class="rh-sub">${vencidos.length} · ${fR(totVenc)}</span></div>
-      <div class="vc-donos">${donos.map(([d,o])=>{const col=DC[d]||'#888';
-        return`<span class="vc-chip"><i style="background:${col}"></i>${esc(d)}<b>${o.n}</b><em>${fRk(o.v)}</em></span>`;}).join('')}</div>
-      <div class="vc-datas">
-        <span>Mais antigo <b>${fmtD(maisAntigo)}</b> · ${dias(maisAntigo)} dia(s)</span>
-        ${maisNovo!==maisAntigo?`<span>Mais recente <b>${fmtD(maisNovo)}</b> · ${dias(maisNovo)} dia(s)</span>`:''}
-      </div>
+      <div class="vc-donos">${listaDias.map(([d,o])=>
+        `<span class="vc-chip vc-dia" title="${o.n} lançamento(s) vencido(s) em ${d==='—'?'sem data':fmtD(d)}">
+          <b>${d==='—'?'sem data':fmtD(d)}</b>${d==='—'?'':`<small>${dias(d)}d</small>`}<em>${fRk(o.v)}</em>
+        </span>`).join('')}</div>
       <div class="rh-foot">Ver todos os vencidos ›</div>
     </div>`;
   } else {
