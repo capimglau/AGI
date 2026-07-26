@@ -862,10 +862,16 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
   box-shadow: 0 12px 32px rgba(15,25,45,.18); font-size: 12px; color: var(--ink);
   text-align: left; white-space: normal; cursor: default;
 }
-.rb:hover .rb-tip { display: block; }
+/* No toque o :hover fica grudado na última linha tocada, e o segundo toque não
+   fecharia mais nada — por isso o hover vale só para quem tem mouse. */
+@media (hover: hover) {
+  .rb:hover .rb-tip { display: block; }
+  .card:has(.rb:hover) { position: relative; z-index: 40; }
+}
+.rb.tip-on .rb-tip { display: block; }
 /* O cartão tem backdrop-filter, o que cria contexto de empilhamento: sem
    levantar o cartão inteiro, o próximo painel pinta por cima do tooltip. */
-.card:has(.rb:hover) { position: relative; z-index: 40; }
+.card:has(.rb.tip-on) { position: relative; z-index: 40; }
 .rb-tip-hd { font-weight: 700; margin: 0 0 6px; font-size: 12px; }
 .rb-tip-hd + .rb-tip-l { border-top: 0; }
 .rb-tip-l + .rb-tip-hd, .rb-tip-mais + .rb-tip-hd { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
@@ -896,6 +902,9 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .bol-l { width: 168px; font-size: 12.5px; }
 .bol-l small { display: block; color: var(--ink3); font-size: 10.5px; text-decoration: none; }
 .rb-bol-leg { color: var(--ink3); font-weight: 500; font-size: 10.5px; }
+.bol-toggle { margin-left: 10px; background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--blue); font-weight: 700; font-size: 12px; font-family: inherit; }
+.bol-toggle:hover { text-decoration: underline; }
 .bol-rodape { margin-top: 9px; font-size: 12px; font-weight: 700; color: var(--red); }
 .bol-rodape.ok { color: var(--green); }
 @media (max-width: 560px) { .bol-l { width: 108px; } }
@@ -2924,16 +2933,10 @@ function navMes(delta){
   updateMesLabel();
   renderAll();
 }
+// "Hoje" vai para o mês de hoje. Antes ele pulava para o mês com mais
+// pendências, que raramente é o mês corrente — o botão levava para outro lugar.
 function irHoje(){
   curMes=td().slice(0,7);
-  // find month with most pending
-  const pend=allD().filter(r=>isPend(r));
-  const cnt={};
-  pend.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)cnt[m]=(cnt[m]||0)+1;});
-  if(Object.keys(cnt).length){
-    const best=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0][0];
-    curMes=best;
-  }
   updateMesLabel();renderAll();
 }
 // Abre os Recebimentos no mês com mais vencidos, já filtrado por "Vencidos"
@@ -3560,9 +3563,15 @@ function renderBoletosPainel(rows){
   const feitos=bol.filter(r=>r.boleto_feito).length;
   const totFazer=bol.filter(r=>!r.boleto_feito).reduce((a,r)=>a+fN(r.valor),0);
   if(hd)hd.textContent=`Boletos do mês — ${feitos} de ${bol.length} emitidos`;
+  // Por padrão só o que falta emitir: com 50+ boletos no mês, listar os já
+  // emitidos junto faz o cartão virar uma parede de linhas apagadas.
+  const mostra=(bolVerTodos||feitos===0)?bol:bol.filter(r=>!r.boleto_feito);
+  const alterna=feitos>0
+    ? `<button class="bol-toggle" onclick="event.stopPropagation();bolVerTodos=!bolVerTodos;renderResumo()">${bolVerTodos?'Ocultar os emitidos':`Ver todos (${bol.length})`}</button>`
+    : '';
   const leg=`<div class="rb rb-cab"><div class="rb-l"></div><div class="rb-bg rb-bg-vazio"></div>
     <div class="rb-v rb-v2"><span class="rb-bol-leg">clique para marcar como emitido</span></div></div>`;
-  const linhas=bol.map(r=>{
+  const linhas=mostra.map(r=>{
     const i=allD().indexOf(r);
     const pago=isPago(r), venc=isVenc(r);
     // traço: verde já recebido · vermelho vencido em aberto · amarelo a vencer
@@ -3577,10 +3586,11 @@ function renderBoletosPainel(rows){
       <div class="rb-v rb-v2"><span class="rb-prev">${vDuplo(pago?r.valor_pago:r.saldo)}</span></div>
     </div>`;
   }).join('');
-  const rodape=totFazer>0?`<div class="bol-rodape">Faltam emitir ${bol.length-feitos} boleto(s) · ${fR(totFazer)}</div>`:
-    `<div class="bol-rodape ok">Todos os boletos do mês já foram emitidos ✓</div>`;
+  const rodape=totFazer>0?`<div class="bol-rodape">Faltam emitir ${bol.length-feitos} boleto(s) · ${fR(totFazer)}${alterna}</div>`:
+    `<div class="bol-rodape ok">Todos os boletos do mês já foram emitidos ✓${alterna}</div>`;
   el.innerHTML=leg+linhas+rodape;
 }
+let bolVerTodos=false;   // painel de boletos começa só com o que falta emitir
 
 function renderResumo(){
   // Todos os lançamentos com prev_pgto no mês (competência de caixa)
@@ -5043,6 +5053,17 @@ async function boot(){
   else if(ONLINE) console.warn('AGI Locadora · Supabase INACESSÍVEL ·', _cfg.url, '— exibindo', DATA.length, 'dados de exemplo, SEM persistência.');
   else console.warn('AGI Locadora · MODO DEMO (sem persistência). Edite config.js para conectar ao Supabase.');
 }
+// No celular não existe hover: o toque na linha abre a mesma lista, e um
+// segundo toque (ou um toque fora) fecha. No desktop nada muda.
+if(window.matchMedia&&window.matchMedia('(hover: none)').matches){
+  document.addEventListener('click',e=>{
+    const linha=e.target.closest?e.target.closest('.rb'):null;
+    const abrir=linha&&!linha.classList.contains('rb-cab')&&linha.querySelector('.rb-tip');
+    document.querySelectorAll('.rb.tip-on').forEach(el=>{if(el!==linha)el.classList.remove('tip-on');});
+    if(abrir)linha.classList.toggle('tip-on');
+  });
+}
+
 boot();
 </script>
 
