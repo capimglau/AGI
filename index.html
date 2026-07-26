@@ -545,6 +545,10 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .pcard.hoje-card::before { background: var(--blue); }
 .pcard.done::before { background: var(--green); }
 .pcard.done { opacity: .6; }
+.pcard.parcial:not(.venc)::before { background: var(--bar-rec); }
+.tag-parcial { background: var(--amber-soft); color: var(--amber); }
+.pcard-parcial-sub { font-size: 10.5px; color: var(--ink3); white-space: nowrap; }
+.pcard-parcial-sub b { color: var(--green); font-weight: 700; }
 .pcard-chk {
   width: 16px; height: 16px;
   cursor: pointer;
@@ -637,6 +641,7 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 }
 .swipe-act .ic { font-size: 17px; line-height: 1; }
 .swipe-act.pay { background: var(--green); }
+.swipe-act.partial { background: #b8720a; }
 .swipe-act.edit { background: #6b7280; }
 .swipe-act:active { filter: brightness(.92); }
 .swipe-hint { text-align: center; font-size: 11.5px; color: var(--ink3); margin: -2px 0 12px; }
@@ -841,6 +846,7 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .st-baixado { color: var(--green); font-size: 11.5px; font-weight: 600; }
 .st-previsto { color: var(--amber); font-size: 11.5px; font-weight: 600; }
 .st-vencido { color: var(--red); font-size: 11.5px; font-weight: 600; }
+.st-parcial { color: var(--amber); font-size: 11.5px; font-weight: 600; }
 
 /* ─── GRIDS ─── */
 .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -2364,6 +2370,21 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   </div>
 </div>
 
+<!-- ─── MODAL RECEBIMENTO PARCIAL ─── -->
+<div class="overlay" id="mParcial">
+  <div class="modal" style="max-width:400px">
+    <div class="mhd">◐ Recebimento parcial <button class="mcl" onclick="closeParcial()">✕</button></div>
+    <div id="parcialInfo" style="font-size:13px;color:var(--ink3);margin-bottom:12px"></div>
+    <div class="fg">
+      <div class="fp s2"><label>Valor recebido agora (R$)</label><input type="number" id="pc-val" step="0.01" min="0.01" oninput="calcParcialResto()"></div>
+      <div class="fp"><label>Data do pagamento</label><input type="date" id="pc-data"></div>
+      <div class="fp"><label>Obs / Referência</label><input type="text" id="pc-obs" placeholder="PIX metade, ref. 4018..."></div>
+    </div>
+    <div id="parcialResto" style="font-size:12.5px;color:var(--ink3);margin:9px 0 2px;min-height:16px"></div>
+    <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;margin-top:6px" onclick="confirmarParcial()">✓ Registrar parcial</button>
+  </div>
+</div>
+
 <!-- ─── MODAL CÂMERA ─── -->
 <div class="overlay" id="mCam">
   <div class="modal">
@@ -2912,9 +2933,14 @@ function proxUtil(d){const dt=new Date(d+'T12:00:00');const wd=dt.getDay();if(wd
 function addDUtil(d,n){return proxUtil(addD(d,n));}
 function allD(){return[...DATA,...NOVOS];}
 
-const isPago = r => fN(r.valor_pago) > 0;
-const isPend = r => fN(r.valor_pago) === 0;
+// Baseado no SALDO, não no valor_pago: um recebimento parcial tem valor_pago>0
+// e saldo>0 ao mesmo tempo — continua pendente (e pode estar vencido) até o
+// saldo zerar. Com valor_pago>0 como critério de "pago", um único centavo
+// recebido escondia o resto da dívida de toda a dashboard.
+const isPago = r => fN(r.saldo) <= 0.005;
+const isPend = r => fN(r.saldo) > 0.005;
 const isVenc = r => isPend(r) && r.prev_pgto && r.prev_pgto < td();
+const isParcial = r => isPend(r) && fN(r.valor_pago) > 0;
 
 function tipTag(t){
   const m={Locação:'loc',Avarias:'ava',Lavagem:'lav',Multas:'mul',Outros:'out','Taxa Mario':'tax','Taxa Alfredo':'tax','Taxa Bruno':'tax'};
@@ -2922,7 +2948,8 @@ function tipTag(t){
 }
 function stTag(r){
   if(isPago(r)) return`<span class="st-baixado">✓ Baixado</span>`;
-  if(isVenc(r)) return`<span class="st-vencido">⚠ Vencido</span>`;
+  if(isVenc(r)) return`<span class="st-vencido">⚠ ${isParcial(r)?'Parcial vencido':'Vencido'}</span>`;
+  if(isParcial(r)) return`<span class="st-parcial">◐ Parcial</span>`;
   return`<span class="st-previsto">◷ ${r.prev_pgto||'—'}</span>`;
 }
 function fmtData(d){
@@ -3210,6 +3237,7 @@ function renderBaixas(){
       const gi2=allD().indexOf(r);
       const col=DC[r.dono]||'#888';
       const pago=isPago(r);
+      const parcial=isParcial(r);
       const vencCard=isVencDia&&isPend(r);
       const hojeCard=isHoje&&isPend(r);
 
@@ -3217,7 +3245,7 @@ function renderBaixas(){
       wrap.className='swipe';
       wrap.style.animationDelay=`${gi*0.04+ii*0.02}s`;
       const card=document.createElement('div');
-      card.className=`pcard${pago?' done':''}${vencCard?' venc':''}${hojeCard?' hoje-card':''}`;
+      card.className=`pcard${pago?' done':''}${parcial?' parcial':''}${vencCard?' venc':''}${hojeCard?' hoje-card':''}`;
       card.dataset.gi=gi2;
       card.dataset.pend=pago?'':'1';
 
@@ -3233,6 +3261,7 @@ function renderBaixas(){
           <div class="pcard-tags">
             ${tipTag(r.tipo)}
             <span class="tag tag-forma">${fFormaLabel(r.forma)}</span>
+            ${parcial?`<span class="tag tag-parcial">◐ Parcial</span>`:''}
             ${r.obs?`<span class="tag" style="background:var(--surface);color:var(--ink3);font-size:10.5px;font-style:italic;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.obs}">📝 ${r.obs}</span>`:''}
           </div>
           <div class="pcard-meta">
@@ -3241,8 +3270,9 @@ function renderBaixas(){
         </div>
         <div class="pcard-right">
           <span class="pcard-value">${fR(isPago(r)?r.valor_pago:r.saldo)}</span>
+          ${parcial?`<span class="pcard-parcial-sub"><b>${fR(r.valor_pago)}</b> já recebido</span>`:''}
         </div>`;
-      wrap.innerHTML=`<div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="swDo(${gi2},1)"><span class="ic">✓</span>Baixar</button>`}<button class="swipe-act edit" onclick="swDo(${gi2},0)"><span class="ic">✏</span>Editar</button></div>`;
+      wrap.innerHTML=`<div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="swDo(${gi2},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="swDo(${gi2},2)"><span class="ic">◐</span>Parcial</button>`}<button class="swipe-act edit" onclick="swDo(${gi2},0)"><span class="ic">✏</span>Editar</button></div>`;
       wrap.appendChild(card);
       dayItems.appendChild(wrap);
     });
@@ -4128,6 +4158,63 @@ function quickPay(idx){
   });
 }
 
+// ── RECEBIMENTO PARCIAL (swipe) ──
+// Abate um valor menor que o saldo, mantendo o lançamento pendente (e, se for
+// o caso, vencido) pelo que ainda falta. isPago/isPend/isVenc são todos
+// baseados em r.saldo, então gravar aqui já alimenta corretamente todos os
+// painéis, gráficos, filtros e o CSV — não há lógica separada para "parcial"
+// em nenhum outro lugar do app.
+let parcialIdx=null;
+function abrirParcial(idx){
+  const r=allD()[idx];
+  if(!r||isPago(r))return;
+  parcialIdx=idx;
+  document.getElementById('parcialInfo').innerHTML=`<span class="placa">${esc(r.placa)}</span> ${esc(r.cliente||'—')} · saldo em aberto <strong style="color:var(--red)">${fR(r.saldo)}</strong>`;
+  const v=document.getElementById('pc-val');
+  v.value=''; v.max=fN(r.saldo);
+  document.getElementById('pc-data').value=td();
+  document.getElementById('pc-obs').value='';
+  document.getElementById('parcialResto').textContent='';
+  document.getElementById('mParcial').classList.add('on');
+  setTimeout(()=>v.focus(),150);
+}
+function closeParcial(){document.getElementById('mParcial').classList.remove('on');parcialIdx=null;}
+function calcParcialResto(){
+  if(parcialIdx===null)return;
+  const r=allD()[parcialIdx]; if(!r)return;
+  const val=parseFloat(document.getElementById('pc-val').value)||0;
+  const el=document.getElementById('parcialResto');
+  if(val<=0){el.textContent='';return;}
+  const resto=Math.max(0,fN(r.saldo)-val);
+  el.innerHTML=resto<=0.005
+    ?`Quita o lançamento — vira baixa total.`
+    :`Fica faltando <strong>${fR(resto)}</strong>.`;
+}
+function confirmarParcial(){
+  if(parcialIdx===null)return;
+  const r=allD()[parcialIdx]; if(!r)return;
+  const data=document.getElementById('pc-data').value;
+  let val=parseFloat(document.getElementById('pc-val').value)||0;
+  const obs=document.getElementById('pc-obs').value;
+  if(!data){alert('Informe a data de pagamento.');return;}
+  if(val<=0){alert('Informe o valor recebido.');return;}
+  const saldoAntes=fN(r.saldo);
+  if(val>saldoAntes)val=saldoAntes;   // não "recebe" mais do que o saldo
+  const prev={valor_pago:r.valor_pago,saldo:r.saldo,obs:r.obs};
+  r.valor_pago=fN(r.valor_pago)+val;
+  r.saldo=Math.max(0,saldoAntes-val);
+  const _ref=[obs,data?('pago '+fD(data)):''].filter(Boolean).join(' · ');
+  if(_ref)r.obs=_ref;
+  dbUpdate(r);
+  closeParcial();renderAll();
+  const quitado=r.saldo<=0.005;
+  showToast(`${quitado?'✓':'◐'} ${r.cliente||r.placa}: ${fR(val)} recebido${quitado?' — quitado':' · falta '+fR(r.saldo)}`,'Desfazer',()=>{
+    r.valor_pago=prev.valor_pago;r.saldo=prev.saldo;r.obs=prev.obs;
+    dbUpdate(r);renderAll();
+    showToast('Recebimento parcial desfeito');
+  });
+}
+
 // ── BUSCA GLOBAL ──
 function openSearch(){
   document.getElementById('mSearch').classList.add('on');
@@ -4217,7 +4304,7 @@ function closeRow(except){
 }
 function openRowEl(wrap,pw){closeRow(wrap);wrap.classList.add('open');swSet(wrap,-pw);openRow=wrap;}
 function panelW(wrap){const n=wrap.querySelectorAll('.swipe-act').length;return (n||1)*76;}
-function swDo(gi,pay){closeRow();if(pay)quickPay(gi);else openEdit(gi);}
+function swDo(gi,pay){closeRow();if(pay===1)quickPay(gi);else if(pay===2)abrirParcial(gi);else openEdit(gi);}
 function swXY(e){const t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);return t?{x:t.clientX,y:t.clientY}:{x:e.clientX,y:e.clientY};}
 function swStart(e){
   if(e.type==='mousedown'&&e.button!==0)return;
@@ -5037,7 +5124,7 @@ function go(id){
   renderAll();
 }
 
-['mEdit','mLote','mCam','mSearch','mDono'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
+['mEdit','mLote','mParcial','mCam','mSearch','mDono'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
 
 // ── BOOT ──
 async function boot(){
