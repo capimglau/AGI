@@ -952,7 +952,6 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
   box-shadow: 0 0 0 1px rgba(0,0,0,.05); transition: left .6s ease; }
 .rb-v2 { width: 176px; display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; white-space: nowrap; }
 .rb-v2 .rb-rec { color: var(--green); font-weight: 700; }
-.rb-cab .rb-atr { color: var(--red); font-weight: 700; margin-left: 8px; }
 /* Texto usa o --amber (amarelo escurecido no tema claro): o --bar-rec das
    barras é claro demais para ler sobre fundo branco. */
 .rb-v2 .rb-prev { color: var(--amber); font-weight: 700; }
@@ -3544,11 +3543,12 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
   if(top)lista=lista.slice(0,top);
   if(!lista.length)return vazio;
   // Cabeçalho alinhado à coluna dos valores: diz qual número é qual, na cor
-  // da faixa que representa — verde o recebido, amarelo o previsto. O vermelho
-  // não tem número próprio; é a parte atrasada de dentro do previsto.
-  const temAtraso=lista.some(([,o])=>o.atr>0);
+  // da faixa que representa — verde o recebido, amarelo o previsto. O
+  // atrasado não entra aqui (desalinhava o cabeçalho quando só parte dos
+  // painéis tinha atraso); ele segue visível como faixa vermelha na própria
+  // linha, e o hover detalha o valor.
   const leg=`<div class="rb rb-cab"><div class="rb-l"></div><div class="rb-bg rb-bg-vazio"></div>
-    <div class="rb-v rb-v2"><span class="rb-rec"><i style="background:var(--green)"></i>Recebido</span>${temAtraso?`<span class="rb-atr"><i style="background:var(--red)"></i>Atrasado</span>`:''}<span class="rb-sep">/</span><span class="rb-prev"><i style="background:var(--bar-rec)"></i>Previsto</span></div></div>`;
+    <div class="rb-v rb-v2"><span class="rb-rec"><i style="background:var(--green)"></i>Recebido</span><span class="rb-sep">/</span><span class="rb-prev"><i style="background:var(--bar-rec)"></i>Previsto</span></div></div>`;
   return leg+lista.map(([k,o],i)=>{
     const pct=o.prev>0?Math.min(100,o.rec/o.prev*100):(o.rec>0?100:0);
     const tAtr=o.atr>0?` · atrasado ${fR(o.atr)}`:'';
