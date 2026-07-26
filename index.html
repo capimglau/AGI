@@ -918,6 +918,13 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .vc-chip b { font-weight: 700; color: var(--ink3); font-size: 11px; }
 .vc-chip em { font-style: normal; font-weight: 700; color: var(--red); }
 .vc-datas { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 11.5px; color: var(--ink3); }
+/* Os dois cartões lado a lado: mesma altura, sem margem dupla entre eles. */
+.rh-dupla { margin-bottom: 16px; align-items: stretch; }
+.rh-dupla .receb-hoje { margin-bottom: 0; display: flex; flex-direction: column; }
+.rh-dupla .rh-foot { margin-top: auto; padding-top: 11px; }
+.receb-hoje.rh-vazio { cursor: default; opacity: .72; }
+.receb-hoje.rh-vazio:hover { box-shadow: var(--card-shadow); transform: none; }
+.rh-nada { font-size: 12.5px; color: var(--ink3); }
 .vc-datas b { color: var(--red); font-weight: 700; }
 .rb-l { font-size: 12.5px; width: 90px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rb-bg { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
@@ -3397,56 +3404,62 @@ function renderRecebHoje(){
   const vencidos=allD().filter(r=>isVenc(r)).sort((a,b)=>fN(b.saldo)-fN(a.saldo));
   const totVenc=vencidos.reduce((a,r)=>a+fN(r.saldo),0);
 
-  // Sem recebimentos hoje → exibe os vencidos no lugar
-  const modoVenc=itemsHoje.length===0 && vencidos.length>0;
-  const items=modoVenc?vencidos:itemsHoje;
-  if(!items.length){ el.innerHTML=''; return; }
+  // Os dois lado a lado: vencidos à esquerda, recebimentos de hoje à direita.
+  // Antes era um ou outro — os vencidos só apareciam quando não havia nada
+  // vencendo hoje, então some justamente no dia em que há mais o que cobrar.
+  if(!vencidos.length && !itemsHoje.length){ el.innerHTML=''; return; }
 
-  const tot=items.reduce((a,r)=>a+fN(r.saldo),0);
-  const preview=items.slice(0,5);
-  const titulo=modoVenc?'⚠ Recebimentos vencidos':'📥 Recebimentos de hoje';
-  const acao=modoVenc?'irVencidos()':"go('baixas')";
-  const verTudo=modoVenc?'Ver todos os vencidos':'Ver todos os recebimentos';
+  const dias=d=>Math.round((new Date(hoje+'T12:00:00')-new Date(d+'T12:00:00'))/86400000);
+  const fmtD=d=>{const[,m,dd]=d.split('-');return`${dd}/${m}`;};
 
-  // Atalho com o valor dos vencidos (quando já há recebimentos hoje na lista)
-  const atalho=(!modoVenc && vencidos.length)
-    ? `<button class="rh-venc-chip" onclick="event.stopPropagation();irVencidos()" title="Ver recebimentos vencidos">⚠ ${vencidos.length} vencido${vencidos.length>1?'s':''} · ${fR(totVenc)}</button>`
-    : '';
-
-  // Vencidos: em vez de listar cinco lançamentos soltos, um resumo compacto —
-  // quanto, de quando e de quem. O detalhe fica a um clique, na tela de baixas.
-  if(modoVenc){
+  // ── Esquerda: vencidos, em resumo (quem, quanto, de quando) ──
+  let cardVenc;
+  if(vencidos.length){
     const porDono={};
     vencidos.forEach(r=>{const d=r.dono||'—';const o=porDono[d]||(porDono[d]={n:0,v:0});o.n++;o.v+=fN(r.saldo);});
     const donos=Object.entries(porDono).sort((a,b)=>b[1].v-a[1].v);
     const datas=vencidos.map(r=>r.prev_pgto).filter(Boolean).sort();
-    const dias=d=>Math.round((new Date(hoje+'T12:00:00')-new Date(d+'T12:00:00'))/86400000);
-    const fmt=d=>{const[,m,dd]=d.split('-');return`${dd}/${m}`;};
     const maisAntigo=datas[0], maisNovo=datas[datas.length-1];
-    el.innerHTML=`<div class="receb-hoje modo-venc vc-resumo" role="button" tabindex="0" onclick="irVencidos()" title="Ver todos os vencidos">
+    cardVenc=`<div class="receb-hoje modo-venc vc-resumo" role="button" tabindex="0" onclick="irVencidos()" title="Ver todos os vencidos">
       <div class="rh-hd"><span>⚠ Recebimentos vencidos</span><span class="rh-sub">${vencidos.length} · ${fR(totVenc)}</span></div>
       <div class="vc-donos">${donos.map(([d,o])=>{const col=DC[d]||'#888';
         return`<span class="vc-chip"><i style="background:${col}"></i>${esc(d)}<b>${o.n}</b><em>${fRk(o.v)}</em></span>`;}).join('')}</div>
       <div class="vc-datas">
-        <span>Mais antigo <b>${fmt(maisAntigo)}</b> · ${dias(maisAntigo)} dia(s)</span>
-        ${maisNovo!==maisAntigo?`<span>Mais recente <b>${fmt(maisNovo)}</b> · ${dias(maisNovo)} dia(s)</span>`:''}
+        <span>Mais antigo <b>${fmtD(maisAntigo)}</b> · ${dias(maisAntigo)} dia(s)</span>
+        ${maisNovo!==maisAntigo?`<span>Mais recente <b>${fmtD(maisNovo)}</b> · ${dias(maisNovo)} dia(s)</span>`:''}
       </div>
       <div class="rh-foot">Ver todos os vencidos ›</div>
     </div>`;
-    return;
+  } else {
+    cardVenc=`<div class="receb-hoje modo-venc rh-vazio">
+      <div class="rh-hd"><span>⚠ Recebimentos vencidos</span><span class="rh-sub">—</span></div>
+      <div class="rh-nada">Nenhum recebimento vencido ✓</div>
+    </div>`;
   }
 
-  el.innerHTML=`<div class="receb-hoje" role="button" tabindex="0" onclick="${acao}" title="${verTudo}">
-    <div class="rh-hd"><span>${titulo}</span><span class="rh-sub">${items.length} · ${fR(tot)}</span></div>
-    ${atalho}
-    <div class="rh-list">${preview.map(r=>{const col=DC[r.dono]||'#888';return `<div class="rh-item">
-      <span class="placa">${r.placa}</span>
-      <span class="rh-cli">${r.cliente||'—'}</span>
-      <span class="rh-dono"><span class="ddot" style="background:${col}"></span>${r.dono||''}</span>
-      <span class="rh-val">${fR(r.saldo)}</span>
-    </div>`;}).join('')}</div>
-    <div class="rh-foot">${items.length>preview.length?`+${items.length-preview.length} • `:''}${verTudo} ›</div>
-  </div>`;
+  // ── Direita: o que vence hoje ──
+  let cardHoje;
+  if(itemsHoje.length){
+    const totHoje=itemsHoje.reduce((a,r)=>a+fN(r.saldo),0);
+    const preview=itemsHoje.slice(0,4);
+    cardHoje=`<div class="receb-hoje" role="button" tabindex="0" onclick="go('baixas')" title="Ver todos os recebimentos">
+      <div class="rh-hd"><span>📥 Recebimentos de hoje</span><span class="rh-sub">${itemsHoje.length} · ${fR(totHoje)}</span></div>
+      <div class="rh-list">${preview.map(r=>{const col=DC[r.dono]||'#888';return `<div class="rh-item">
+        <span class="placa">${r.placa}</span>
+        <span class="rh-cli">${esc(r.cliente||'—')}</span>
+        <span class="rh-dono"><span class="ddot" style="background:${col}"></span>${esc(r.dono||'')}</span>
+        <span class="rh-val">${fR(r.saldo)}</span>
+      </div>`;}).join('')}</div>
+      <div class="rh-foot">${itemsHoje.length>preview.length?`+${itemsHoje.length-preview.length} • `:''}Ver todos os recebimentos ›</div>
+    </div>`;
+  } else {
+    cardHoje=`<div class="receb-hoje rh-vazio">
+      <div class="rh-hd"><span>📥 Recebimentos de hoje</span><span class="rh-sub">—</span></div>
+      <div class="rh-nada">Nada vencendo hoje</div>
+    </div>`;
+  }
+
+  el.innerHTML=`<div class="g2 rh-dupla">${cardVenc}${cardHoje}</div>`;
 }
 
 // ── Painéis de barra do resumo: previsto × recebido na mesma linha ──
