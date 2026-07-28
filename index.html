@@ -572,6 +572,13 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .pcard.done::before { background: var(--green); }
 .pcard.done { opacity: .6; }
 .pcard.parcial:not(.venc)::before { background: var(--bar-rec); }
+/* Vencido e "vence hoje" respiram devagar pra chamar atenção sem incomodar
+   — um esmaecer lento na faixa colorida, não um piscar. */
+@keyframes rbPulseBar { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.pcard.venc::before, .pcard.hoje-card::before { animation: rbPulseBar 2.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .pcard.venc::before, .pcard.hoje-card::before { animation: none; }
+}
 /* Cartão sem a coluna do checkbox/ícone de "pago" (Lançamentos e busca) —
    sem isso o grid de 3 colunas (20px 1fr auto) espreme todo o conteúdo do
    cartão na faixa de 20px, deixando tudo empilhado e o cartão gigante. */
@@ -4527,6 +4534,7 @@ function lcCardHtml(r,gi,fecharBusca){
   const pre=fecharBusca?'closeSearch();':'';
   const col=DC[r.dono]||'#888', pago=isPago(r), venc=isVenc(r), parcial=isParcial(r);
   const temPago=fN(r.valor_pago)>0;
+  const hojeCard=!pago&&!venc&&r.prev_pgto===td();
   return `<div class="swipe">
     <div class="swipe-actions">
       ${pago?'':`<button class="swipe-act pay" onclick="${pre}swDo(${gi},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="${pre}swDo(${gi},2)"><span class="ic">◐</span>Parcial</button>`}
@@ -4534,7 +4542,7 @@ function lcCardHtml(r,gi,fecharBusca){
       <button class="swipe-act edit" onclick="${pre}swDo(${gi},0)"><span class="ic">✏</span>Editar</button>
       <button class="swipe-act del" onclick="${pre}swDo(${gi},4)"><span class="ic">🗑</span>Excluir</button>
     </div>
-    <div class="pcard lc-card${pago?' done':''}${parcial?' parcial':''}${venc&&!pago?' venc':''}">
+    <div class="pcard lc-card${pago?' done':''}${parcial?' parcial':''}${venc&&!pago?' venc':''}${hojeCard?' hoje-card':''}">
       <div class="pcard-body">
         <div class="pcard-top">
           <span class="placa">${r.placa}</span>
