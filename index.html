@@ -4118,7 +4118,7 @@ function openEdit(idx){
   if(pend){
     document.getElementById('b-data').value=td();
     document.getElementById('b-val').value=fN(r.saldo).toFixed(2);
-    document.getElementById('b-obs').value=r.obs||'';
+    document.getElementById('b-obs').value=obsSemPago(r.obs);
   }
   document.getElementById('e-p').value=r.placa||'';
   document.getElementById('e-d').value=r.dono||'';
@@ -4235,7 +4235,7 @@ function abrirParcial(idx,cheio=false){
   const v=document.getElementById('pc-val');
   v.value=cheio?fN(r.saldo).toFixed(2):''; v.max=fN(r.saldo);
   document.getElementById('pc-data').value=td();
-  document.getElementById('pc-obs').value='';
+  document.getElementById('pc-obs').value=obsSemPago(r.obs);
   document.getElementById('mParcial').classList.add('on');
   calcParcialResto();
   setTimeout(()=>cheio?v.select():v.focus(),150);
@@ -4300,6 +4300,18 @@ const buscaHay=r=>xlsNorm([r.placa,r.cliente,r.dono,r.tipo,fFormaLabel(r.forma),
 function obsPagoData(r){
   const m=/pago\s+(\d{2}\/\d{2}\/\d{2})/i.exec(r.obs||'');
   return m?m[1]:null;
+}
+// Tira o "· pago DD/MM/AA" do final do obs (deixa só a referência original,
+// ex. final do cartão), pra poder recolocar a data de pagamento sem duplicar.
+function obsSemPago(obs){
+  return (obs||'').replace(/\s*·?\s*pago\s+\d{2}\/\d{2}\/\d{2}\s*$/i,'').trim();
+}
+// Junta a referência já existente (ex. final do cartão) com a nota digitada
+// na baixa e a data de pagamento — SEM apagar o que já estava no obs, senão
+// a busca (por nº de cartão, por ex.) para de achar o lançamento após baixado.
+function mergeObsPago(baseObs,novaNota,dataPago){
+  const partes=[obsSemPago(baseObs),(novaNota||'').trim(),dataPago?('pago '+fD(dataPago)):''].filter(Boolean);
+  return partes.join(' · ')||null;
 }
 // Bate se TODAS as palavras digitadas aparecem em algum lugar do texto do
 // lançamento, em qualquer ordem — digitar "1111 cartão" acha "Cartão final
@@ -4527,7 +4539,7 @@ function confirmarLote(){
   const data=document.getElementById('bl-data').value;
   const obs=document.getElementById('bl-obs').value;
   if(!data){alert('Informe a data.');return;}
-  loteSel.forEach(i=>{const r=allD()[i];if(!r)return;r.valor_pago=fN(r.valor_pago)+fN(r.saldo);r.saldo=0;const _ref=[obs,data?('pago '+fD(data)):''].filter(Boolean).join(' · ');if(_ref)r.obs=_ref;dbUpdate(r);});
+  loteSel.forEach(i=>{const r=allD()[i];if(!r)return;r.valor_pago=fN(r.valor_pago)+fN(r.saldo);r.saldo=0;const _ref=mergeObsPago(r.obs,obs,data);if(_ref)r.obs=_ref;dbUpdate(r);});
   document.getElementById('mLote').classList.remove('on');
   loteSel=[];renderAll();
 }
