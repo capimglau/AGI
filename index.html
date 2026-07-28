@@ -1904,6 +1904,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
     <!-- LEFT: day groups -->
     <div>
+      <input type="text" id="bx-q" class="search-input" style="margin-bottom:10px" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
       <div class="fbar fbar-baixas">
         <button class="btn" onclick="toggleFilters()">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
         <button class="btn" onclick="selTodos()">Todos</button>
@@ -1939,7 +1940,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <!-- LANÇAMENTOS -->
 <div class="page" id="page-lancamentos">
   <div class="fbar">
-    <input type="text" id="lf-q" placeholder="Buscar cliente, placa..." oninput="renderLanc()">
+    <input type="text" id="lf-q" placeholder="Buscar cliente, placa, observação, cartão..." oninput="renderLanc()">
     <select id="lf-tipo" onchange="renderLanc()"><option value="">Todos os tipos</option></select>
     <select id="lf-forma" onchange="renderLanc()"><option value="">Todas as formas</option></select>
     <select id="lf-dono" onchange="renderLanc()"><option value="">Todos os proprietários</option></select>
@@ -3031,7 +3032,7 @@ function filtGeral(o={}){
     // usePrev: filtra por prev_pgto; quando null usa saida como fallback
     const campo=o.usePrev?(r.prev_pgto||r.saida||''):(r.saida||'');
     if(campo.slice(0,7)!==curMes)return false;
-    if(o.q){const q=o.q.toLowerCase();if(!(r.placa.toLowerCase().includes(q)||(r.cliente||'').toLowerCase().includes(q)))return false;}
+    if(o.q&&!matchBusca(r,o.q))return false;
     if(o.tipo&&r.tipo!==o.tipo)return false;
     if(o.forma&&r.forma!==o.forma)return false;
     if(o.status==='pago'&&!isPago(r))return false;
@@ -3176,9 +3177,11 @@ function buildMiniSummary(){
 // ── BAIXAS ──
 function renderBaixas(){
   const status=document.getElementById('bf-status').value;
+  const bxq=(document.getElementById('bx-q')?.value||'').trim();
 
   // allMes = todos os lançamentos do mês (para métricas corretas), aplicando os filtros multi-seleção
-  const allMes=filtBaixas().filter(bfMatch);
+  // e a busca livre (placa, cliente, proprietário, observação/cartão etc — mesmo critério da lupa)
+  const allMes=filtBaixas().filter(bfMatch).filter(r=>!bxq||matchBusca(r,bxq));
   // rows = filtrado pelo status selecionado (para exibição)
   let rows=[...allMes];
   if(status==='pend') rows=rows.filter(r=>isPend(r));
@@ -4292,15 +4295,27 @@ function hideMais(){if(window.innerWidth<761){document.getElementById('dock-mais
 // forma (inclui "cartão"), datas e a observação (onde fica, por exemplo, o
 // final do número do cartão: "Cartão final 9974"). Assim a busca acha por
 // qualquer pedaço de qualquer campo, não só placa/cliente/dono.
-const buscaHay=r=>[r.placa,r.cliente,r.dono,r.tipo,fFormaLabel(r.forma),r.forma,r.obs,fD(r.saida),fD(r.retorno),fD(r.prev_pgto)]
-  .filter(Boolean).join(' • ').toLowerCase();
+// xlsNorm (definida mais abaixo, usada também no import de Excel) tira
+// acentos e baixa a caixa: buscar "cartao" tem que achar "Cartão".
+const buscaHay=r=>xlsNorm([r.placa,r.cliente,r.dono,r.tipo,fFormaLabel(r.forma),r.forma,r.obs,fD(r.saida),fD(r.retorno),fD(r.prev_pgto)]
+  .filter(Boolean).join(' • '));
+// Bate se TODAS as palavras digitadas aparecem em algum lugar do texto do
+// lançamento, em qualquer ordem — digitar "1111 cartão" acha "Cartão final
+// 1111" mesmo sem ser uma frase idêntica e contígua.
+function matchBusca(r,q){
+  const termos=xlsNorm(q).split(/\s+/).filter(Boolean);
+  if(!termos.length)return false;
+  const hay=buscaHay(r);
+  return termos.every(t=>hay.includes(t));
+}
 function runSearch(){
-  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  const qRaw=document.getElementById('searchInput').value.trim();
+  const q=xlsNorm(qRaw);
   const box=document.getElementById('searchResults');
-  if(!q){box.innerHTML='<div class="srow-empty">Digite qualquer termo: placa, cliente, proprietário, observação, nº do cartão…</div>';return;}
+  if(!qRaw){box.innerHTML='<div class="srow-empty">Digite qualquer termo: placa, cliente, proprietário, observação, nº do cartão…</div>';return;}
   const all=allD();
   const res=[];
-  for(let i=0;i<all.length;i++){const r=all[i];if(buscaHay(r).includes(q))res.push({r,i});}
+  for(let i=0;i<all.length;i++){const r=all[i];if(matchBusca(r,qRaw))res.push({r,i});}
   if(!res.length){box.innerHTML='<div class="srow-empty">Nada encontrado.</div>';return;}
   const totVal=res.reduce((a,{r})=>a+fN(r.valor),0);                          // faturado (bruto)
   const totPago=res.reduce((a,{r})=>a+(isPago(r)?fN(r.valor_pago):0),0);      // recebido (líquido)
@@ -4313,7 +4328,7 @@ function runSearch(){
   const [my,mm]=curMes.split('-');
   const mesLabel=MN[parseInt(mm)-1]+'/'+my.slice(2);
   // Se a busca corresponde a proprietário(s), mostra os totais de LOCAÇÃO do mês (previsto/recebido)
-  const donosMatch=[...new Set(all.map(r=>r.dono).filter(Boolean))].filter(d=>d.toLowerCase().includes(q));
+  const donosMatch=[...new Set(all.map(r=>r.dono).filter(Boolean))].filter(d=>xlsNorm(d).includes(q));
   let ownerHtml='';
   if(donosMatch.length){
     const locRows=all.filter(r=>donosMatch.includes(r.dono)&&(r.tipo||'').toLowerCase().startsWith('loca')&&(r.prev_pgto||'').slice(0,7)===curMes);
@@ -4346,7 +4361,7 @@ function runSearch(){
       <div style="min-width:0">
         <div style="display:flex;gap:7px;align-items:center"><span class="placa">${r.placa}</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.cliente||'—'}</span></div>
         <div style="font-size:11.5px;color:var(--ink3);margin-top:2px"><span class="ddot" style="background:${col}"></span>${r.dono} · ${fDM(r.saida)}→${fDM(r.retorno)}</div>
-        ${(r.obs&&r.obs.toLowerCase().includes(q))?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(r.obs)}</div>`:''}
+        ${(r.obs&&q.split(/\s+/).some(t=>t&&xlsNorm(r.obs).includes(t)))?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(r.obs)}</div>`:''}
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-weight:700;color:${pago?'var(--green)':'var(--blue)'}">${fR(r.valor)}</div>
