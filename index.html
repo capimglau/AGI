@@ -1971,7 +1971,10 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <button class="btn" onclick="selTodos()">Selec. Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
       </div>
-      <button class="btn btn-block" onclick="toggleFilters()" style="margin-bottom:10px">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
+      <div class="fbar" style="margin-bottom:10px">
+        <button class="btn" style="flex:1" onclick="toggleFilters()">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
+        <button class="btn" style="flex:1" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, cliente e período (saída/retorno)">🔁 Duplicados</button>
+      </div>
       <div class="filt-panel filt-panel-baixas" id="filtPanel" hidden>
         <div id="baixasFilters" class="rf-bar rf-flat"></div>
       </div>
@@ -4554,6 +4557,44 @@ function mostrarLancDia(dia){
     <div class="st-main"><span>${items.length} lançamento${items.length>1?'s':''}</span><span class="st-val">${fR(totVal)}</span></div>
   </div></div>`;
   box.innerHTML=totHtml+lancListHtml(items,true);
+}
+// Botão "Duplicados" de Recebimentos: agrupa TODOS os lançamentos (não só
+// os do mês) por placa+cliente+período (saída/retorno) — e também por tipo e
+// vencimento (prev_pgto), senão a mesma placa/cliente/período em parcelas de
+// "Crédito 2x/3x" (uma linha por parcela, cada uma com vencimento diferente)
+// ou em cobranças diferentes do mesmo período (ex. Locação + Multas) aparece
+// como falso duplicado. Duas linhas com placa, cliente, período, tipo E
+// vencimento todos iguais são, isso sim, quase sempre duplicata de
+// importação. Mostra cada grupo com seus itens, reaproveitando o modal e os
+// cartões (com edição/baixa/reverter) da busca global.
+function mostrarDuplicados(){
+  const all=allD();
+  const grupos={};
+  all.forEach((r,i)=>{
+    const key=[r.placa||'—',r.cliente||'—',r.saida||'—',r.retorno||'—',r.tipo||'—',r.prev_pgto||'—'].join(' · ');
+    (grupos[key]=grupos[key]||[]).push({r,i});
+  });
+  const dupGrupos=Object.entries(grupos).filter(([,items])=>items.length>1)
+    .sort((a,b)=>b[1].length-a[1].length);
+  document.getElementById('mSearch').classList.add('on');
+  const input=document.getElementById('searchInput'); if(input)input.style.display='none';
+  const tit=document.getElementById('searchModalTit');
+  if(tit) tit.textContent='🔁 Possíveis duplicados';
+  const box=document.getElementById('searchResults');
+  if(!dupGrupos.length){
+    box.innerHTML='<div class="srow-empty">Nenhum duplicado encontrado — nenhum lançamento repete placa, cliente, período, tipo e vencimento.</div>';
+    return;
+  }
+  const totalItens=dupGrupos.reduce((a,[,items])=>a+items.length,0);
+  const totVal=dupGrupos.reduce((a,[,items])=>a+items.reduce((s,{r})=>s+fN(r.valor),0),0);
+  const totHtml=`<div class="search-total"><div class="st-blk">
+    <div class="st-main"><span>${dupGrupos.length} grupo${dupGrupos.length>1?'s':''} · ${totalItens} lançamentos</span><span class="st-val">${fR(totVal)}</span></div>
+  </div></div>`;
+  const gruposHtml=dupGrupos.map(([key,items])=>{
+    const ordenados=[...items].sort((a,b)=>(b.r.prev_pgto||'').localeCompare(a.r.prev_pgto||''));
+    return `<div class="srow-mes">${esc(key)} · ${items.length}×</div>`+ordenados.map(({r,i})=>lcCardHtml(r,i,true)).join('');
+  }).join('');
+  box.innerHTML=totHtml+gruposHtml;
 }
 
 // ── SKELETON (carregando) ──
