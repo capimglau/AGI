@@ -211,6 +211,7 @@ body::before {
   gap: 6px;
 }
 .btn:hover { background: var(--surface); }
+.btn-block { width: 100%; justify-content: center; }
 .btn-ink { background: var(--ink); color: #fff; border-color: var(--ink); }
 .btn-ink:hover { background: var(--ink2); }
 .btn-blue { background: var(--blue); color: #fff; border-color: var(--blue); }
@@ -386,7 +387,11 @@ body::before {
 .filt-panel-baixas { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .filt-panel-baixas[hidden] { display: none; }
 .filt-panel-baixas #baixasFilters { margin-bottom: 0; }
-.filt-panel-baixas #bf-status { flex: 1 1 auto; min-width: 140px; }
+/* Em Recebimentos cada tipo de filtro ocupa a linha inteira, um embaixo do
+   outro — Status primeiro, depois os demais tipos (proprietário, tipo,
+   forma, cliente, placa), em vez de tudo espremido lado a lado. */
+#bf-status-sec, .filt-panel-baixas #baixasFilters { flex: 1 1 100%; }
+#bf-status-sec select { width: 100%; }
 /* Barra de ações dos Recebimentos: botões espaçados lateral e verticalmente */
 .fbar-baixas { gap: 10px; margin: 6px 0 18px; }
 .fbar-baixas .btn { flex: 1; justify-content: center; padding: 11px 12px; border-radius: 999px; font-weight: 600; }
@@ -1158,6 +1163,10 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .rf-sec + .rf-sec { border-top: 1px solid var(--line); }
 .rf-sec-tt { display: flex; align-items: center; gap: 7px; padding: 4px 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink3); }
 .rf-sec-opts { display: flex; flex-direction: column; }
+/* Recebimentos: cada tipo de filtro direto na tela, sem o dropdown "Filtros"
+   por cima (que duplicava o botão externo e escondia tudo junto). */
+.rf-bar.rf-flat { display: block; margin-bottom: 0; background: var(--card); border: 1px solid var(--line); border-radius: 13px; padding: 6px 10px; }
+.rf-flat .rf-sec-opts { max-height: 170px; overflow-y: auto; }
 
 /* ─── CONTROLES DO RESUMO (período · base · acumulado) ─── */
 .res-ctrls { display: flex; align-items: stretch; gap: 6px; margin-bottom: 16px; }
@@ -1934,20 +1943,23 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <div>
       <input type="text" id="bx-q" class="search-input" style="margin-bottom:10px" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
       <div class="fbar fbar-baixas">
-        <button class="btn" onclick="toggleFilters()">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
         <button class="btn" onclick="selTodos()">Selec. Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
       </div>
+      <button class="btn btn-block" onclick="toggleFilters()" style="margin-bottom:10px">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
       <div class="filt-panel filt-panel-baixas" id="filtPanel" hidden>
-        <div id="baixasFilters" class="rf-bar"></div>
-        <select id="bf-status" onchange="renderBaixas()">
-          <option value="pend">Pendentes</option>
-          <option value="venc">Vencidos</option>
-          <option value="hoje">Vencem hoje</option>
-          <option value="futuro">Futuros</option>
-          <option value="pago">Pagos</option>
-          <option value="todos" selected>Todos</option>
-        </select>
+        <div class="rf-sec" id="bf-status-sec">
+          <div class="rf-sec-tt">Status</div>
+          <select id="bf-status" onchange="renderBaixas()">
+            <option value="pend">Pendentes</option>
+            <option value="venc">Vencidos</option>
+            <option value="hoje">Vencem hoje</option>
+            <option value="futuro">Futuros</option>
+            <option value="pago">Pagos</option>
+            <option value="todos" selected>Todos</option>
+          </select>
+        </div>
+        <div id="baixasFilters" class="rf-bar rf-flat"></div>
       </div>
       <div id="baixaVerTodos" style="display:none;margin-bottom:10px"></div>
       <div id="baixasContainer"></div>
@@ -3277,7 +3289,7 @@ function renderBaixas(){
   // Indicador de filtro ativo
   const fdot=document.getElementById('filtDot');
   const anyBF=Object.values(BF).some(s=>s.size);
-  if(fdot) fdot.style.display=(anyBF||(status&&status!=='pend'))?'inline-block':'none';
+  if(fdot) fdot.style.display=(anyBF||(status&&status!=='todos'))?'inline-block':'none';
 
   const container=document.getElementById('baixasContainer');
   container.innerHTML='';
@@ -3428,7 +3440,10 @@ const RF_DIMS=Object.keys(RF_LABELS);
 const newFilterState=()=>RF_DIMS.reduce((o,d)=>(o[d]=new Set(),o),{});
 function filterMatch(state,r){ return RF_DIMS.every(d=>!state[d].size||state[d].has(r[d])); }
 // Monta um seletor único de filtros num container; chama onChange ao alterar.
-function makeFilterSelector(mountId,state,onChange){
+// flat=true (Recebimentos) desenha cada tipo de filtro direto na tela, já
+// separado — em vez do dropdown único "Filtros" (usado no Resumo), que
+// escondia todos os tipos juntos atrás de um segundo menu.
+function makeFilterSelector(mountId,state,onChange,flat){
   const bar=document.getElementById(mountId); if(!bar) return;
   const data=allD();
   const uniq=k=>[...new Set(data.map(r=>r[k]).filter(v=>v!=null&&v!==''))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
@@ -3439,7 +3454,9 @@ function makeFilterSelector(mountId,state,onChange){
       <div class="rf-sec-opts">${opts.length?opts.map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" data-dim="${dim}"${state[dim].has(String(v))?' checked':''}> ${escHtml(String(v))}</label>`).join(''):'<div class="rf-empty">Sem dados</div>'}</div>
     </div>`;
   }).join('');
-  bar.innerHTML=`
+  bar.innerHTML = flat
+    ? `<div class="rf-menu-hd"><span>Filtrar por</span><button class="rf-clear" data-clear style="display:none">✕ Limpar</button></div>${sections}`
+    : `
     <details class="rf rf-single">
       <summary>Filtros<span class="rf-badge" data-badge="__all"></span><span class="rf-caret">▾</span></summary>
       <div class="rf-menu rf-menu-wide">
@@ -3468,7 +3485,7 @@ function rfMatch(r){ return filterMatch(RF,r); }
 
 // Recebimentos (mesmos filtros do Resumo)
 const BF=newFilterState();
-function buildBaixasFilters(){ makeFilterSelector('baixasFilters',BF,renderBaixas); }
+function buildBaixasFilters(){ makeFilterSelector('baixasFilters',BF,renderBaixas,true); }
 function bfMatch(r){ return filterMatch(BF,r); }
 
 // ── CONTROLES DO RESUMO: período · base (competência/caixa) · mensal/acumulado ──
