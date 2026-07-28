@@ -5521,10 +5521,10 @@ document.addEventListener('click',e=>{
 });
 
 // Dock mobile: some deslizando pra baixo enquanto o usuário rola a página
-// para cima, e volta ao rolar para baixo — evita ficar tampando conteúdo.
-// A transition (classe dock-anim) só fica ligada durante a própria animação
-// de esconder/mostrar; o resto do tempo o dock não tem transition nenhuma,
-// senão ele "deriva" durante o scroll elástico do iOS.
+// para baixo (lendo o conteúdo), e volta ao rolar para cima — evita ficar
+// tampando conteúdo. A transition (classe dock-anim) só fica ligada durante
+// a própria animação de esconder/mostrar; o resto do tempo o dock não tem
+// transition nenhuma, senão ele "deriva" durante o scroll elástico do iOS.
 function setDockHidden(hidden){
   const dock=document.getElementById('mainDock');
   if(!dock||dock.classList.contains('dock-hide')===hidden)return;
@@ -5540,7 +5540,7 @@ function setDockHidden(hidden){
     if(window.innerWidth>760)return;
     const y=window.scrollY;
     if(y<=8){setDockHidden(false);lastY=y;return;}
-    if(Math.abs(y-lastY)>4){setDockHidden(y<lastY);lastY=y;}
+    if(Math.abs(y-lastY)>4){setDockHidden(y>lastY);lastY=y;}
   }
   window.addEventListener('scroll',()=>{
     if(!ticking){ticking=true;requestAnimationFrame(onScroll);}
