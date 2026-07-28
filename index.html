@@ -311,6 +311,7 @@ body::before {
   transition: box-shadow .2s, transform .2s;
 }
 .mc:hover { box-shadow: 0 4px 22px rgba(0,0,0,.12); transform: translateY(-1px); }
+#res-m .mc { cursor: pointer; }
 .mc::before { display: none; }
 .mc::after { display: none; }
 .mc.blue  { background: linear-gradient(165deg, #eef2f9 0%, #ffffff 62%); }
@@ -1926,10 +1927,12 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <select id="bf-status" onchange="renderBaixas()">
           <option value="pend">Pendentes</option>
           <option value="venc">Vencidos</option>
+          <option value="hoje">Vencem hoje</option>
           <option value="pago">Pagos</option>
           <option value="todos" selected>Todos</option>
         </select>
       </div>
+      <div id="baixaVerTodos" style="display:none;margin-bottom:10px"></div>
       <div id="baixasContainer"></div>
     </div>
 
@@ -2492,7 +2495,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <!-- BUSCA GLOBAL -->
 <div class="overlay" id="mSearch">
   <div class="modal" style="max-width:520px">
-    <div class="mhd">Buscar lançamento <button class="mcl" onclick="closeSearch()">✕</button></div>
+    <div class="mhd"><span id="searchModalTit">Buscar lançamento</span> <button class="mcl" onclick="closeSearch()">✕</button></div>
     <input id="searchInput" class="search-input" type="text" placeholder="Placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="runSearch()">
     <div id="searchResults"></div>
   </div>
@@ -3019,6 +3022,29 @@ function irVencidos(){
   const sel=document.getElementById('bf-status'); if(sel) sel.value='venc';
   go('baixas');
 }
+// Igual ao irVencidos: garante que o mês de Recebimentos é o de hoje (o
+// usuário pode estar navegando em outro mês) antes de filtrar e entrar.
+function irHoje(){
+  curMes=td().slice(0,7);
+  updateMesLabel();
+  const sel=document.getElementById('bf-status'); if(sel) sel.value='hoje';
+  go('baixas');
+}
+function verTodosRecebimentos(){
+  const sel=document.getElementById('bf-status'); if(sel) sel.value='todos';
+  renderBaixas();
+}
+// Cards do topo do Resumo (faturado/recebido/a receber/inadimplência) levam
+// pra Lançamentos já filtrado — mesmo mês e mesmo proprietário do Resumo (se
+// algum estiver selecionado), com edição e baixa disponíveis linha a linha.
+function irLancMetric(status){
+  const st=document.getElementById('lf-status'); if(st) st.value=status;
+  const dono=document.getElementById('lf-dono'); if(dono) dono.value=selDono||'';
+  const q=document.getElementById('lf-q'); if(q) q.value='';
+  const tipo=document.getElementById('lf-tipo'); if(tipo) tipo.value='';
+  const forma=document.getElementById('lf-forma'); if(forma) forma.value='';
+  go('lancamentos');
+}
 function updateMesLabel(){
   const [y,m]=curMes.split('-');
   document.getElementById('mnLabel').textContent=`${MF[parseInt(m)-1]} ${y.slice(2)}`;
@@ -3191,6 +3217,7 @@ function renderBaixas(){
   const status=document.getElementById('bf-status').value;
   const bxq=(document.getElementById('bx-q')?.value||'').trim();
 
+  const hoje=td();
   // allMes = todos os lançamentos do mês (para métricas corretas), aplicando os filtros multi-seleção
   // e a busca livre (placa, cliente, proprietário, observação/cartão etc — mesmo critério da lupa)
   const allMes=filtBaixas().filter(bfMatch).filter(r=>!bxq||matchBusca(r,bxq));
@@ -3198,10 +3225,22 @@ function renderBaixas(){
   let rows=[...allMes];
   if(status==='pend') rows=rows.filter(r=>isPend(r));
   else if(status==='venc') rows=rows.filter(r=>isVenc(r));
+  else if(status==='hoje') rows=rows.filter(r=>isPend(r)&&r.prev_pgto===hoje);
   else if(status==='pago') rows=rows.filter(r=>isPago(r));
   rows.sort((a,b)=>(b.prev_pgto||'').localeCompare(a.prev_pgto||''));
 
-  const hoje=td();
+  // "Ver todos" — aparece sempre que o filtro de status não é "todos", pra
+  // voltar rápido depois de entrar filtrado pelos cards de vencidos/hoje.
+  const verTodosEl=document.getElementById('baixaVerTodos');
+  if(verTodosEl){
+    if(status==='todos'){verTodosEl.style.display='none';verTodosEl.innerHTML='';}
+    else{
+      verTodosEl.style.display='block';
+      const STATUS_LBL={pend:'Pendentes',venc:'Vencidos',hoje:'Vencem hoje',pago:'Pagos'};
+      verTodosEl.innerHTML=`<button class="btn btn-sm" onclick="verTodosRecebimentos()">← Ver todos (mostrando só: ${STATUS_LBL[status]||status})</button>`;
+    }
+  }
+
   // Métricas sempre do mês completo, independente do filtro de status
   const totPend=allMes.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
   const totRec=allMes.filter(r=>isPago(r)).reduce((a,r)=>a+fN(r.valor_pago),0);
@@ -3483,10 +3522,10 @@ function renderRecebHoje(){
   const totVenc=vencidos.reduce((a,r)=>a+fN(r.saldo),0);
 
   // Os dois lado a lado: vencidos à esquerda, recebimentos de hoje à direita.
-  // Antes era um ou outro — os vencidos só apareciam quando não havia nada
-  // vencendo hoje, então some justamente no dia em que há mais o que cobrar.
-  if(!vencidos.length && !itemsHoje.length){ el.innerHTML=''; return; }
-
+  // Sempre aparecem na dashboard, mesmo sem nenhum lançamento — cada lado
+  // cai no próprio estado "vazio" (✓ nada vencido / nada vencendo hoje) em
+  // vez de o painel inteiro sumir, senão passa a impressão de que a tela
+  // não carregou.
   const dias=d=>Math.round((new Date(hoje+'T12:00:00')-new Date(d+'T12:00:00'))/86400000);
   const fmtD=d=>{const[,m,dd]=d.split('-');return`${dd}/${m}`;};
 
@@ -3519,7 +3558,7 @@ function renderRecebHoje(){
   if(itemsHoje.length){
     const totHoje=itemsHoje.reduce((a,r)=>a+fN(r.saldo),0);
     const preview=itemsHoje.slice(0,4);
-    cardHoje=`<div class="receb-hoje" role="button" tabindex="0" onclick="go('baixas')" title="Ver todos os recebimentos">
+    cardHoje=`<div class="receb-hoje" role="button" tabindex="0" onclick="irHoje()" title="Ver só os recebimentos de hoje">
       <div class="rh-hd"><span>📥 Recebimentos de hoje</span><span class="rh-sub">${itemsHoje.length} · ${fR(totHoje)}</span></div>
       <div class="rh-list">${preview.map(r=>{const col=DC[r.dono]||'#888';return `<div class="rh-item">
         <span class="placa">${r.placa}</span>
@@ -3642,8 +3681,11 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
 // O painel abre como dois números — quantidade e valor de cada lado — e só
 // desce para a lista linha a linha quando o usuário clica para expandir.
 let bolExpandido=false;  // mostra a lista de boletos, um a um
-let bolVerTodos=false;   // dentro da lista expandida: inclui os já emitidos
+let bolFiltro='afazer';  // qual lista mostrar: 'afazer' | 'feitos' | 'todos'
 function toggleBoletosExpand(){bolExpandido=!bolExpandido;renderResumo();}
+// Clicar em "a emitir" ou "emitidos" abre a lista já filtrada só por aquele
+// grupo; o botão "Ver todos" (no rodapé) junta os dois de novo.
+function verBoletosFiltro(f){bolExpandido=true;bolFiltro=f;renderResumo();}
 function renderBoletosPainel(rows){
   const el=document.getElementById('resBoletos');
   if(!el)return;
@@ -3660,27 +3702,25 @@ function renderBoletosPainel(rows){
   const totFeitos=feitosRows.reduce((a,r)=>a+fN(r.valor),0), totFazer=afazerRows.reduce((a,r)=>a+fN(r.valor),0);
   if(hd)hd.textContent=`Boletos do mês — ${feitos} de ${bol.length} emitidos`;
 
-  const resumo=`<div class="bol-resumo" onclick="toggleBoletosExpand()" role="button" tabindex="0" title="${bolExpandido?'Ocultar':'Ver'} os boletos, um a um">
-    <div class="bol-resumo-stat afazer">
+  const resumo=`<div class="bol-resumo" role="button" tabindex="0">
+    <div class="bol-resumo-stat afazer" onclick="event.stopPropagation();verBoletosFiltro('afazer')" title="Ver só os boletos a emitir">
       <span class="bol-resumo-n">${afazer}</span>
       <span class="bol-resumo-lbl">a emitir</span>
       <span class="bol-resumo-v">${fR(totFazer)}</span>
     </div>
-    <div class="bol-resumo-stat feitos">
+    <div class="bol-resumo-stat feitos" onclick="event.stopPropagation();verBoletosFiltro('feitos')" title="Ver só os boletos emitidos">
       <span class="bol-resumo-n">${feitos}</span>
       <span class="bol-resumo-lbl">emitidos</span>
       <span class="bol-resumo-v">${fR(totFeitos)}</span>
     </div>
-    <div class="bol-resumo-arrow">${bolExpandido?'▲ ocultar':'▼ ver boletos'}</div>
+    <div class="bol-resumo-arrow" onclick="toggleBoletosExpand()" title="${bolExpandido?'Ocultar':'Ver'} os boletos, um a um">${bolExpandido?'▲ ocultar':'▼ ver boletos'}</div>
   </div>`;
 
   if(!bolExpandido){ el.innerHTML=resumo; return; }
 
-  // Por padrão a lista expandida só mostra o que falta emitir: com 50+
-  // boletos no mês, listar os já emitidos junto vira parede de linhas apagadas.
-  const mostra=(bolVerTodos||feitos===0)?bol:afazerRows;
-  const alterna=feitos>0
-    ? `<button class="bol-toggle" onclick="event.stopPropagation();bolVerTodos=!bolVerTodos;renderResumo()">${bolVerTodos?'Ocultar os emitidos':`Ver todos (${bol.length})`}</button>`
+  const mostra=bolFiltro==='feitos'?feitosRows:bolFiltro==='todos'?bol:afazerRows;
+  const alterna=bolFiltro!=='todos'
+    ? `<button class="bol-toggle" onclick="event.stopPropagation();bolFiltro='todos';renderResumo()">Ver todos (${bol.length})</button>`
     : '';
   const leg=`<div class="rb rb-cab"><div class="rb-l"></div><div class="rb-bg rb-bg-vazio"></div>
     <div class="rb-v rb-v2"><span class="rb-bol-leg">clique para marcar como emitido</span></div></div>`;
@@ -3699,8 +3739,15 @@ function renderBoletosPainel(rows){
       <div class="rb-v rb-v2"><span class="rb-prev">${vDuplo(pago?r.valor_pago:r.saldo)}</span></div>
     </div>`;
   }).join('');
-  const rodape=totFazer>0?`<div class="bol-rodape">Faltam emitir ${bol.length-feitos} boleto(s) · ${fR(totFazer)}${alterna}</div>`:
-    `<div class="bol-rodape ok">Todos os boletos do mês já foram emitidos ✓${alterna}</div>`;
+  let rodape;
+  if(bolFiltro==='feitos'){
+    rodape=feitos>0
+      ?`<div class="bol-rodape ok">Mostrando ${feitos} boleto(s) já emitido(s) · ${fR(totFeitos)}${alterna}</div>`
+      :`<div class="bol-rodape">Nenhum boleto emitido ainda neste mês.${alterna}</div>`;
+  } else {
+    rodape=totFazer>0?`<div class="bol-rodape">Faltam emitir ${afazer} boleto(s) · ${fR(totFazer)}${alterna}</div>`:
+      `<div class="bol-rodape ok">Todos os boletos do mês já foram emitidos ✓${alterna}</div>`;
+  }
   el.innerHTML=resumo+`<div class="bol-lista">${leg}${linhas}${rodape}</div>`;
 }
 
@@ -3724,10 +3771,10 @@ function renderResumo(){
   let deltaBadge='';
   if(prevV>0){const dp=(totV-prevV)/prevV*100;const up=dp>=0;deltaBadge=` · <span class="mc-delta ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(dp).toFixed(0)}%</span>`;}
   document.getElementById('res-m').innerHTML=`
-    <div class="mc blue"><div class="mc-label">Total faturado</div><div class="mc-value">${fR(totV)}</div><div class="mc-sub">${nL} lançamentos${deltaBadge}</div></div>
-    <div class="mc green"><div class="mc-label">Total recebido</div><div class="mc-value">${fR(totP)}</div><div class="mc-sub">${prevLiq>0?((totP/prevLiq)*100).toFixed(1):'0'}% do previsto</div></div>
-    <div class="mc amber"><div class="mc-label">A receber</div><div class="mc-value">${fR(totS)}</div><div class="mc-sub">${nPend} pendentes</div></div>
-    <div class="mc red"><div class="mc-label">Inadimplência</div><div class="mc-value">${inad.toFixed(1)}%</div><div class="mc-sub">${fR(vencVal)} vencido</div></div>
+    <div class="mc blue" role="button" tabindex="0" onclick="irLancMetric('')" title="Ver todos os lançamentos do mês"><div class="mc-label">Total faturado</div><div class="mc-value">${fR(totV)}</div><div class="mc-sub">${nL} lançamentos${deltaBadge}</div></div>
+    <div class="mc green" role="button" tabindex="0" onclick="irLancMetric('pago')" title="Ver só os recebidos"><div class="mc-label">Total recebido</div><div class="mc-value">${fR(totP)}</div><div class="mc-sub">${prevLiq>0?((totP/prevLiq)*100).toFixed(1):'0'}% do previsto</div></div>
+    <div class="mc amber" role="button" tabindex="0" onclick="irLancMetric('pend')" title="Ver só os pendentes"><div class="mc-label">A receber</div><div class="mc-value">${fR(totS)}</div><div class="mc-sub">${nPend} pendentes</div></div>
+    <div class="mc red" role="button" tabindex="0" onclick="irLancMetric('venc')" title="Ver só os vencidos"><div class="mc-label">Inadimplência</div><div class="mc-value">${inad.toFixed(1)}%</div><div class="mc-sub">${fR(vencVal)} vencido</div></div>
   `;
   renderRecebHoje();
   // Seletor de ano dos gráficos mensais
@@ -3833,8 +3880,13 @@ function renderResumo(){
   // no celular a área rola de lado em vez de espremer as barras até sumirem.
   {const c=document.getElementById('cProj');
    if(c&&c.parentElement)c.parentElement.style.minWidth=Math.max(480,projLbl.length*40)+'px';}
+  // Clique numa barra abre a lista dos lançamentos daquele dia (ou dos
+  // vencidos, na primeira barra) — mesmo índice usado no tooltip/rótulo.
+  const projDiaIdx=i=>(temVenc&&i===0)?'vencidos':dK[temVenc?i-1:i];
   mkC('cProj',{type:'bar',data:{labels:projLbl,datasets:[{data:projVal,backgroundColor:projCor,borderRadius:5,borderSkipped:false,maxBarThickness:38,categoryPercentage:.86,barPercentage:.92}]},
     options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24}},
+    onClick:(evt,els)=>{if(els.length)mostrarLancDia(projDiaIdx(els[0].index));},
+    onHover:(evt,els)=>{if(evt.native)evt.native.target.style.cursor=els.length?'pointer':'default';},
     plugins:{legend:{display:false},barLabels:{display:true,size:13,fmt:v=>v>=1000?(v/1000).toFixed(1).replace('.',',')+'k':String(Math.round(v))},
       tooltip:{callbacks:{
         title:it=>it[0].label==='Vencidos'?'Vencidos':'Vence em '+it[0].label,
@@ -4303,7 +4355,8 @@ function confirmarParcial(){
 // ── BUSCA GLOBAL ──
 function openSearch(){
   document.getElementById('mSearch').classList.add('on');
-  const i=document.getElementById('searchInput');i.value='';runSearch();
+  const tit=document.getElementById('searchModalTit'); if(tit)tit.textContent='Buscar lançamento';
+  const i=document.getElementById('searchInput');i.style.display='';i.value='';runSearch();
   setTimeout(()=>i.focus(),120);
 }
 function closeSearch(){document.getElementById('mSearch').classList.remove('on');}
@@ -4376,12 +4429,17 @@ function runSearch(){
   </div>`;
   const shown=res.slice(0,40);
   const moreHtml=res.length>shown.length?`<div class="srow-empty">+${res.length-shown.length} não exibidos — refine a busca</div>`:'';
-  // Divide os resultados por mês de competência (prev_pgto) — um cabeçalho
-  // toda vez que o mês muda, já que a lista vem ordenada do mais recente
-  // pro mais antigo (assim os lançamentos do item pesquisado ficam
-  // organizados por mês em vez de uma lista corrida).
+  box.innerHTML=ownerHtml+totHtml+lancListHtml(shown,q.split(/\s+/).filter(Boolean))+moreHtml;
+}
+function searchOpen(i){closeSearch();openEdit(i);}
+// Lista de lançamentos reutilizada pela busca global e pelo clique numa data
+// da Projeção de recebimentos: divide por mês de competência (prev_pgto) e
+// mostra vencimento/pagamento de cada um. termosBusca (opcional) só serve pra
+// destacar a observação quando ela foi o motivo do lançamento aparecer na
+// busca — sem termos, a observação aparece sempre que existir.
+function lancListHtml(items,termosBusca){
   let mesCorrente=undefined;
-  box.innerHTML=ownerHtml+totHtml+shown.map(({r,i})=>{
+  return items.map(({r,i})=>{
     const mesKey=(r.prev_pgto||'').slice(0,7);
     let mesHtml='';
     if(mesKey!==mesCorrente){
@@ -4391,21 +4449,46 @@ function runSearch(){
     }
     const col=DC[r.dono]||'#888',pago=isPago(r);
     const pagoData=pago?(r.data_pagamento?fDM(r.data_pagamento):fDM(r.prev_pgto)):null;
+    const mostraObs=r.obs&&(!termosBusca||!termosBusca.length||termosBusca.some(t=>t&&xlsNorm(r.obs).includes(t)));
     return mesHtml+`<div class="srow" onclick="searchOpen(${i})">
       <div style="min-width:0">
         <div style="display:flex;gap:7px;align-items:center"><span class="placa">${r.placa}</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.cliente||'—'}</span></div>
         <div style="font-size:11.5px;color:var(--ink3);margin-top:2px"><span class="ddot" style="background:${col}"></span>${r.dono} · ${fDM(r.saida)}→${fDM(r.retorno)}</div>
         <div style="font-size:11px;color:var(--ink3);margin-top:2px">Vencimento ${fDM(r.prev_pgto)}${pago?` · Pagamento ${pagoData}`:''}</div>
-        ${(r.obs&&q.split(/\s+/).some(t=>t&&xlsNorm(r.obs).includes(t)))?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(r.obs)}</div>`:''}
+        ${mostraObs?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(r.obs)}</div>`:''}
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-weight:700;color:${pago?'var(--green)':'var(--blue)'}">${fR(r.valor)}</div>
         <div style="font-size:11px;color:${pago?'var(--green)':'var(--amber)'}">${pago?'Pago':'Pendente'}</div>
       </div>
     </div>`;
-  }).join('')+moreHtml;
+  }).join('');
 }
-function searchOpen(i){closeSearch();openEdit(i);}
+// Clique numa barra da Projeção de recebimentos (90 dias): mostra só os
+// lançamentos pendentes que vencem naquele dia (ou os vencidos, se for a
+// primeira barra) — reaproveita o modal da busca global.
+function mostrarLancDia(dia){
+  const venc=dia==='vencidos';
+  const hoje=td();
+  const all=allD();
+  const items=[];
+  all.forEach((r,i)=>{
+    if(!isPend(r)||(selDono&&r.dono!==selDono))return;
+    if(venc?r.prev_pgto<hoje:r.prev_pgto===dia)items.push({r,i});
+  });
+  items.sort((a,b)=>fN(b.r.saldo)-fN(a.r.saldo));
+  document.getElementById('mSearch').classList.add('on');
+  const input=document.getElementById('searchInput'); if(input)input.style.display='none';
+  const tit=document.getElementById('searchModalTit');
+  if(tit) tit.textContent=venc?'⚠ Vencidos':'Vence em '+fDM(dia);
+  const box=document.getElementById('searchResults');
+  if(!items.length){ box.innerHTML='<div class="srow-empty">Nada encontrado.</div>'; return; }
+  const totVal=items.reduce((a,{r})=>a+fN(r.saldo),0);
+  const totHtml=`<div class="search-total"><div class="st-blk">
+    <div class="st-main"><span>${items.length} lançamento${items.length>1?'s':''}</span><span class="st-val">${fR(totVal)}</span></div>
+  </div></div>`;
+  box.innerHTML=totHtml+lancListHtml(items,null);
+}
 
 // ── SKELETON (carregando) ──
 function showSkeleton(){
