@@ -674,6 +674,7 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .swipe-act.partial { background: #b8720a; }
 .swipe-act.revert { background: #7c5cbf; }
 .swipe-act.edit { background: #6b7280; }
+.swipe-act.del { background: var(--red); }
 .swipe-act:active { filter: brightness(.92); }
 .swipe-hint { text-align: center; font-size: 11.5px; color: var(--ink3); margin: -2px 0 12px; }
 .swipe-hint b { color: var(--ink2); font-weight: 600; }
@@ -3425,7 +3426,7 @@ function renderBaixas(){
           ${parcial?`<span class="pcard-parcial-sub"><b>${fR(r.valor_pago)}</b> já recebido</span>`:''}
         </div>`;
       const temPago=fN(r.valor_pago)>0;
-      wrap.innerHTML=`<div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="swDo(${gi2},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="swDo(${gi2},2)"><span class="ic">◐</span>Parcial</button>`}${temPago?`<button class="swipe-act revert" onclick="swDo(${gi2},3)"><span class="ic">↺</span>Reverter</button>`:''}<button class="swipe-act edit" onclick="swDo(${gi2},0)"><span class="ic">✏</span>Editar</button></div>`;
+      wrap.innerHTML=`<div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="swDo(${gi2},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="swDo(${gi2},2)"><span class="ic">◐</span>Parcial</button>`}${temPago?`<button class="swipe-act revert" onclick="swDo(${gi2},3)"><span class="ic">↺</span>Reverter</button>`:''}<button class="swipe-act edit" onclick="swDo(${gi2},0)"><span class="ic">✏</span>Editar</button><button class="swipe-act del" onclick="swDo(${gi2},4)"><span class="ic">🗑</span>Excluir</button></div>`;
       wrap.appendChild(card);
       dayItems.appendChild(wrap);
     });
@@ -3704,7 +3705,7 @@ function tipAtraso(o){
       // compactas — event.stopPropagation() pra não deixar o clique fechar
       // o próprio popup (o listener de clique que fixa/tira o popup fica em
       // document, e senão trataria o toque no botão como "fora do popup").
-      return`<div class="swipe"><div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="event.stopPropagation();swDo(${i},1)" title="Baixar"><span class="ic">✓</span></button>`}${temPago?`<button class="swipe-act revert" onclick="event.stopPropagation();swDo(${i},3)" title="Reverter pagamento"><span class="ic">↺</span></button>`:''}<button class="swipe-act edit" onclick="event.stopPropagation();swDo(${i},0)" title="Editar"><span class="ic">✏</span></button></div><div class="pcard rb-tip-l${cls==='t-rec'?' rb-tip-pago':''}"><span class="rb-tip-d ${cls}">${dt}</span>
+      return`<div class="swipe"><div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="event.stopPropagation();swDo(${i},1)" title="Baixar"><span class="ic">✓</span></button>`}${temPago?`<button class="swipe-act revert" onclick="event.stopPropagation();swDo(${i},3)" title="Reverter pagamento"><span class="ic">↺</span></button>`:''}<button class="swipe-act edit" onclick="event.stopPropagation();swDo(${i},0)" title="Editar"><span class="ic">✏</span></button><button class="swipe-act del" onclick="event.stopPropagation();swDo(${i},4)" title="Excluir"><span class="ic">🗑</span></button></div><div class="pcard rb-tip-l${cls==='t-rec'?' rb-tip-pago':''}"><span class="rb-tip-d ${cls}">${dt}</span>
         <span class="rb-tip-c">${esc(r.cliente||'—')}<small>${esc(r.placa||'')}${sufixo(r)}</small></span>
         <span class="rb-tip-v">${fR(valorDe(r))}</span></div></div>`;
     }).join('');
@@ -4321,13 +4322,23 @@ function saveEdit(){
   dbUpdate(r);
   closeEdit();renderAll();
 }
-function deleteRow(){
-  if(!confirm('Excluir lançamento?'))return;
-  const r=allD()[editIdx];
+// Exclusão de verdade, sem desfazer (diferente das outras ações do swipe):
+// dbDelete já tira a linha do banco por id, e não tem como "reinserir do
+// jeito que estava" com segurança — por isso pede confirm() em vez do
+// padrão toast+desfazer usado em baixa/parcial/reverter. Usada tanto pelo
+// botão "Excluir" da edição completa quanto pelo swipe em qualquer lista.
+function excluirLancamento(idx){
+  const r=allD()[idx];
+  if(!r||!confirm(`Excluir o lançamento de ${r.cliente||r.placa}?`))return false;
   dbDelete(r.id);
   const di=DATA.indexOf(r),ni=NOVOS.indexOf(r);
   if(di>=0)DATA.splice(di,1);if(ni>=0)NOVOS.splice(ni,1);
-  closeEdit();renderAll();
+  renderAll();
+  return true;
+}
+function deleteRow(){
+  if(editIdx===null)return;
+  if(excluirLancamento(editIdx))closeEdit();
 }
 function closeEdit(){document.getElementById('mEdit').classList.remove('on');editIdx=null;}
 
@@ -4521,6 +4532,7 @@ function lcCardHtml(r,gi,fecharBusca){
       ${pago?'':`<button class="swipe-act pay" onclick="${pre}swDo(${gi},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="${pre}swDo(${gi},2)"><span class="ic">◐</span>Parcial</button>`}
       ${temPago?`<button class="swipe-act revert" onclick="${pre}swDo(${gi},3)"><span class="ic">↺</span>Reverter</button>`:''}
       <button class="swipe-act edit" onclick="${pre}swDo(${gi},0)"><span class="ic">✏</span>Editar</button>
+      <button class="swipe-act del" onclick="${pre}swDo(${gi},4)"><span class="ic">🗑</span>Excluir</button>
     </div>
     <div class="pcard lc-card${pago?' done':''}${parcial?' parcial':''}${venc&&!pago?' venc':''}">
       <div class="pcard-body">
@@ -4646,7 +4658,7 @@ function closeRow(except){
 }
 function openRowEl(wrap,pw){closeRow(wrap);wrap.classList.add('open');swSet(wrap,-pw);openRow=wrap;}
 function panelW(wrap){const n=wrap.querySelectorAll('.swipe-act').length;return (n||1)*76;}
-function swDo(gi,pay){closeRow();if(pay===1)abrirParcial(gi,true);else if(pay===2)abrirParcial(gi);else if(pay===3)reverterPagamento(gi);else openEdit(gi);}
+function swDo(gi,pay){closeRow();if(pay===1)abrirParcial(gi,true);else if(pay===2)abrirParcial(gi);else if(pay===3)reverterPagamento(gi);else if(pay===4)excluirLancamento(gi);else openEdit(gi);}
 function swXY(e){const t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);return t?{x:t.clientX,y:t.clientY}:{x:e.clientX,y:e.clientY};}
 function swStart(e){
   if(e.type==='mousedown'&&e.button!==0)return;
