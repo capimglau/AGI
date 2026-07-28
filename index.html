@@ -573,12 +573,15 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .pcard.done { opacity: .6; }
 .pcard.parcial:not(.venc)::before { background: var(--bar-rec); }
 /* Vencido e "vence hoje" respiram devagar pra chamar atenção sem incomodar
-   — um esmaecer lento na faixa colorida, não um piscar. */
+   — um esmaecer lento, não um piscar. A faixa lateral e um tingimento bem
+   leve no fundo do cartão inteiro animam juntos (só na faixa, um cartão
+   grande, a mudança passava despercebida). */
 @keyframes rbPulseBar { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 .pcard.venc::before, .pcard.hoje-card::before { animation: rbPulseBar 2.6s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) {
-  .pcard.venc::before, .pcard.hoje-card::before { animation: none; }
-}
+@keyframes rbPulseVenc { 0%, 100% { background-color: var(--card); } 50% { background-color: rgba(191,37,24,.10); } }
+@keyframes rbPulseHoje { 0%, 100% { background-color: var(--card); } 50% { background-color: rgba(31,95,168,.10); } }
+.pcard.venc { animation: rbPulseVenc 2.6s ease-in-out infinite; }
+.pcard.hoje-card { animation: rbPulseHoje 2.6s ease-in-out infinite; }
 /* Cartão sem a coluna do checkbox/ícone de "pago" (Lançamentos e busca) —
    sem isso o grid de 3 colunas (20px 1fr auto) espreme todo o conteúdo do
    cartão na faixa de 20px, deixando tudo empilhado e o cartão gigante. */
@@ -4264,7 +4267,7 @@ function openEdit(idx){
       <div><span style="color:var(--ink3)">Pago</span> <strong style="color:var(--green)">${fR(r.valor_pago)}</strong></div>
       <div><span style="color:var(--ink3)">Saldo</span> <strong style="color:${fN(r.saldo)>0?'var(--red)':'var(--green)'}">${fR(r.saldo)}</strong></div>
       <div><span style="color:var(--ink3)">Data pagamento</span> <strong>${r.data_pagamento?fD(r.data_pagamento):'—'}</strong></div>
-      <div><span style="color:var(--ink3)">Prev. Pgto</span> <strong>${r.prev_pgto||'—'}</strong></div>
+      <div><span style="color:var(--ink3)">Prev. Pgto</span> <strong style="color:var(--red)">${r.prev_pgto||'—'}</strong></div>
     </div>
     ${r.obs?`<div style="margin-top:8px;font-size:12px;color:var(--ink3)">Ref: ${esc(r.obs)}</div>`:''}
   `;
@@ -4558,7 +4561,7 @@ function lcCardHtml(r,gi,fecharBusca){
         </div>
         <div class="pcard-meta">
           <span>🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
-          <span>Vencimento ${fDM(r.prev_pgto)}</span>
+          <span>Vencimento <b style="color:var(--red);font-weight:700">${fDM(r.prev_pgto)}</b></span>
         </div>
       </div>
       <div class="pcard-right">
