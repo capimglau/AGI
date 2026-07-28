@@ -1988,7 +1988,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       </div>
       <div class="fbar" style="margin-bottom:10px">
         <button class="btn" style="flex:1" onclick="toggleFilters()">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
-        <button class="btn" style="flex:1" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, cliente e período (saída/retorno)">🔁 Duplicados</button>
+        <button class="btn" style="flex:1" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, cliente, período (saída/retorno), tipo, vencimento e valor">🔁 Duplicados</button>
       </div>
       <div class="filt-panel filt-panel-baixas" id="filtPanel" hidden>
         <div id="baixasFilters" class="rf-bar rf-flat"></div>
@@ -4578,19 +4578,20 @@ function mostrarLancDia(dia){
   box.innerHTML=totHtml+lancListHtml(items,true);
 }
 // Botão "Duplicados" de Recebimentos: agrupa TODOS os lançamentos (não só
-// os do mês) por placa+cliente+período (saída/retorno) — e também por tipo e
-// vencimento (prev_pgto), senão a mesma placa/cliente/período em parcelas de
-// "Crédito 2x/3x" (uma linha por parcela, cada uma com vencimento diferente)
-// ou em cobranças diferentes do mesmo período (ex. Locação + Multas) aparece
-// como falso duplicado. Duas linhas com placa, cliente, período, tipo E
-// vencimento todos iguais são, isso sim, quase sempre duplicata de
-// importação. Mostra cada grupo com seus itens, reaproveitando o modal e os
-// cartões (com edição/baixa/reverter) da busca global.
+// os do mês) por placa+cliente+período (saída/retorno) — e também por tipo,
+// vencimento (prev_pgto) E valor, senão a mesma placa/cliente/período em
+// parcelas de "Crédito 2x/3x" (uma linha por parcela, cada uma com
+// vencimento e valor diferentes) ou em cobranças diferentes do mesmo
+// período (ex. Locação + Multas) aparece como falso duplicado. Duas linhas
+// com placa, cliente, período, tipo, vencimento E valor todos iguais são,
+// isso sim, quase sempre duplicata de importação. Mostra cada grupo com
+// seus itens, reaproveitando o modal e os cartões (com edição/baixa/
+// reverter) da busca global.
 function mostrarDuplicados(){
   const all=allD();
   const grupos={};
   all.forEach((r,i)=>{
-    const key=[r.placa||'—',r.cliente||'—',r.saida||'—',r.retorno||'—',r.tipo||'—',r.prev_pgto||'—'].join(' · ');
+    const key=[r.placa||'—',r.cliente||'—',r.saida||'—',r.retorno||'—',r.tipo||'—',r.prev_pgto||'—',fN(r.valor).toFixed(2)].join(' · ');
     (grupos[key]=grupos[key]||[]).push({r,i});
   });
   const dupGrupos=Object.entries(grupos).filter(([,items])=>items.length>1)
@@ -4601,7 +4602,7 @@ function mostrarDuplicados(){
   if(tit) tit.textContent='🔁 Possíveis duplicados';
   const box=document.getElementById('searchResults');
   if(!dupGrupos.length){
-    box.innerHTML='<div class="srow-empty">Nenhum duplicado encontrado — nenhum lançamento repete placa, cliente, período, tipo e vencimento.</div>';
+    box.innerHTML='<div class="srow-empty">Nenhum duplicado encontrado — nenhum lançamento repete placa, cliente, período, tipo, vencimento e valor.</div>';
     return;
   }
   const totalItens=dupGrupos.reduce((a,[,items])=>a+items.length,0);
