@@ -903,6 +903,8 @@ tr:hover td { background: #f9f8f5; }
 .rb-tip-l { display: grid; grid-template-columns: 46px 1fr auto; gap: 4px 9px; align-items: baseline; padding: 3px 4px; margin: 0 -4px; border-top: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
 .rb-tip-l:first-of-type { border-top: 0; }
 .rb-tip-l:hover { background: var(--surface); }
+.rb-tip-l.rb-tip-pago { opacity: .6; }
+.rb-tip-l.rb-tip-pago:hover { opacity: 1; }
 .rb-tip-d { font-weight: 700; font-variant-numeric: tabular-nums; }
 .rb-tip-c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rb-tip-c small { color: var(--ink3); font-size: 10.5px; margin-left: 5px; }
@@ -967,6 +969,9 @@ tr:hover td { background: #f9f8f5; }
 .receb-hoje.rh-vazio { cursor: default; opacity: .72; }
 .receb-hoje.rh-vazio:hover { box-shadow: var(--card-shadow); transform: none; }
 .rh-nada { font-size: 12.5px; color: var(--ink3); }
+.rh-links { display: flex; gap: 14px; justify-content: flex-end; margin-top: 11px; }
+.rh-link { font-size: 12.5px; font-weight: 700; color: var(--blue); cursor: pointer; }
+.rh-link:hover { text-decoration: underline; }
 .vc-datas b { color: var(--red); font-weight: 700; }
 .rb-l { font-size: 12.5px; width: 90px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rb-bg { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
@@ -1109,6 +1114,8 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .dn-hd-red { color: var(--red); }
 .dn-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 280px; }
 .dn-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; }
+.dn-row.pago { opacity: .6; }
+.dn-row.pago:hover { opacity: 1; }
 .dn-row .r-main { font-weight: 600; }
 .dn-row .r-sub { font-size: 11px; color: var(--ink3); margin-top: 2px; }
 .dn-row .r-val { font-weight: 700; white-space: nowrap; }
@@ -1699,8 +1706,12 @@ details[open] summary::before { transform: rotate(90deg); }
   .mc-value { font-size: 18px; }
 }
 @keyframes fadeOp { from { opacity: 0; } to { opacity: 1; } }
-/* só opacidade: animar transform aqui quebraria o swipe (CSS anim > style inline) */
-.pcard { animation: fadeOp .15s ease both; }
+/* só opacidade: animar transform aqui quebraria o swipe (CSS anim > style inline).
+   fill-mode "backwards" (não "both"!): aplica o opacity:0 ANTES de começar (sem
+   flash), mas ao terminar a animação solta a propriedade de volta pro CSS normal —
+   com "both" o valor final (opacity:1) da animação ficava "grudado" pra sempre,
+   por cima do opacity:.6 do .pcard.done, e nenhum cartão pago aparecia esmaecido. */
+.pcard { animation: fadeOp .15s ease backwards; }
 
 /* ════════════════ TEMA ESCURO (navy AGI — igual referência) ════════════════ */
 /* ── VIDRO FOSCO (opção 3) sobre fundo iOS #f2f2f7 (opção 1) ── */
@@ -1933,6 +1944,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
           <option value="pend">Pendentes</option>
           <option value="venc">Vencidos</option>
           <option value="hoje">Vencem hoje</option>
+          <option value="futuro">Futuros</option>
           <option value="pago">Pagos</option>
           <option value="todos" selected>Todos</option>
         </select>
@@ -3001,12 +3013,6 @@ function navMes(delta){
   updateMesLabel();
   renderAll();
 }
-// "Hoje" vai para o mês de hoje. Antes ele pulava para o mês com mais
-// pendências, que raramente é o mês corrente — o botão levava para outro lugar.
-function irHoje(){
-  curMes=td().slice(0,7);
-  updateMesLabel();renderAll();
-}
 // Abre os Recebimentos no mês com mais vencidos, já filtrado por "Vencidos"
 function irVencidos(){
   const venc=allD().filter(r=>isVenc(r));
@@ -3030,6 +3036,21 @@ function irHoje(){
 function verTodosRecebimentos(){
   const sel=document.getElementById('bf-status'); if(sel) sel.value='todos';
   renderBaixas();
+}
+// Do card "Recebimentos de hoje" vazio (nada vencendo hoje): oferece ir ver
+// os próximos vencimentos (sem os já vencidos, que têm o card ao lado) ou
+// simplesmente abrir Recebimentos sem filtro nenhum.
+function irFuturos(){
+  curMes=td().slice(0,7);
+  updateMesLabel();
+  const sel=document.getElementById('bf-status'); if(sel) sel.value='futuro';
+  go('baixas');
+}
+function irRecebimentosTodos(){
+  curMes=td().slice(0,7);
+  updateMesLabel();
+  const sel=document.getElementById('bf-status'); if(sel) sel.value='todos';
+  go('baixas');
 }
 // Cards do topo do Resumo (faturado/recebido/a receber/inadimplência) levam
 // pra Lançamentos já filtrado — mesmo mês e mesmo proprietário do Resumo (se
@@ -3223,6 +3244,7 @@ function renderBaixas(){
   if(status==='pend') rows=rows.filter(r=>isPend(r));
   else if(status==='venc') rows=rows.filter(r=>isVenc(r));
   else if(status==='hoje') rows=rows.filter(r=>isPend(r)&&r.prev_pgto===hoje);
+  else if(status==='futuro') rows=rows.filter(r=>isPend(r)&&r.prev_pgto>hoje);
   else if(status==='pago') rows=rows.filter(r=>isPago(r));
   rows.sort((a,b)=>(b.prev_pgto||'').localeCompare(a.prev_pgto||''));
 
@@ -3233,7 +3255,7 @@ function renderBaixas(){
     if(status==='todos'){verTodosEl.style.display='none';verTodosEl.innerHTML='';}
     else{
       verTodosEl.style.display='block';
-      const STATUS_LBL={pend:'Pendentes',venc:'Vencidos',hoje:'Vencem hoje',pago:'Pagos'};
+      const STATUS_LBL={pend:'Pendentes',venc:'Vencidos',hoje:'Vencem hoje',futuro:'Futuros',pago:'Pagos'};
       verTodosEl.innerHTML=`<button class="btn btn-sm" onclick="verTodosRecebimentos()">← Ver todos (mostrando só: ${STATUS_LBL[status]||status})</button>`;
     }
   }
@@ -3557,6 +3579,10 @@ function renderRecebHoje(){
     cardHoje=`<div class="receb-hoje rh-vazio">
       <div class="rh-hd"><span>📥 Recebimentos de hoje</span><span class="rh-sub">—</span></div>
       <div class="rh-nada">Nada vencendo hoje</div>
+      <div class="rh-links">
+        <span class="rh-link" role="button" tabindex="0" onclick="irFuturos()">Ver recebimentos futuros ›</span>
+        <span class="rh-link" role="button" tabindex="0" onclick="irRecebimentosTodos()">Exibir todos ›</span>
+      </div>
     </div>`;
   }
 
@@ -3616,7 +3642,7 @@ function tipAtraso(o){
     const linhas=lista.slice(0,MAX).map(r=>{
       const dt=r.prev_pgto?`${r.prev_pgto.split('-')[2]}/${r.prev_pgto.split('-')[1]}`:'—';
       const i=allD().indexOf(r);
-      return`<div class="rb-tip-l" onclick="event.stopPropagation();openEdit(${i})" title="Editar / dar baixa"><span class="rb-tip-d ${cls}">${dt}</span>
+      return`<div class="rb-tip-l${cls==='t-rec'?' rb-tip-pago':''}" onclick="event.stopPropagation();openEdit(${i})" title="Editar / dar baixa"><span class="rb-tip-d ${cls}">${dt}</span>
         <span class="rb-tip-c">${esc(r.cliente||'—')}<small>${esc(r.placa||'')}${sufixo(r)}</small></span>
         <span class="rb-tip-v">${fR(valorDe(r))}</span></div>`;
     }).join('');
@@ -4057,9 +4083,9 @@ function renderDonoModal(){
   document.getElementById('dnSub').textContent=`${new Set(rec.map(r=>r.placa)).size} veículos · ${rec.length} lançamentos`;
   document.getElementById('dnRecCt').textContent=fR(totRec);
   document.getElementById('dnRecList').innerHTML = rec.length ? rec.map(r=>`
-    <div class="dn-row">
+    <div class="dn-row${isPago(r)?' pago':''}">
       <div><div class="r-main">${r.cliente||'—'}</div><div class="r-sub">${r.placa} · ${r.tipo||'—'} · ${fDM(r.prev_pgto)}</div></div>
-      <div class="r-val" style="color:var(--green)">${fR(r.valor)}</div>
+      <div class="r-val" style="color:${isPago(r)?'var(--green)':'var(--blue)'}">${fR(r.valor)}</div>
     </div>`).join('') : '<div class="dn-empty">Sem receitas previstas neste mês.</div>';
 
   // DESPESAS lançadas no mês
