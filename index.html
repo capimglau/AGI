@@ -388,10 +388,25 @@ body::before {
 .filt-panel-baixas[hidden] { display: none; }
 .filt-panel-baixas #baixasFilters { margin-bottom: 0; }
 /* Em Recebimentos cada tipo de filtro ocupa a linha inteira, um embaixo do
-   outro — Status primeiro, depois os demais tipos (proprietário, tipo,
-   forma, cliente, placa), em vez de tudo espremido lado a lado. */
-#bf-status-sec, .filt-panel-baixas #baixasFilters { flex: 1 1 100%; }
-#bf-status-sec select { width: 100%; }
+   outro (proprietário, tipo, forma, cliente, placa), em vez de tudo
+   espremido lado a lado. */
+.filt-panel-baixas #baixasFilters { flex: 1 1 100%; }
+/* Seletor de status sempre visível (fora do painel de filtros) e destacado —
+   é o filtro mais usado em Recebimentos, não devia ficar escondido atrás do
+   botão "Filtros" nem parecer um select qualquer. */
+.bf-status-destaque {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--blue);
+  border-radius: 12px;
+  background: var(--blue-soft, rgba(31,95,168,.08));
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.bf-status-destaque:focus { outline: none; box-shadow: 0 0 0 3px rgba(31,95,168,.15); }
 /* Barra de ações dos Recebimentos: botões espaçados lateral e verticalmente */
 .fbar-baixas { gap: 10px; margin: 6px 0 18px; }
 .fbar-baixas .btn { flex: 1; justify-content: center; padding: 11px 12px; border-radius: 999px; font-weight: 600; }
@@ -1942,23 +1957,20 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <!-- LEFT: day groups -->
     <div>
       <input type="text" id="bx-q" class="search-input" style="margin-bottom:10px" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
+      <select id="bf-status" class="bf-status-destaque" onchange="renderBaixas()">
+        <option value="pend">Pendentes</option>
+        <option value="venc">Vencidos</option>
+        <option value="hoje">Vencem hoje</option>
+        <option value="futuro">Futuros</option>
+        <option value="pago">Pagos</option>
+        <option value="todos" selected>Todos</option>
+      </select>
       <div class="fbar fbar-baixas">
         <button class="btn" onclick="selTodos()">Selec. Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
       </div>
       <button class="btn btn-block" onclick="toggleFilters()" style="margin-bottom:10px">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
       <div class="filt-panel filt-panel-baixas" id="filtPanel" hidden>
-        <div class="rf-sec" id="bf-status-sec">
-          <div class="rf-sec-tt">Status</div>
-          <select id="bf-status" onchange="renderBaixas()">
-            <option value="pend">Pendentes</option>
-            <option value="venc">Vencidos</option>
-            <option value="hoje">Vencem hoje</option>
-            <option value="futuro">Futuros</option>
-            <option value="pago">Pagos</option>
-            <option value="todos" selected>Todos</option>
-          </select>
-        </div>
         <div id="baixasFilters" class="rf-bar rf-flat"></div>
       </div>
       <div id="baixaVerTodos" style="display:none;margin-bottom:10px"></div>
@@ -3286,10 +3298,12 @@ function renderBaixas(){
     <div class="mc red"><div class="mc-label">Já vencidos</div><div class="mc-value">${nVenc}</div></div>
   `;
 
-  // Indicador de filtro ativo
+  // Indicador de filtro ativo — só reflete os filtros escondidos atrás do
+  // botão (proprietário/tipo/forma/cliente/placa); o status tem seu próprio
+  // seletor sempre visível, então não precisa de indicador redundante.
   const fdot=document.getElementById('filtDot');
   const anyBF=Object.values(BF).some(s=>s.size);
-  if(fdot) fdot.style.display=(anyBF||(status&&status!=='todos'))?'inline-block':'none';
+  if(fdot) fdot.style.display=anyBF?'inline-block':'none';
 
   const container=document.getElementById('baixasContainer');
   container.innerHTML='';
