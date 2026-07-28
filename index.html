@@ -2478,7 +2478,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <div class="overlay" id="mSearch">
   <div class="modal" style="max-width:520px">
     <div class="mhd">Buscar lançamento <button class="mcl" onclick="closeSearch()">✕</button></div>
-    <input id="searchInput" class="search-input" type="text" placeholder="Placa, cliente ou proprietário…" autocomplete="off" oninput="runSearch()">
+    <input id="searchInput" class="search-input" type="text" placeholder="Placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="runSearch()">
     <div id="searchResults"></div>
   </div>
 </div>
@@ -4263,13 +4263,20 @@ function openSearch(){
 function closeSearch(){document.getElementById('mSearch').classList.remove('on');}
 function showMais(){if(window.innerWidth<761){document.getElementById('dock-main').style.display='none';document.getElementById('dock-mais').style.display='flex';}}
 function hideMais(){if(window.innerWidth<761){document.getElementById('dock-mais').style.display='none';document.getElementById('dock-main').style.display='flex';}}
+// Busca global: um único texto por lançamento com todos os campos que podem
+// ter o que o usuário está procurando — placa, cliente, proprietário, tipo,
+// forma (inclui "cartão"), datas e a observação (onde fica, por exemplo, o
+// final do número do cartão: "Cartão final 9974"). Assim a busca acha por
+// qualquer pedaço de qualquer campo, não só placa/cliente/dono.
+const buscaHay=r=>[r.placa,r.cliente,r.dono,r.tipo,fFormaLabel(r.forma),r.forma,r.obs,fD(r.saida),fD(r.retorno),fD(r.prev_pgto)]
+  .filter(Boolean).join(' • ').toLowerCase();
 function runSearch(){
   const q=document.getElementById('searchInput').value.trim().toLowerCase();
   const box=document.getElementById('searchResults');
-  if(!q){box.innerHTML='<div class="srow-empty">Digite uma placa, cliente ou proprietário.</div>';return;}
+  if(!q){box.innerHTML='<div class="srow-empty">Digite qualquer termo: placa, cliente, proprietário, observação, nº do cartão…</div>';return;}
   const all=allD();
   const res=[];
-  for(let i=0;i<all.length;i++){const r=all[i];if((r.placa||'').toLowerCase().includes(q)||(r.cliente||'').toLowerCase().includes(q)||(r.dono||'').toLowerCase().includes(q))res.push({r,i});}
+  for(let i=0;i<all.length;i++){const r=all[i];if(buscaHay(r).includes(q))res.push({r,i});}
   if(!res.length){box.innerHTML='<div class="srow-empty">Nada encontrado.</div>';return;}
   const totVal=res.reduce((a,{r})=>a+fN(r.valor),0);                          // faturado (bruto)
   const totPago=res.reduce((a,{r})=>a+(isPago(r)?fN(r.valor_pago):0),0);      // recebido (líquido)
@@ -4315,6 +4322,7 @@ function runSearch(){
       <div style="min-width:0">
         <div style="display:flex;gap:7px;align-items:center"><span class="placa">${r.placa}</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.cliente||'—'}</span></div>
         <div style="font-size:11.5px;color:var(--ink3);margin-top:2px"><span class="ddot" style="background:${col}"></span>${r.dono} · ${fDM(r.saida)}→${fDM(r.retorno)}</div>
+        ${(r.obs&&r.obs.toLowerCase().includes(q))?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(r.obs)}</div>`:''}
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-weight:700;color:${pago?'var(--green)':'var(--blue)'}">${fR(r.valor)}</div>
