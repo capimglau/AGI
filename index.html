@@ -2494,7 +2494,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <!-- BUSCA GLOBAL -->
 <div class="overlay" id="mSearch">
   <div class="modal" style="max-width:520px">
-    <div class="mhd">Buscar lançamento <button class="mcl" onclick="closeSearch()">✕</button></div>
+    <div class="mhd"><span id="searchModalTit">Buscar lançamento</span> <button class="mcl" onclick="closeSearch()">✕</button></div>
     <input id="searchInput" class="search-input" type="text" placeholder="Placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="runSearch()">
     <div id="searchResults"></div>
   </div>
@@ -3878,8 +3878,13 @@ function renderResumo(){
   // no celular a área rola de lado em vez de espremer as barras até sumirem.
   {const c=document.getElementById('cProj');
    if(c&&c.parentElement)c.parentElement.style.minWidth=Math.max(480,projLbl.length*40)+'px';}
+  // Clique numa barra abre a lista dos lançamentos daquele dia (ou dos
+  // vencidos, na primeira barra) — mesmo índice usado no tooltip/rótulo.
+  const projDiaIdx=i=>(temVenc&&i===0)?'vencidos':dK[temVenc?i-1:i];
   mkC('cProj',{type:'bar',data:{labels:projLbl,datasets:[{data:projVal,backgroundColor:projCor,borderRadius:5,borderSkipped:false,maxBarThickness:38,categoryPercentage:.86,barPercentage:.92}]},
     options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24}},
+    onClick:(evt,els)=>{if(els.length)mostrarLancDia(projDiaIdx(els[0].index));},
+    onHover:(evt,els)=>{if(evt.native)evt.native.target.style.cursor=els.length?'pointer':'default';},
     plugins:{legend:{display:false},barLabels:{display:true,size:13,fmt:v=>v>=1000?(v/1000).toFixed(1).replace('.',',')+'k':String(Math.round(v))},
       tooltip:{callbacks:{
         title:it=>it[0].label==='Vencidos'?'Vencidos':'Vence em '+it[0].label,
@@ -4342,7 +4347,8 @@ function confirmarParcial(){
 // ── BUSCA GLOBAL ──
 function openSearch(){
   document.getElementById('mSearch').classList.add('on');
-  const i=document.getElementById('searchInput');i.value='';runSearch();
+  const tit=document.getElementById('searchModalTit'); if(tit)tit.textContent='Buscar lançamento';
+  const i=document.getElementById('searchInput');i.style.display='';i.value='';runSearch();
   setTimeout(()=>i.focus(),120);
 }
 function closeSearch(){document.getElementById('mSearch').classList.remove('on');}
@@ -4433,12 +4439,17 @@ function runSearch(){
   </div>`;
   const shown=res.slice(0,40);
   const moreHtml=res.length>shown.length?`<div class="srow-empty">+${res.length-shown.length} não exibidos — refine a busca</div>`:'';
-  // Divide os resultados por mês de competência (prev_pgto) — um cabeçalho
-  // toda vez que o mês muda, já que a lista vem ordenada do mais recente
-  // pro mais antigo (assim os lançamentos do item pesquisado ficam
-  // organizados por mês em vez de uma lista corrida).
+  box.innerHTML=ownerHtml+totHtml+lancListHtml(shown,q.split(/\s+/).filter(Boolean))+moreHtml;
+}
+function searchOpen(i){closeSearch();openEdit(i);}
+// Lista de lançamentos reutilizada pela busca global e pelo clique numa data
+// da Projeção de recebimentos: divide por mês de competência (prev_pgto) e
+// mostra vencimento/pagamento de cada um. termosBusca (opcional) só serve pra
+// destacar a observação quando ela foi o motivo do lançamento aparecer na
+// busca — sem termos, a observação aparece sempre que existir.
+function lancListHtml(items,termosBusca){
   let mesCorrente=undefined;
-  box.innerHTML=ownerHtml+totHtml+shown.map(({r,i})=>{
+  return items.map(({r,i})=>{
     const mesKey=(r.prev_pgto||'').slice(0,7);
     let mesHtml='';
     if(mesKey!==mesCorrente){
@@ -4448,21 +4459,46 @@ function runSearch(){
     }
     const col=DC[r.dono]||'#888',pago=isPago(r);
     const pagoData=pago?(obsPagoData(r)||fDM(r.prev_pgto)):null;
+    const mostraObs=r.obs&&(!termosBusca||!termosBusca.length||termosBusca.some(t=>t&&xlsNorm(r.obs).includes(t)));
     return mesHtml+`<div class="srow" onclick="searchOpen(${i})">
       <div style="min-width:0">
         <div style="display:flex;gap:7px;align-items:center"><span class="placa">${r.placa}</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.cliente||'—'}</span></div>
         <div style="font-size:11.5px;color:var(--ink3);margin-top:2px"><span class="ddot" style="background:${col}"></span>${r.dono} · ${fDM(r.saida)}→${fDM(r.retorno)}</div>
         <div style="font-size:11px;color:var(--ink3);margin-top:2px">Vencimento ${fDM(r.prev_pgto)}${pago?` · Pagamento ${pagoData}`:''}</div>
-        ${(r.obs&&q.split(/\s+/).some(t=>t&&xlsNorm(r.obs).includes(t)))?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(r.obs)}</div>`:''}
+        ${mostraObs?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(r.obs)}</div>`:''}
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-weight:700;color:${pago?'var(--green)':'var(--blue)'}">${fR(r.valor)}</div>
         <div style="font-size:11px;color:${pago?'var(--green)':'var(--amber)'}">${pago?'Pago':'Pendente'}</div>
       </div>
     </div>`;
-  }).join('')+moreHtml;
+  }).join('');
 }
-function searchOpen(i){closeSearch();openEdit(i);}
+// Clique numa barra da Projeção de recebimentos (90 dias): mostra só os
+// lançamentos pendentes que vencem naquele dia (ou os vencidos, se for a
+// primeira barra) — reaproveita o modal da busca global.
+function mostrarLancDia(dia){
+  const venc=dia==='vencidos';
+  const hoje=td();
+  const all=allD();
+  const items=[];
+  all.forEach((r,i)=>{
+    if(!isPend(r)||(selDono&&r.dono!==selDono))return;
+    if(venc?r.prev_pgto<hoje:r.prev_pgto===dia)items.push({r,i});
+  });
+  items.sort((a,b)=>fN(b.r.saldo)-fN(a.r.saldo));
+  document.getElementById('mSearch').classList.add('on');
+  const input=document.getElementById('searchInput'); if(input)input.style.display='none';
+  const tit=document.getElementById('searchModalTit');
+  if(tit) tit.textContent=venc?'⚠ Vencidos':'Vence em '+fDM(dia);
+  const box=document.getElementById('searchResults');
+  if(!items.length){ box.innerHTML='<div class="srow-empty">Nada encontrado.</div>'; return; }
+  const totVal=items.reduce((a,{r})=>a+fN(r.saldo),0);
+  const totHtml=`<div class="search-total"><div class="st-blk">
+    <div class="st-main"><span>${items.length} lançamento${items.length>1?'s':''}</span><span class="st-val">${fR(totVal)}</span></div>
+  </div></div>`;
+  box.innerHTML=totHtml+lancListHtml(items,null);
+}
 
 // ── SKELETON (carregando) ──
 function showSkeleton(){
