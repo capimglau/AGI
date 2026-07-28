@@ -2378,6 +2378,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <div class="fp"><label>Valor</label><input type="number" id="e-v" step="0.01"></div>
         <div class="fp"><label>Prev. Pgto</label><input type="date" id="e-pp"></div>
         <div class="fp"><label>Valor pago</label><input type="number" id="e-vp" step="0.01"></div>
+        <div class="fp"><label>Data pagamento</label><input type="date" id="e-dtpag"></div>
         <div class="fp"><label>Saldo</label><input type="number" id="e-sl" step="0.01"></div>
         <div class="fp s2"><label>Obs</label><input type="text" id="e-obs"></div>
       </div>
@@ -2570,7 +2571,7 @@ const DS = JSON.parse(document.getElementById("ds").textContent);
 const _cfg = (window.AUTOGEST_CONFIG || {});
 const SB = (_cfg.url && _cfg.key && window.supabase) ? window.supabase.createClient(_cfg.url, _cfg.key) : null;
 const ONLINE = !!SB;
-const COLS = ['placa','dono','saida','retorno','cliente','tipo','valor','forma','prev_pgto','valor_pago','saldo','obs'];
+const COLS = ['placa','dono','saida','retorno','cliente','tipo','valor','forma','prev_pgto','valor_pago','saldo','obs','data_pagamento'];
 function _clean(r){const o={};COLS.forEach(k=>o[k]=(r[k]===undefined||r[k]==='')?null:r[k]);return o;}
 // O PostgREST devolve no máximo 1000 linhas por requisição (limite do Supabase),
 // então toda leitura de tabela cheia precisa paginar — senão o app "perde" o que
@@ -3302,7 +3303,8 @@ function renderBaixas(){
             ${tipTag(r.tipo)}
             <span class="tag tag-forma">${fFormaLabel(r.forma)}</span>
             ${parcial?`<span class="tag tag-parcial">◐ Parcial</span>`:''}
-            ${r.obs?`<span class="tag" style="background:var(--surface);color:var(--ink3);font-size:10.5px;font-style:italic;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.obs}">📝 ${r.obs}</span>`:''}
+            ${r.obs?`<span class="tag" style="background:var(--surface);color:var(--ink3);font-size:10.5px;font-style:italic;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.obs)}">📝 ${esc(r.obs)}</span>`:''}
+            ${r.data_pagamento?`<span class="tag" style="background:var(--green-soft);color:var(--green);font-size:10.5px" title="Pago em ${fD(r.data_pagamento)}">✓ pago ${fDM(r.data_pagamento)}</span>`:''}
           </div>
           <div class="pcard-meta">
             <span class="pcard-period">🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
@@ -4124,16 +4126,17 @@ function openEdit(idx){
       <div><span style="color:var(--ink3)">Valor</span> <strong>${fR(r.valor)}</strong></div>
       <div><span style="color:var(--ink3)">Pago</span> <strong style="color:var(--green)">${fR(r.valor_pago)}</strong></div>
       <div><span style="color:var(--ink3)">Saldo</span> <strong style="color:${fN(r.saldo)>0?'var(--red)':'var(--green)'}">${fR(r.saldo)}</strong></div>
+      <div><span style="color:var(--ink3)">Data pagamento</span> <strong>${r.data_pagamento?fD(r.data_pagamento):'—'}</strong></div>
       <div><span style="color:var(--ink3)">Prev. Pgto</span> <strong>${r.prev_pgto||'—'}</strong></div>
     </div>
-    ${r.obs?`<div style="margin-top:8px;font-size:12px;color:var(--ink3)">Ref: ${r.obs}</div>`:''}
+    ${r.obs?`<div style="margin-top:8px;font-size:12px;color:var(--ink3)">Ref: ${esc(r.obs)}</div>`:''}
   `;
   const bp=document.getElementById('mBaixaPanel');
   bp.style.display=pend?'block':'none';
   if(pend){
     document.getElementById('b-data').value=td();
     document.getElementById('b-val').value=fN(r.saldo).toFixed(2);
-    document.getElementById('b-obs').value=obsSemPago(r.obs);
+    document.getElementById('b-obs').value=r.obs||'';
   }
   document.getElementById('e-p').value=r.placa||'';
   document.getElementById('e-d').value=r.dono||'';
@@ -4145,6 +4148,7 @@ function openEdit(idx){
   document.getElementById('e-pp').value=r.prev_pgto||'';
   document.getElementById('e-v').value=r.valor||'';
   document.getElementById('e-vp').value=r.valor_pago||'';
+  document.getElementById('e-dtpag').value=r.data_pagamento||'';
   document.getElementById('e-sl').value=r.saldo||'';
   document.getElementById('e-obs').value=r.obs||'';
   document.getElementById('mEdit').classList.add('on');
@@ -4158,11 +4162,13 @@ function confirmarBaixa(){
   if(!data){alert('Informe a data de pagamento.');return;}
   const r=allD()[editIdx];
   // Recebe 'val' (líquido); abate do saldo (líquido a receber) e mantém a
-  // competência (prev_pgto). A data efetiva do pagamento fica na observação.
+  // competência (prev_pgto). A data do pagamento vai pro campo próprio
+  // (data_pagamento) — o obs NUNCA é tocado automaticamente pela baixa, só
+  // reflete o que o usuário digitou/já tinha cadastrado.
   r.valor_pago=fN(r.valor_pago)+val;
   r.saldo=Math.max(0,fN(r.saldo)-val);
-  const _ref=[obs,data?('pago '+fD(data)):''].filter(Boolean).join(' · ');
-  if(_ref)r.obs=_ref;
+  r.obs=obs||null;
+  r.data_pagamento=data||null;
   dbUpdate(r);
   closeEdit();renderAll();
 }
@@ -4180,6 +4186,7 @@ function saveEdit(){
   r.prev_pgto=_pp?proxUtil(_pp):null;
   r.valor=parseFloat(document.getElementById('e-v').value)||0;
   r.valor_pago=parseFloat(document.getElementById('e-vp').value)||null;
+  r.data_pagamento=document.getElementById('e-dtpag').value||null;
   r.saldo=parseFloat(document.getElementById('e-sl').value)||0;
   r.obs=document.getElementById('e-obs').value||null;
   dbUpdate(r);
@@ -4212,18 +4219,19 @@ function showToast(msg,actLabel,actFn){
 // Ao contrário do "Desfazer" do toast (só vale nos 5s depois da baixa), esta
 // ação fica disponível a qualquer momento pelo swipe, em qualquer lançamento
 // que já tenha algo recebido — total ou parcial — e volta a marcá-lo como
-// pendente pelo valor cheio.
+// pendente pelo valor cheio. O obs nunca é tocado aqui (a data do pagamento
+// vive em data_pagamento, não no texto da observação).
 function reverterPagamento(idx){
   const r=allD()[idx];
   if(!r||!(fN(r.valor_pago)>0))return;
   if(!confirm(`Reverter o pagamento de ${r.cliente||r.placa}? Volta a ficar pendente.`))return;
-  const prev={valor_pago:r.valor_pago,saldo:r.saldo,obs:r.obs};
+  const prev={valor_pago:r.valor_pago,saldo:r.saldo,data_pagamento:r.data_pagamento};
   r.valor_pago=0;
   r.saldo=fN(r.valor);
-  r.obs=(r.obs||'').replace(/(\s*·\s*)?pago\s+\d{2}\/\d{2}\/\d{2}\s*$/i,'')||null;
+  r.data_pagamento=null;
   dbUpdate(r);renderAll();
   showToast(`↺ ${r.cliente||r.placa}: pagamento revertido`,'Desfazer',()=>{
-    r.valor_pago=prev.valor_pago;r.saldo=prev.saldo;r.obs=prev.obs;
+    r.valor_pago=prev.valor_pago;r.saldo=prev.saldo;r.data_pagamento=prev.data_pagamento;
     dbUpdate(r);renderAll();
     showToast('Reversão desfeita');
   });
@@ -4250,7 +4258,7 @@ function abrirParcial(idx,cheio=false){
   const v=document.getElementById('pc-val');
   v.value=cheio?fN(r.saldo).toFixed(2):''; v.max=fN(r.saldo);
   document.getElementById('pc-data').value=td();
-  document.getElementById('pc-obs').value=obsSemPago(r.obs);
+  document.getElementById('pc-obs').value=r.obs||'';
   document.getElementById('mParcial').classList.add('on');
   calcParcialResto();
   setTimeout(()=>cheio?v.select():v.focus(),150);
@@ -4277,16 +4285,16 @@ function confirmarParcial(){
   if(val<=0){alert('Informe o valor recebido.');return;}
   const saldoAntes=fN(r.saldo);
   if(val>saldoAntes)val=saldoAntes;   // não "recebe" mais do que o saldo
-  const prev={valor_pago:r.valor_pago,saldo:r.saldo,obs:r.obs};
+  const prev={valor_pago:r.valor_pago,saldo:r.saldo,obs:r.obs,data_pagamento:r.data_pagamento};
   r.valor_pago=fN(r.valor_pago)+val;
   r.saldo=Math.max(0,saldoAntes-val);
-  const _ref=[obs,data?('pago '+fD(data)):''].filter(Boolean).join(' · ');
-  if(_ref)r.obs=_ref;
+  r.obs=obs||null;
+  r.data_pagamento=data||null;
   dbUpdate(r);
   closeParcial();renderAll();
   const quitado=r.saldo<=0.005;
   showToast(`${quitado?'✓':'◐'} ${r.cliente||r.placa}: ${fR(val)} recebido${quitado?' — quitado':' · falta '+fR(r.saldo)}`,'Desfazer',()=>{
-    r.valor_pago=prev.valor_pago;r.saldo=prev.saldo;r.obs=prev.obs;
+    r.valor_pago=prev.valor_pago;r.saldo=prev.saldo;r.obs=prev.obs;r.data_pagamento=prev.data_pagamento;
     dbUpdate(r);renderAll();
     showToast('Recebimento parcial desfeito');
   });
@@ -4308,26 +4316,8 @@ function hideMais(){if(window.innerWidth<761){document.getElementById('dock-mais
 // qualquer pedaço de qualquer campo, não só placa/cliente/dono.
 // xlsNorm (definida mais abaixo, usada também no import de Excel) tira
 // acentos e baixa a caixa: buscar "cartao" tem que achar "Cartão".
-const buscaHay=r=>xlsNorm([r.placa,r.cliente,r.dono,r.tipo,fFormaLabel(r.forma),r.forma,r.obs,fD(r.saida),fD(r.retorno),fD(r.prev_pgto)]
+const buscaHay=r=>xlsNorm([r.placa,r.cliente,r.dono,r.tipo,fFormaLabel(r.forma),r.forma,r.obs,fD(r.saida),fD(r.retorno),fD(r.prev_pgto),fD(r.data_pagamento)]
   .filter(Boolean).join(' • '));
-// Extrai a data de pagamento efetiva (gravada no obs pelo swipe/baixa, ex.
-// "pago 05/03/26") quando existir; usada para exibir "Pagamento" na busca.
-function obsPagoData(r){
-  const m=/pago\s+(\d{2}\/\d{2}\/\d{2})/i.exec(r.obs||'');
-  return m?m[1]:null;
-}
-// Tira o "· pago DD/MM/AA" do final do obs (deixa só a referência original,
-// ex. final do cartão), pra poder recolocar a data de pagamento sem duplicar.
-function obsSemPago(obs){
-  return (obs||'').replace(/\s*·?\s*pago\s+\d{2}\/\d{2}\/\d{2}\s*$/i,'').trim();
-}
-// Junta a referência já existente (ex. final do cartão) com a nota digitada
-// na baixa e a data de pagamento — SEM apagar o que já estava no obs, senão
-// a busca (por nº de cartão, por ex.) para de achar o lançamento após baixado.
-function mergeObsPago(baseObs,novaNota,dataPago){
-  const partes=[obsSemPago(baseObs),(novaNota||'').trim(),dataPago?('pago '+fD(dataPago)):''].filter(Boolean);
-  return partes.join(' · ')||null;
-}
 // Bate se TODAS as palavras digitadas aparecem em algum lugar do texto do
 // lançamento, em qualquer ordem — digitar "1111 cartão" acha "Cartão final
 // 1111" mesmo sem ser uma frase idêntica e contígua.
@@ -4400,7 +4390,7 @@ function runSearch(){
       mesHtml=`<div class="srow-mes">${lbl}</div>`;
     }
     const col=DC[r.dono]||'#888',pago=isPago(r);
-    const pagoData=pago?(obsPagoData(r)||fDM(r.prev_pgto)):null;
+    const pagoData=pago?(r.data_pagamento?fDM(r.data_pagamento):fDM(r.prev_pgto)):null;
     return mesHtml+`<div class="srow" onclick="searchOpen(${i})">
       <div style="min-width:0">
         <div style="display:flex;gap:7px;align-items:center"><span class="placa">${r.placa}</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.cliente||'—'}</span></div>
@@ -4564,9 +4554,18 @@ function baixarSelecionados(){
 }
 function confirmarLote(){
   const data=document.getElementById('bl-data').value;
-  const obs=document.getElementById('bl-obs').value;
+  const nota=document.getElementById('bl-obs').value.trim();
   if(!data){alert('Informe a data.');return;}
-  loteSel.forEach(i=>{const r=allD()[i];if(!r)return;r.valor_pago=fN(r.valor_pago)+fN(r.saldo);r.saldo=0;const _ref=mergeObsPago(r.obs,obs,data);if(_ref)r.obs=_ref;dbUpdate(r);});
+  // A data do pagamento vai pro campo próprio; a nota do lote (se houver) só
+  // é ACRESCENTADA ao obs de cada lançamento, nunca substitui o que já
+  // estava cadastrado (ex. final do cartão).
+  loteSel.forEach(i=>{
+    const r=allD()[i];if(!r)return;
+    r.valor_pago=fN(r.valor_pago)+fN(r.saldo);r.saldo=0;
+    if(nota)r.obs=[r.obs,nota].filter(Boolean).join(' · ');
+    r.data_pagamento=data;
+    dbUpdate(r);
+  });
   document.getElementById('mLote').classList.remove('on');
   loteSel=[];renderAll();
 }
@@ -5219,8 +5218,8 @@ function exportCSV(){
   const dono=document.getElementById('lf-dono')?.value||undefined;
   const status=document.getElementById('lf-status')?.value||undefined;
   const rows=filtGeral({q,tipo,forma,dono,status,usePrev:true});
-  const hd=['Placa','Proprietário','Cliente','Tipo','Saída','Retorno','Valor','Forma','Prev/Baixa','Status','Pago','Saldo','Obs'];
-  const csv=[hd.join(';'),...rows.map(r=>[r.placa,r.dono,r.cliente,r.tipo,r.saida||'',r.retorno||'',fN(r.valor).toFixed(2),r.forma,r.prev_pgto||'',isPago(r)?'Baixado':'Pendente',fN(r.valor_pago).toFixed(2),fN(r.saldo).toFixed(2),r.obs||''].join(';'))].join('\n');
+  const hd=['Placa','Proprietário','Cliente','Tipo','Saída','Retorno','Valor','Forma','Prev/Baixa','Status','Pago','Saldo','Data Pagamento','Obs'];
+  const csv=[hd.join(';'),...rows.map(r=>[r.placa,r.dono,r.cliente,r.tipo,r.saida||'',r.retorno||'',fN(r.valor).toFixed(2),r.forma,r.prev_pgto||'',isPago(r)?'Baixado':'Pendente',fN(r.valor_pago).toFixed(2),fN(r.saldo).toFixed(2),r.data_pagamento||'',r.obs||''].join(';'))].join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));a.download=`autogest_${curMes}.csv`;a.click();
 }
 

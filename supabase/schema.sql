@@ -15,6 +15,7 @@ create table if not exists public.lancamentos (
   valor_pago  numeric(12,2),
   saldo       numeric(12,2),
   obs         text,
+  data_pagamento date,
   created_at  timestamptz default now()
 );
 
