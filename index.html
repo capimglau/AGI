@@ -915,21 +915,27 @@ tr:hover td { background: #f9f8f5; }
    levantar o cartão inteiro, o próximo painel pinta por cima do tooltip. */
 .card:has(.rb.tip-on) { position: relative; z-index: 40; }
 .rb-tip-hd { font-weight: 700; margin: 0 0 6px; font-size: 12px; }
-.rb-tip-hd + .rb-tip-l { border-top: 0; }
-.rb-tip-l + .rb-tip-hd, .rb-tip-mais + .rb-tip-hd { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
+.swipe + .rb-tip-hd, .rb-tip-mais + .rb-tip-hd { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
 .rb-tip-hd.t-atr, .rb-tip-d.t-atr { color: var(--red); }
 .rb-tip-hd.t-ven, .rb-tip-d.t-ven { color: var(--amber); }
 .rb-tip-hd.t-rec, .rb-tip-d.t-rec { color: var(--green); }
-.rb-tip-l { display: grid; grid-template-columns: 46px 1fr auto; gap: 4px 9px; align-items: baseline; padding: 3px 4px; margin: 0 -4px; border-top: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
-.rb-tip-l:first-of-type { border-top: 0; }
-.rb-tip-l:hover { background: var(--surface); }
-.rb-tip-l.rb-tip-pago { opacity: .6; }
-.rb-tip-l.rb-tip-pago:hover { opacity: 1; }
+/* Cada linha vira um swipe (Baixar/Reverter/Editar) — .rb-tip-l é a classe
+   do .pcard dentro do wrapper .swipe, não mais um filho direto de .rb-tip. */
+.rb-tip .swipe { margin: 0 -4px; }
+.pcard.rb-tip-l { display: grid; grid-template-columns: 46px 1fr auto; gap: 4px 9px; align-items: baseline; padding: 3px 4px; margin-bottom: 0; border-top: 1px solid var(--line); border-radius: 6px; cursor: pointer; background: var(--card); box-shadow: none; }
+.swipe:first-child .pcard.rb-tip-l, .rb-tip-hd + .swipe .pcard.rb-tip-l { border-top: 0; }
+.pcard.rb-tip-l:hover { background: var(--surface); }
+.pcard.rb-tip-l.rb-tip-pago { opacity: .6; }
+.pcard.rb-tip-l.rb-tip-pago:hover { opacity: 1; }
 .rb-tip-d { font-weight: 700; font-variant-numeric: tabular-nums; }
 .rb-tip-c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rb-tip-c small { color: var(--ink3); font-size: 10.5px; margin-left: 5px; }
 .rb-tip-v { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rb-tip-mais { color: var(--ink3); font-size: 11px; padding-top: 5px; }
+/* Botões de swipe compactos (só ícone) — a linha do popup é baixa demais
+   pro tamanho normal (76px, ícone + rótulo) usado em Recebimentos. */
+.rb-tip .swipe-act { width: 38px; }
+.rb-tip .swipe-act .ic { font-size: 15px; }
 @media (max-width: 560px) { .rb-tip { left: 0; min-width: 0; max-width: 88vw; } }
 /* Boletos do mês: mesma anatomia das outras linhas + marcador de emitido. */
 .rb-bol { cursor: pointer; padding: 2px 4px; border-radius: 8px; transition: background .12s; }
@@ -3693,9 +3699,14 @@ function tipAtraso(o){
     const linhas=lista.slice(0,MAX).map(r=>{
       const dt=r.prev_pgto?`${r.prev_pgto.split('-')[2]}/${r.prev_pgto.split('-')[1]}`:'—';
       const i=allD().indexOf(r);
-      return`<div class="rb-tip-l${cls==='t-rec'?' rb-tip-pago':''}" onclick="event.stopPropagation();openEdit(${i})" title="Editar / dar baixa"><span class="rb-tip-d ${cls}">${dt}</span>
+      const pago=isPago(r),temPago=fN(r.valor_pago)>0;
+      // Mesmas ações do swipe de Recebimentos (Baixar/Reverter/Editar),
+      // compactas — event.stopPropagation() pra não deixar o clique fechar
+      // o próprio popup (o listener de clique que fixa/tira o popup fica em
+      // document, e senão trataria o toque no botão como "fora do popup").
+      return`<div class="swipe"><div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="event.stopPropagation();swDo(${i},1)" title="Baixar"><span class="ic">✓</span></button>`}${temPago?`<button class="swipe-act revert" onclick="event.stopPropagation();swDo(${i},3)" title="Reverter pagamento"><span class="ic">↺</span></button>`:''}<button class="swipe-act edit" onclick="event.stopPropagation();swDo(${i},0)" title="Editar"><span class="ic">✏</span></button></div><div class="pcard rb-tip-l${cls==='t-rec'?' rb-tip-pago':''}"><span class="rb-tip-d ${cls}">${dt}</span>
         <span class="rb-tip-c">${esc(r.cliente||'—')}<small>${esc(r.placa||'')}${sufixo(r)}</small></span>
-        <span class="rb-tip-v">${fR(valorDe(r))}</span></div>`;
+        <span class="rb-tip-v">${fR(valorDe(r))}</span></div></div>`;
     }).join('');
     const resto=lista.length>MAX?`<div class="rb-tip-mais">+${lista.length-MAX} lançamento(s)…</div>`:'';
     return`<div class="rb-tip-hd ${cls}">${icone} ${lista.length} ${titulo} · ${fR(tot)}</div>${linhas}${resto}`;
@@ -5497,6 +5508,9 @@ async function boot(){
   initSwipe('baixasContainer');
   initSwipe('lancBody');
   initSwipe('searchResults');
+  // Popups de lançamentos ao passar o mouse nos painéis do Resumo — mesmo
+  // swipe (Baixar/Reverter/Editar) das outras listas.
+  ['resTipo','resRecDono','resForma','resVeic','resClientes'].forEach(initSwipe);
   showSkeleton();
   let rows = await dbLoad();
   DATA = rows.map(r=>({...r}));
@@ -5527,6 +5541,9 @@ async function boot(){
 // arrastar o mouse até a lista para clicar num lançamento, o cursor passa por
 // cima da barra de baixo e o popup troca/fecha antes de chegar lá.
 document.addEventListener('click',e=>{
+  // Interações dentro do próprio popup (swipe de baixar/reverter/editar,
+  // ou só revelar os botões) não devem fixar/fechar o popup em si.
+  if(e.target.closest&&e.target.closest('.rb-tip'))return;
   const linha=e.target.closest?e.target.closest('.rb'):null;
   const abrir=linha&&!linha.classList.contains('rb-cab')&&linha.querySelector('.rb-tip');
   document.querySelectorAll('.rb.tip-on').forEach(el=>{if(el!==linha)el.classList.remove('tip-on');});
