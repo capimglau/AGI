@@ -51,6 +51,11 @@ body {
   background: #eef0f6;
   min-height: 100vh;
   color: var(--ink);
+  /* Sem isso, um arraste vertical dentro de um modal curto (ex.: apagar o
+     valor/observação de um pagamento) pode "vazar" pro body e disparar o
+     puxar-pra-atualizar do navegador — que recarrega a página e parece que
+     o app fechou, perdendo o que estava sendo editado. */
+  overscroll-behavior-y: contain;
 }
 body::before {
   content: '';
@@ -842,8 +847,6 @@ tr:hover td { background: #f9f8f5; }
 .nr.g { color: var(--green); }
 .nr.r { color: var(--red); }
 .nr.a { color: var(--amber); }
-tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid var(--line); }
-#lancBody tr:not(.tot) { cursor: pointer; }
 
 /* ─── STATUS TAG ─── */
 .st-baixado { color: var(--green); font-size: 11.5px; font-weight: 600; }
@@ -1031,9 +1034,6 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .search-total .st-pago { color: var(--green); }
 .search-total .st-pend { color: var(--amber); }
 .search-total .st-month { margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--line); }
-.srow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
-.srow:last-child { border-bottom: none; }
-.srow:hover { background: var(--surface); }
 .srow-empty { color: var(--ink3); font-size: 13px; padding: 14px 4px; text-align: center; }
 /* Divisor de mês entre os resultados da busca — agrupa os lançamentos do
    item pesquisado por competência (prev_pgto), do mais recente pro mais antigo. */
@@ -1341,6 +1341,7 @@ html[data-theme="dark"] .receb-hoje.modo-venc { background: linear-gradient(165d
   width: min(560px, 100%);
   max-height: 90vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: 0 24px 80px rgba(0,0,0,.18);
 }
 .mhd {
@@ -1953,8 +1954,16 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
 <!-- LANÇAMENTOS -->
 <div class="page" id="page-lancamentos">
+  <input type="text" id="lf-q" class="search-input" style="margin-bottom:10px" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderLanc()">
   <div class="fbar">
-    <input type="text" id="lf-q" placeholder="Buscar cliente, placa, observação, cartão..." oninput="renderLanc()">
+    <button class="btn" onclick="toggleLfFilters()">Filtros<span class="filt-dot" id="lfFiltDot" style="display:none"></span></button>
+    <div class="fbar-right">
+      <span class="fcnt" id="lf-cnt"></span>
+      <button class="btn btn-sm" onclick="openXls()">📊 Excel</button>
+      <button class="btn btn-sm" onclick="exportCSV()">⬇ CSV</button>
+    </div>
+  </div>
+  <div class="filt-panel filt-panel-baixas" id="lfFiltPanel" hidden>
     <select id="lf-tipo" onchange="renderLanc()"><option value="">Todos os tipos</option></select>
     <select id="lf-forma" onchange="renderLanc()"><option value="">Todas as formas</option></select>
     <select id="lf-dono" onchange="renderLanc()"><option value="">Todos os proprietários</option></select>
@@ -1964,25 +1973,9 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <option value="pend">Pendentes</option>
       <option value="venc">Vencidos</option>
     </select>
-    <div class="fbar-right">
-      <span class="fcnt" id="lf-cnt"></span>
-      <button class="btn btn-sm" onclick="openXls()">📊 Excel</button>
-      <button class="btn btn-sm" onclick="exportCSV()">⬇ CSV</button>
-    </div>
   </div>
-  <div class="card">
-    <div class="tw">
-      <table>
-        <thead><tr>
-          <th>Placa</th><th>Proprietário</th><th>Cliente</th><th>Tipo</th>
-          <th>Saída</th><th>Retorno</th><th>Forma</th><th class="nr">Valor</th>
-          <th>Prev/Baixa</th><th>Status</th>
-          <th class="nr">Pago</th><th class="nr">Saldo</th><th>Obs</th><th></th>
-        </tr></thead>
-        <tbody id="lancBody"></tbody>
-      </table>
-    </div>
-  </div>
+  <div id="lf-total"></div>
+  <div id="lancBody"></div>
 </div>
 
 <!-- RESUMO -->
@@ -3378,40 +3371,27 @@ function renderLanc(){
   rows.sort((a,b)=>(b.prev_pgto||'').localeCompare(a.prev_pgto||''));
   document.getElementById('lf-cnt').textContent=rows.length+' registros';
 
+  const fdot=document.getElementById('lfFiltDot');
+  if(fdot) fdot.style.display=(tipo||forma||dono||status)?'inline-block':'none';
+
   const totV=rows.reduce((a,r)=>a+fN(r.valor),0);
   const totP=rows.reduce((a,r)=>a+fN(r.valor_pago),0);
   const totS=rows.reduce((a,r)=>a+fN(r.saldo),0);
+  const totEl=document.getElementById('lf-total');
+  totEl.innerHTML=rows.length?`<div class="search-total" style="margin-bottom:10px">
+    <div class="st-blk">
+      <div class="st-main"><span>${rows.length} lançamento${rows.length===1?'':'s'}</span><span class="st-val">${fR(totV)}</span></div>
+      <div class="st-sub"><span class="st-pago">Pago ${fR(totP)}</span><span class="st-pend">Saldo ${fR(totS)}</span></div>
+    </div>
+  </div>`:'';
 
   const body=document.getElementById('lancBody');
-  body.innerHTML=`<tr class="tot"><td colspan="7">TOTAL — ${rows.length} registros</td>
-    <td class="nr b">${fR(totV)}</td><td colspan="2"></td>
-    <td class="nr g">${fR(totP)}</td><td class="nr r">${fR(totS)}</td><td colspan="2"></td></tr>`;
-
-  rows.forEach(r=>{
-    const gi=allD().indexOf(r);
-    const col=DC[r.dono]||'#888';
-    const tr=document.createElement('tr');
-    tr.onclick=()=>openEdit(gi);
-    tr.innerHTML=`
-      <td><span class="placa">${r.placa}</span></td>
-      <td><span class="ddot" style="background:${col}"></span>${r.dono}</td>
-      <td>${r.cliente}</td>
-      <td>${tipTag(r.tipo)}</td>
-      <td style="font-size:12px;color:var(--ink3)">${fD(r.saida)}</td>
-      <td style="font-size:12px;color:var(--ink3)">${fD(r.retorno)}</td>
-      <td><span class="tag tag-forma">${fFormaLabel(r.forma)}</span></td>
-      <td class="nr b">${fR(r.valor)}</td>
-      <td style="font-size:12px;color:var(--ink3)">${fD(r.prev_pgto)}</td>
-      <td>${stTag(r)}</td>
-      <td class="nr g">${fR(r.valor_pago)}</td>
-      <td class="nr ${fN(r.saldo)>0?'r':''}">${fR(r.saldo)}</td>
-      <td style="font-size:12px;color:var(--ink3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.obs||'')}">${r.obs?esc(r.obs):'—'}</td>
-      <td style="display:flex;gap:4px" onclick="event.stopPropagation()">
-        <button class="btn btn-xs" onclick="openEdit(${gi})">✏</button>
-        ${isPend(r)?`<button class="btn btn-amber btn-xs" onclick="openEdit(${gi})">⬇</button>`:''}
-      </td>`;
-    body.appendChild(tr);
-  });
+  if(!rows.length){
+    body.innerHTML='<div class="empty"><div class="empty-icon">🔎</div><div class="empty-text">Nada encontrado</div><div class="empty-sub">Ajuste a busca ou os filtros.</div></div>';
+    return;
+  }
+  const all=allD();
+  body.innerHTML=rows.map(r=>lcCardHtml(r,all.indexOf(r),false)).join('');
 }
 
 // ── RESUMO ──
@@ -4429,15 +4409,51 @@ function runSearch(){
   </div>`;
   const shown=res.slice(0,40);
   const moreHtml=res.length>shown.length?`<div class="srow-empty">+${res.length-shown.length} não exibidos — refine a busca</div>`:'';
-  box.innerHTML=ownerHtml+totHtml+lancListHtml(shown,q.split(/\s+/).filter(Boolean))+moreHtml;
+  box.innerHTML=ownerHtml+totHtml+lancListHtml(shown,true);
 }
-function searchOpen(i){closeSearch();openEdit(i);}
-// Lista de lançamentos reutilizada pela busca global e pelo clique numa data
-// da Projeção de recebimentos: divide por mês de competência (prev_pgto) e
-// mostra vencimento/pagamento de cada um. termosBusca (opcional) só serve pra
-// destacar a observação quando ela foi o motivo do lançamento aparecer na
-// busca — sem termos, a observação aparece sempre que existir.
-function lancListHtml(items,termosBusca){
+// Cartão de lançamento com swipe (arrastar revela Baixar/Parcial/Reverter/
+// Editar) — mesma marcação usada em Recebimentos, reaproveitada aqui pra ter
+// a mesma interação em qualquer lista de lançamentos do app. fecharBusca
+// fecha o modal de busca antes da ação, pra não empilhar dois popups.
+function lcCardHtml(r,gi,fecharBusca){
+  const pre=fecharBusca?'closeSearch();':'';
+  const col=DC[r.dono]||'#888', pago=isPago(r), venc=isVenc(r), parcial=isParcial(r);
+  const temPago=fN(r.valor_pago)>0;
+  return `<div class="swipe">
+    <div class="swipe-actions">
+      ${pago?'':`<button class="swipe-act pay" onclick="${pre}swDo(${gi},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="${pre}swDo(${gi},2)"><span class="ic">◐</span>Parcial</button>`}
+      ${temPago?`<button class="swipe-act revert" onclick="${pre}swDo(${gi},3)"><span class="ic">↺</span>Reverter</button>`:''}
+      <button class="swipe-act edit" onclick="${pre}swDo(${gi},0)"><span class="ic">✏</span>Editar</button>
+    </div>
+    <div class="pcard${pago?' done':''}${parcial?' parcial':''}${venc&&!pago?' venc':''}">
+      <div class="pcard-body">
+        <div class="pcard-top">
+          <span class="placa">${r.placa}</span>
+          <span class="pcard-name">${esc(r.cliente||'—')}</span>
+        </div>
+        <div class="pcard-tags">
+          <span class="ddot" style="background:${col}"></span>
+          <span style="font-size:11.5px;color:var(--ink3)">${esc(r.dono||'—')}</span>
+          ${tipTag(r.tipo)}
+          <span class="tag tag-forma">${fFormaLabel(r.forma)}</span>
+          ${r.obs?`<span class="tag" style="background:var(--surface);color:var(--ink3);font-size:10.5px;font-style:italic;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.obs)}">📝 ${esc(r.obs)}</span>`:''}
+          ${r.data_pagamento?`<span class="tag" style="background:var(--green-soft);color:var(--green);font-size:10.5px" title="Pago em ${fD(r.data_pagamento)}">✓ pago ${fDM(r.data_pagamento)}</span>`:''}
+        </div>
+        <div class="pcard-meta">
+          <span>🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
+          <span>Vencimento ${fDM(r.prev_pgto)}</span>
+        </div>
+      </div>
+      <div class="pcard-right">
+        <span class="pcard-value">${fR(r.valor)}</span>
+        ${parcial?`<span class="pcard-parcial-sub"><b>${fR(r.valor_pago)}</b> pago</span>`:(pago?'':`<span class="pcard-parcial-sub" style="color:var(--red)">Saldo ${fR(r.saldo)}</span>`)}
+      </div>
+    </div>
+  </div>`;
+}
+// Lista de cartões reutilizada pela busca global e pelo clique numa data da
+// Projeção de recebimentos: divide por mês de competência (prev_pgto).
+function lancListHtml(items,fecharBusca){
   let mesCorrente=undefined;
   return items.map(({r,i})=>{
     const mesKey=(r.prev_pgto||'').slice(0,7);
@@ -4447,21 +4463,7 @@ function lancListHtml(items,termosBusca){
       const lbl=mesKey?MN[parseInt(mesKey.slice(5,7),10)-1]+'/'+mesKey.slice(2,4):'Sem vencimento';
       mesHtml=`<div class="srow-mes">${lbl}</div>`;
     }
-    const col=DC[r.dono]||'#888',pago=isPago(r);
-    const pagoData=pago?(r.data_pagamento?fDM(r.data_pagamento):fDM(r.prev_pgto)):null;
-    const mostraObs=r.obs&&(!termosBusca||!termosBusca.length||termosBusca.some(t=>t&&xlsNorm(r.obs).includes(t)));
-    return mesHtml+`<div class="srow" onclick="searchOpen(${i})">
-      <div style="min-width:0">
-        <div style="display:flex;gap:7px;align-items:center"><span class="placa">${r.placa}</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.cliente||'—'}</span></div>
-        <div style="font-size:11.5px;color:var(--ink3);margin-top:2px"><span class="ddot" style="background:${col}"></span>${r.dono} · ${fDM(r.saida)}→${fDM(r.retorno)}</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">Vencimento ${fDM(r.prev_pgto)}${pago?` · Pagamento ${pagoData}`:''}</div>
-        ${mostraObs?`<div style="font-size:11px;color:var(--ink3);margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(r.obs)}</div>`:''}
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-weight:700;color:${pago?'var(--green)':'var(--blue)'}">${fR(r.valor)}</div>
-        <div style="font-size:11px;color:${pago?'var(--green)':'var(--amber)'}">${pago?'Pago':'Pendente'}</div>
-      </div>
-    </div>`;
+    return mesHtml+lcCardHtml(r,i,fecharBusca);
   }).join('');
 }
 // Clique numa barra da Projeção de recebimentos (90 dias): mostra só os
@@ -4487,7 +4489,7 @@ function mostrarLancDia(dia){
   const totHtml=`<div class="search-total"><div class="st-blk">
     <div class="st-main"><span>${items.length} lançamento${items.length>1?'s':''}</span><span class="st-val">${fR(totVal)}</span></div>
   </div></div>`;
-  box.innerHTML=totHtml+lancListHtml(items,null);
+  box.innerHTML=totHtml+lancListHtml(items,true);
 }
 
 // ── SKELETON (carregando) ──
@@ -4548,6 +4550,7 @@ function swEnd(e){
   if(s.dx<=-s.pw/2)openRowEl(s.wrap,s.pw); else closeRow();
 }
 function toggleFilters(){const p=document.getElementById('filtPanel');if(p)p.hidden=!p.hidden;}
+function toggleLfFilters(){const p=document.getElementById('lfFiltPanel');if(p)p.hidden=!p.hidden;}
 
 // ── TEMA (claro/escuro) ──
 function isDark(){return document.documentElement.getAttribute('data-theme')==='dark';}
@@ -4585,8 +4588,12 @@ function syncSystemTheme(){
   if(mq.addEventListener)mq.addEventListener('change',apply);
   else if(mq.addListener)mq.addListener(apply);
 }
-function initSwipe(){
-  const bc=document.getElementById('baixasContainer'); if(!bc||bc._sw)return; bc._sw=1;
+// Generalizado pra funcionar em qualquer lista de lançamentos (Recebimentos,
+// Lançamentos, resultado da busca) — os cartões usam sempre a mesma marcação
+// (.swipe > .pcard + .swipe-actions), então o mesmo gesto de arrastar já
+// funciona em qualquer container que passar por aqui.
+function initSwipe(containerId){
+  const bc=document.getElementById(containerId); if(!bc||bc._sw)return; bc._sw=1;
   bc.addEventListener('touchstart',swStart,{passive:true});
   bc.addEventListener('touchmove',swMove,{passive:false});
   bc.addEventListener('touchend',swEnd);
@@ -5361,7 +5368,9 @@ function scrollBaixasParaHoje(){
 async function boot(){
   applyThemeChrome();
   syncSystemTheme();
-  initSwipe();
+  initSwipe('baixasContainer');
+  initSwipe('lancBody');
+  initSwipe('searchResults');
   showSkeleton();
   let rows = await dbLoad();
   DATA = rows.map(r=>({...r}));
