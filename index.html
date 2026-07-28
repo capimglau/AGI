@@ -552,6 +552,10 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .pcard.done::before { background: var(--green); }
 .pcard.done { opacity: .6; }
 .pcard.parcial:not(.venc)::before { background: var(--bar-rec); }
+/* Cartão sem a coluna do checkbox/ícone de "pago" (Lançamentos e busca) —
+   sem isso o grid de 3 colunas (20px 1fr auto) espreme todo o conteúdo do
+   cartão na faixa de 20px, deixando tudo empilhado e o cartão gigante. */
+.pcard.lc-card { grid-template-columns: 1fr auto; }
 .tag-parcial { background: var(--amber-soft); color: var(--amber); }
 .pcard-parcial-sub { font-size: 10.5px; color: var(--ink3); white-space: nowrap; }
 .pcard-parcial-sub b { color: var(--green); font-weight: 700; }
@@ -3391,7 +3395,8 @@ function renderLanc(){
     return;
   }
   const all=allD();
-  body.innerHTML=rows.map(r=>lcCardHtml(r,all.indexOf(r),false)).join('');
+  const items=rows.map(r=>({r,i:all.indexOf(r)}));
+  body.innerHTML=lancListHtml(items,false);
 }
 
 // ── RESUMO ──
@@ -4425,7 +4430,7 @@ function lcCardHtml(r,gi,fecharBusca){
       ${temPago?`<button class="swipe-act revert" onclick="${pre}swDo(${gi},3)"><span class="ic">↺</span>Reverter</button>`:''}
       <button class="swipe-act edit" onclick="${pre}swDo(${gi},0)"><span class="ic">✏</span>Editar</button>
     </div>
-    <div class="pcard${pago?' done':''}${parcial?' parcial':''}${venc&&!pago?' venc':''}">
+    <div class="pcard lc-card${pago?' done':''}${parcial?' parcial':''}${venc&&!pago?' venc':''}">
       <div class="pcard-body">
         <div class="pcard-top">
           <span class="placa">${r.placa}</span>
