@@ -642,6 +642,7 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .swipe-act .ic { font-size: 17px; line-height: 1; }
 .swipe-act.pay { background: var(--green); }
 .swipe-act.partial { background: #b8720a; }
+.swipe-act.revert { background: #7c5cbf; }
 .swipe-act.edit { background: #6b7280; }
 .swipe-act:active { filter: brightness(.92); }
 .swipe-hint { text-align: center; font-size: 11.5px; color: var(--ink3); margin: -2px 0 12px; }
@@ -1848,6 +1849,7 @@ html[data-theme="dark"] .owner-pill.on { background: var(--blue); color: #0e1726
 html[data-theme="dark"] .modal::before { background: rgba(255,255,255,.25); }
 html[data-theme="dark"] .sk { background: linear-gradient(90deg,#1c2638 25%,#27324a 37%,#1c2638 63%); background-size: 400% 100%; }
 html[data-theme="dark"] .swipe-act.edit { background: #3a475e; }
+html[data-theme="dark"] .swipe-act.revert { background: #5c4a8a; }
 html[data-theme="dark"] .subnav { background: #161e2e; border-color: var(--line); }
 html[data-theme="dark"] .subnav-btn.on { background: #2a3548; color: var(--ink); }
 html[data-theme="dark"] .day-items { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; border: none; box-shadow: none; }
@@ -3290,7 +3292,8 @@ function renderBaixas(){
           <span class="pcard-value">${fR(isPago(r)?r.valor_pago:r.saldo)}</span>
           ${parcial?`<span class="pcard-parcial-sub"><b>${fR(r.valor_pago)}</b> já recebido</span>`:''}
         </div>`;
-      wrap.innerHTML=`<div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="swDo(${gi2},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="swDo(${gi2},2)"><span class="ic">◐</span>Parcial</button>`}<button class="swipe-act edit" onclick="swDo(${gi2},0)"><span class="ic">✏</span>Editar</button></div>`;
+      const temPago=fN(r.valor_pago)>0;
+      wrap.innerHTML=`<div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="swDo(${gi2},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="swDo(${gi2},2)"><span class="ic">◐</span>Parcial</button>`}${temPago?`<button class="swipe-act revert" onclick="swDo(${gi2},3)"><span class="ic">↺</span>Reverter</button>`:''}<button class="swipe-act edit" onclick="swDo(${gi2},0)"><span class="ic">✏</span>Editar</button></div>`;
       wrap.appendChild(card);
       dayItems.appendChild(wrap);
     });
@@ -4197,6 +4200,27 @@ function quickPay(idx){
   });
 }
 
+// ── REVERTER PAGAMENTO (total ou parcial) com desfazer ──
+// Ao contrário do "Desfazer" do toast (só vale nos 5s depois da baixa), esta
+// ação fica disponível a qualquer momento pelo swipe, em qualquer lançamento
+// que já tenha algo recebido — total ou parcial — e volta a marcá-lo como
+// pendente pelo valor cheio.
+function reverterPagamento(idx){
+  const r=allD()[idx];
+  if(!r||!(fN(r.valor_pago)>0))return;
+  if(!confirm(`Reverter o pagamento de ${r.cliente||r.placa}? Volta a ficar pendente.`))return;
+  const prev={valor_pago:r.valor_pago,saldo:r.saldo,obs:r.obs};
+  r.valor_pago=0;
+  r.saldo=fN(r.valor);
+  r.obs=(r.obs||'').replace(/(\s*·\s*)?pago\s+\d{2}\/\d{2}\/\d{2}\s*$/i,'')||null;
+  dbUpdate(r);renderAll();
+  showToast(`↺ ${r.cliente||r.placa}: pagamento revertido`,'Desfazer',()=>{
+    r.valor_pago=prev.valor_pago;r.saldo=prev.saldo;r.obs=prev.obs;
+    dbUpdate(r);renderAll();
+    showToast('Reversão desfeita');
+  });
+}
+
 // ── RECEBIMENTO PARCIAL (swipe) ──
 // Abate um valor menor que o saldo, mantendo o lançamento pendente (e, se for
 // o caso, vencido) pelo que ainda falta. isPago/isPend/isVenc são todos
@@ -4351,7 +4375,7 @@ function closeRow(except){
 }
 function openRowEl(wrap,pw){closeRow(wrap);wrap.classList.add('open');swSet(wrap,-pw);openRow=wrap;}
 function panelW(wrap){const n=wrap.querySelectorAll('.swipe-act').length;return (n||1)*76;}
-function swDo(gi,pay){closeRow();if(pay===1)quickPay(gi);else if(pay===2)abrirParcial(gi);else openEdit(gi);}
+function swDo(gi,pay){closeRow();if(pay===1)quickPay(gi);else if(pay===2)abrirParcial(gi);else if(pay===3)reverterPagamento(gi);else openEdit(gi);}
 function swXY(e){const t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);return t?{x:t.clientX,y:t.clientY}:{x:e.clientX,y:e.clientY};}
 function swStart(e){
   if(e.type==='mousedown'&&e.button!==0)return;
