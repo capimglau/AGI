@@ -842,6 +842,7 @@ tr:hover td { background: #f9f8f5; }
 .nr.r { color: var(--red); }
 .nr.a { color: var(--amber); }
 tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid var(--line); }
+#lancBody tr:not(.tot) { cursor: pointer; }
 
 /* ─── STATUS TAG ─── */
 .st-baixado { color: var(--green); font-size: 11.5px; font-weight: 600; }
@@ -874,6 +875,12 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 @media (hover: hover) {
   .rb:hover .rb-tip { display: block; }
   .card:has(.rb:hover) { position: relative; z-index: 40; }
+  /* Com um popup fixado (clique), o hover de outras barras não deve mais
+     trocar/fechar o que está fixado — só clicar em outra barra (ou fora)
+     troca. Sem isso, ao arrastar o mouse até a lista fixada, passar por
+     cima de outra barra reabriria o popup dela por cima. */
+  body.tip-pinned .rb:hover .rb-tip { display: none; }
+  body.tip-pinned .rb.tip-on .rb-tip { display: block; }
 }
 .rb.tip-on .rb-tip { display: block; }
 /* O cartão tem backdrop-filter, o que cria contexto de empilhamento: sem
@@ -1027,6 +1034,10 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .srow:last-child { border-bottom: none; }
 .srow:hover { background: var(--surface); }
 .srow-empty { color: var(--ink3); font-size: 13px; padding: 14px 4px; text-align: center; }
+/* Divisor de mês entre os resultados da busca — agrupa os lançamentos do
+   item pesquisado por competência (prev_pgto), do mais recente pro mais antigo. */
+.srow-mes { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--ink3); padding: 12px 4px 4px; }
+.srow-mes:first-child { padding-top: 2px; }
 
 /* Toast (confirmação com desfazer) */
 .toast {
@@ -1907,7 +1918,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <input type="text" id="bx-q" class="search-input" style="margin-bottom:10px" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
       <div class="fbar fbar-baixas">
         <button class="btn" onclick="toggleFilters()">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
-        <button class="btn" onclick="selTodos()">Todos</button>
+        <button class="btn" onclick="selTodos()">Selec. Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
       </div>
       <div class="filt-panel filt-panel-baixas" id="filtPanel" hidden>
@@ -1916,7 +1927,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
           <option value="pend">Pendentes</option>
           <option value="venc">Vencidos</option>
           <option value="pago">Pagos</option>
-          <option value="todos">Todos</option>
+          <option value="todos" selected>Todos</option>
         </select>
       </div>
       <div id="baixasContainer"></div>
@@ -1961,9 +1972,9 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <table>
         <thead><tr>
           <th>Placa</th><th>Proprietário</th><th>Cliente</th><th>Tipo</th>
-          <th>Saída</th><th>Forma</th><th class="nr">Valor</th>
+          <th>Saída</th><th>Retorno</th><th>Forma</th><th class="nr">Valor</th>
           <th>Prev/Baixa</th><th>Status</th>
-          <th class="nr">Pago</th><th class="nr">Saldo</th><th></th>
+          <th class="nr">Pago</th><th class="nr">Saldo</th><th>Obs</th><th></th>
         </tr></thead>
         <tbody id="lancBody"></tbody>
       </table>
@@ -3241,6 +3252,7 @@ function renderBaixas(){
 
     const grp=document.createElement('div');
     grp.className='day-group';
+    grp.dataset.dia=dia;
     grp.style.animationDelay=`${gi*0.04}s`;
 
     const titCls=isHoje?'hoje':isVencDia?'venc':'';
@@ -3330,27 +3342,30 @@ function renderLanc(){
   const totS=rows.reduce((a,r)=>a+fN(r.saldo),0);
 
   const body=document.getElementById('lancBody');
-  body.innerHTML=`<tr class="tot"><td colspan="6">TOTAL — ${rows.length} registros</td>
+  body.innerHTML=`<tr class="tot"><td colspan="7">TOTAL — ${rows.length} registros</td>
     <td class="nr b">${fR(totV)}</td><td colspan="2"></td>
-    <td class="nr g">${fR(totP)}</td><td class="nr r">${fR(totS)}</td><td></td></tr>`;
+    <td class="nr g">${fR(totP)}</td><td class="nr r">${fR(totS)}</td><td colspan="2"></td></tr>`;
 
   rows.forEach(r=>{
     const gi=allD().indexOf(r);
     const col=DC[r.dono]||'#888';
     const tr=document.createElement('tr');
+    tr.onclick=()=>openEdit(gi);
     tr.innerHTML=`
       <td><span class="placa">${r.placa}</span></td>
       <td><span class="ddot" style="background:${col}"></span>${r.dono}</td>
       <td>${r.cliente}</td>
       <td>${tipTag(r.tipo)}</td>
       <td style="font-size:12px;color:var(--ink3)">${fD(r.saida)}</td>
+      <td style="font-size:12px;color:var(--ink3)">${fD(r.retorno)}</td>
       <td><span class="tag tag-forma">${fFormaLabel(r.forma)}</span></td>
       <td class="nr b">${fR(r.valor)}</td>
       <td style="font-size:12px;color:var(--ink3)">${fD(r.prev_pgto)}</td>
       <td>${stTag(r)}</td>
       <td class="nr g">${fR(r.valor_pago)}</td>
       <td class="nr ${fN(r.saldo)>0?'r':''}">${fR(r.saldo)}</td>
-      <td style="display:flex;gap:4px">
+      <td style="font-size:12px;color:var(--ink3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.obs||'')}">${r.obs?esc(r.obs):'—'}</td>
+      <td style="display:flex;gap:4px" onclick="event.stopPropagation()">
         <button class="btn btn-xs" onclick="openEdit(${gi})">✏</button>
         ${isPend(r)?`<button class="btn btn-amber btn-xs" onclick="openEdit(${gi})">⬇</button>`:''}
       </td>`;
@@ -4371,10 +4386,22 @@ function runSearch(){
   </div>`;
   const shown=res.slice(0,40);
   const moreHtml=res.length>shown.length?`<div class="srow-empty">+${res.length-shown.length} não exibidos — refine a busca</div>`:'';
+  // Divide os resultados por mês de competência (prev_pgto) — um cabeçalho
+  // toda vez que o mês muda, já que a lista vem ordenada do mais recente
+  // pro mais antigo (assim os lançamentos do item pesquisado ficam
+  // organizados por mês em vez de uma lista corrida).
+  let mesCorrente=undefined;
   box.innerHTML=ownerHtml+totHtml+shown.map(({r,i})=>{
+    const mesKey=(r.prev_pgto||'').slice(0,7);
+    let mesHtml='';
+    if(mesKey!==mesCorrente){
+      mesCorrente=mesKey;
+      const lbl=mesKey?MN[parseInt(mesKey.slice(5,7),10)-1]+'/'+mesKey.slice(2,4):'Sem vencimento';
+      mesHtml=`<div class="srow-mes">${lbl}</div>`;
+    }
     const col=DC[r.dono]||'#888',pago=isPago(r);
     const pagoData=pago?(obsPagoData(r)||fDM(r.prev_pgto)):null;
-    return `<div class="srow" onclick="searchOpen(${i})">
+    return mesHtml+`<div class="srow" onclick="searchOpen(${i})">
       <div style="min-width:0">
         <div style="display:flex;gap:7px;align-items:center"><span class="placa">${r.placa}</span><span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.cliente||'—'}</span></div>
         <div style="font-size:11.5px;color:var(--ink3);margin-top:2px"><span class="ddot" style="background:${col}"></span>${r.dono} · ${fDM(r.saida)}→${fDM(r.retorno)}</div>
@@ -5226,6 +5253,24 @@ function go(id){
   }
   document.querySelectorAll('#mainDock .ntab').forEach(t=>t.classList.toggle('on', t.dataset.pg===id));
   renderAll();
+  // Ao entrar em Recebimentos, começa centralizado no dia mais próximo de
+  // hoje: rolar para cima mostra os lançamentos futuros, para baixo os
+  // passados/vencidos (a lista já vem ordenada do mais recente/futuro pro
+  // mais antigo). Só roda ao trocar de aba — não a cada busca/filtro.
+  if(id==='baixas') setTimeout(scrollBaixasParaHoje,60);
+}
+function scrollBaixasParaHoje(){
+  const cont=document.getElementById('baixasContainer');
+  if(!cont)return;
+  const grupos=[...cont.querySelectorAll('.day-group[data-dia]')].filter(g=>g.dataset.dia!=='Sem data');
+  if(!grupos.length)return;
+  const hojeT=new Date(td()+'T12:00:00').getTime();
+  let alvo=grupos[0],menor=Infinity;
+  grupos.forEach(g=>{
+    const diff=Math.abs(new Date(g.dataset.dia+'T12:00:00').getTime()-hojeT);
+    if(diff<menor){menor=diff;alvo=g;}
+  });
+  alvo.scrollIntoView({block:'center',behavior:'auto'});
 }
 
 ['mEdit','mLote','mParcial','mCam','mSearch','mDono'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
@@ -5260,15 +5305,17 @@ async function boot(){
   else console.warn('AGI Locadora · MODO DEMO (sem persistência). Edite config.js para conectar ao Supabase.');
 }
 // No celular não existe hover: o toque na linha abre a mesma lista, e um
-// segundo toque (ou um toque fora) fecha. No desktop nada muda.
-if(window.matchMedia&&window.matchMedia('(hover: none)').matches){
-  document.addEventListener('click',e=>{
-    const linha=e.target.closest?e.target.closest('.rb'):null;
-    const abrir=linha&&!linha.classList.contains('rb-cab')&&linha.querySelector('.rb-tip');
-    document.querySelectorAll('.rb.tip-on').forEach(el=>{if(el!==linha)el.classList.remove('tip-on');});
-    if(abrir)linha.classList.toggle('tip-on');
-  });
-}
+// segundo toque (ou um toque fora) fecha. No desktop, clicar na barra também
+// FIXA o popup aberto (independente do mouse sair dele) — sem isso, ao tentar
+// arrastar o mouse até a lista para clicar num lançamento, o cursor passa por
+// cima da barra de baixo e o popup troca/fecha antes de chegar lá.
+document.addEventListener('click',e=>{
+  const linha=e.target.closest?e.target.closest('.rb'):null;
+  const abrir=linha&&!linha.classList.contains('rb-cab')&&linha.querySelector('.rb-tip');
+  document.querySelectorAll('.rb.tip-on').forEach(el=>{if(el!==linha)el.classList.remove('tip-on');});
+  if(abrir)linha.classList.toggle('tip-on');
+  document.body.classList.toggle('tip-pinned',!!document.querySelector('.rb.tip-on'));
+});
 
 boot();
 </script>
