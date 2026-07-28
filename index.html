@@ -1956,15 +1956,17 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
     <!-- LEFT: day groups -->
     <div>
-      <input type="text" id="bx-q" class="search-input" style="margin-bottom:10px" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
-      <select id="bf-status" class="bf-status-destaque" onchange="renderBaixas()">
-        <option value="pend">Pendentes</option>
-        <option value="venc">Vencidos</option>
-        <option value="hoje">Vencem hoje</option>
-        <option value="futuro">Futuros</option>
-        <option value="pago">Pagos</option>
-        <option value="todos" selected>Todos</option>
-      </select>
+      <div class="fbar" style="margin-bottom:10px">
+        <input type="text" id="bx-q" class="search-input" style="flex:1;min-width:0;margin-bottom:0" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
+        <select id="bf-status" class="bf-status-destaque" onchange="renderBaixas()" style="flex:0 0 auto;width:auto;margin-bottom:0">
+          <option value="pend">Pendentes</option>
+          <option value="venc">Vencidos</option>
+          <option value="hoje">Vencem hoje</option>
+          <option value="futuro">Futuros</option>
+          <option value="pago">Pagos</option>
+          <option value="todos" selected>Todos</option>
+        </select>
+      </div>
       <div class="fbar fbar-baixas">
         <button class="btn" onclick="selTodos()">Selec. Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
