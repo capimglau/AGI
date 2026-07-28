@@ -2391,10 +2391,10 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   </div>
 </div>
 
-<!-- ─── MODAL RECEBIMENTO PARCIAL ─── -->
+<!-- ─── MODAL RECEBIMENTO (baixa total ou parcial, com data no calendário) ─── -->
 <div class="overlay" id="mParcial">
   <div class="modal" style="max-width:400px">
-    <div class="mhd">◐ Recebimento parcial <button class="mcl" onclick="closeParcial()">✕</button></div>
+    <div class="mhd"><span id="parcialTit">◐ Recebimento parcial</span> <button class="mcl" onclick="closeParcial()">✕</button></div>
     <div id="parcialInfo" style="font-size:13px;color:var(--ink3);margin-bottom:12px"></div>
     <div class="fg">
       <div class="fp s2"><label>Valor recebido agora (R$)</label><input type="number" id="pc-val" step="0.01" min="0.01" oninput="calcParcialResto()"></div>
@@ -2402,7 +2402,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <div class="fp"><label>Obs / Referência</label><input type="text" id="pc-obs" placeholder="PIX metade, ref. 4018..."></div>
     </div>
     <div id="parcialResto" style="font-size:12.5px;color:var(--ink3);margin:9px 0 2px;min-height:16px"></div>
-    <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;margin-top:6px" onclick="confirmarParcial()">✓ Registrar parcial</button>
+    <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;margin-top:6px" id="parcialBtn" onclick="confirmarParcial()">✓ Registrar parcial</button>
   </div>
 </div>
 
@@ -4188,21 +4188,6 @@ function showToast(msg,actLabel,actFn){
   toastTimer=setTimeout(()=>t.classList.remove('on'),5000);
 }
 
-// ── BAIXA RÁPIDA (1 toque) com desfazer ──
-function quickPay(idx){
-  const r=allD()[idx];
-  if(!r||isPago(r))return;
-  const prev={valor_pago:r.valor_pago,saldo:r.saldo};
-  // Recebe o líquido a receber (saldo); mantém a competência (prev_pgto).
-  r.valor_pago=fN(r.valor_pago)+fN(r.saldo);r.saldo=0;
-  dbUpdate(r);renderAll();
-  showToast(`✓ ${r.cliente||r.placa} baixado`,'Desfazer',()=>{
-    r.valor_pago=prev.valor_pago;r.saldo=prev.saldo;
-    dbUpdate(r);renderAll();
-    showToast('Baixa desfeita');
-  });
-}
-
 // ── REVERTER PAGAMENTO (total ou parcial) com desfazer ──
 // Ao contrário do "Desfazer" do toast (só vale nos 5s depois da baixa), esta
 // ação fica disponível a qualquer momento pelo swipe, em qualquer lançamento
@@ -4225,24 +4210,30 @@ function reverterPagamento(idx){
 }
 
 // ── RECEBIMENTO PARCIAL (swipe) ──
-// Abate um valor menor que o saldo, mantendo o lançamento pendente (e, se for
-// o caso, vencido) pelo que ainda falta. isPago/isPend/isVenc são todos
-// baseados em r.saldo, então gravar aqui já alimenta corretamente todos os
-// painéis, gráficos, filtros e o CSV — não há lógica separada para "parcial"
-// em nenhum outro lugar do app.
+// Abate um valor do saldo, com data de pagamento escolhida no calendário.
+// Serve tanto para o "Baixar" do swipe (cheio=true, valor pré-preenchido com
+// o saldo total) quanto para o "Parcial" (cheio=false, valor em branco) —
+// mesma lógica de baixa parcial: se o valor cobrir o saldo, vira baixa
+// total; senão o lançamento continua pendente (e, se for o caso, vencido)
+// pelo que ainda falta. isPago/isPend/isVenc são todos baseados em r.saldo,
+// então gravar aqui já alimenta corretamente todos os painéis, gráficos,
+// filtros e o CSV — não há lógica separada para "parcial" em nenhum outro
+// lugar do app.
 let parcialIdx=null;
-function abrirParcial(idx){
+function abrirParcial(idx,cheio=false){
   const r=allD()[idx];
   if(!r||isPago(r))return;
   parcialIdx=idx;
   document.getElementById('parcialInfo').innerHTML=`<span class="placa">${esc(r.placa)}</span> ${esc(r.cliente||'—')} · saldo em aberto <strong style="color:var(--red)">${fR(r.saldo)}</strong>`;
+  document.getElementById('parcialTit').textContent=cheio?'✓ Confirmar baixa':'◐ Recebimento parcial';
+  document.getElementById('parcialBtn').textContent=cheio?'✓ Confirmar baixa':'✓ Registrar parcial';
   const v=document.getElementById('pc-val');
-  v.value=''; v.max=fN(r.saldo);
+  v.value=cheio?fN(r.saldo).toFixed(2):''; v.max=fN(r.saldo);
   document.getElementById('pc-data').value=td();
   document.getElementById('pc-obs').value='';
-  document.getElementById('parcialResto').textContent='';
   document.getElementById('mParcial').classList.add('on');
-  setTimeout(()=>v.focus(),150);
+  calcParcialResto();
+  setTimeout(()=>cheio?v.select():v.focus(),150);
 }
 function closeParcial(){document.getElementById('mParcial').classList.remove('on');parcialIdx=null;}
 function calcParcialResto(){
@@ -4390,7 +4381,7 @@ function closeRow(except){
 }
 function openRowEl(wrap,pw){closeRow(wrap);wrap.classList.add('open');swSet(wrap,-pw);openRow=wrap;}
 function panelW(wrap){const n=wrap.querySelectorAll('.swipe-act').length;return (n||1)*76;}
-function swDo(gi,pay){closeRow();if(pay===1)quickPay(gi);else if(pay===2)abrirParcial(gi);else if(pay===3)reverterPagamento(gi);else openEdit(gi);}
+function swDo(gi,pay){closeRow();if(pay===1)abrirParcial(gi,true);else if(pay===2)abrirParcial(gi);else if(pay===3)reverterPagamento(gi);else openEdit(gi);}
 function swXY(e){const t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);return t?{x:t.clientX,y:t.clientY}:{x:e.clientX,y:e.clientY};}
 function swStart(e){
   if(e.type==='mousedown'&&e.button!==0)return;
