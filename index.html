@@ -884,8 +884,9 @@ tr.tot td { font-weight: 700; background: var(--surface); border-top: 2px solid 
 .rb-tip-hd.t-atr, .rb-tip-d.t-atr { color: var(--red); }
 .rb-tip-hd.t-ven, .rb-tip-d.t-ven { color: var(--amber); }
 .rb-tip-hd.t-rec, .rb-tip-d.t-rec { color: var(--green); }
-.rb-tip-l { display: grid; grid-template-columns: 46px 1fr auto; gap: 4px 9px; align-items: baseline; padding: 3px 0; border-top: 1px solid var(--line); }
+.rb-tip-l { display: grid; grid-template-columns: 46px 1fr auto; gap: 4px 9px; align-items: baseline; padding: 3px 4px; margin: 0 -4px; border-top: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
 .rb-tip-l:first-of-type { border-top: 0; }
+.rb-tip-l:hover { background: var(--surface); }
 .rb-tip-d { font-weight: 700; font-variant-numeric: tabular-nums; }
 .rb-tip-c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rb-tip-c small { color: var(--ink3); font-size: 10.5px; margin-left: 5px; }
@@ -3562,7 +3563,8 @@ function tipAtraso(o){
     const tot=lista.reduce((a,r)=>a+fN(valorDe(r)),0);
     const linhas=lista.slice(0,MAX).map(r=>{
       const dt=r.prev_pgto?`${r.prev_pgto.split('-')[2]}/${r.prev_pgto.split('-')[1]}`:'—';
-      return`<div class="rb-tip-l"><span class="rb-tip-d ${cls}">${dt}</span>
+      const i=allD().indexOf(r);
+      return`<div class="rb-tip-l" onclick="event.stopPropagation();openEdit(${i})" title="Editar / dar baixa"><span class="rb-tip-d ${cls}">${dt}</span>
         <span class="rb-tip-c">${esc(r.cliente||'—')}<small>${esc(r.placa||'')}${sufixo(r)}</small></span>
         <span class="rb-tip-v">${fR(valorDe(r))}</span></div>`;
     }).join('');
