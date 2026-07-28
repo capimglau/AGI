@@ -1926,10 +1926,12 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <select id="bf-status" onchange="renderBaixas()">
           <option value="pend">Pendentes</option>
           <option value="venc">Vencidos</option>
+          <option value="hoje">Vencem hoje</option>
           <option value="pago">Pagos</option>
           <option value="todos" selected>Todos</option>
         </select>
       </div>
+      <div id="baixaVerTodos" style="display:none;margin-bottom:10px"></div>
       <div id="baixasContainer"></div>
     </div>
 
@@ -3018,6 +3020,18 @@ function irVencidos(){
   const sel=document.getElementById('bf-status'); if(sel) sel.value='venc';
   go('baixas');
 }
+// Igual ao irVencidos: garante que o mês de Recebimentos é o de hoje (o
+// usuário pode estar navegando em outro mês) antes de filtrar e entrar.
+function irHoje(){
+  curMes=td().slice(0,7);
+  updateMesLabel();
+  const sel=document.getElementById('bf-status'); if(sel) sel.value='hoje';
+  go('baixas');
+}
+function verTodosRecebimentos(){
+  const sel=document.getElementById('bf-status'); if(sel) sel.value='todos';
+  renderBaixas();
+}
 function updateMesLabel(){
   const [y,m]=curMes.split('-');
   document.getElementById('mnLabel').textContent=`${MF[parseInt(m)-1]} ${y.slice(2)}`;
@@ -3190,6 +3204,7 @@ function renderBaixas(){
   const status=document.getElementById('bf-status').value;
   const bxq=(document.getElementById('bx-q')?.value||'').trim();
 
+  const hoje=td();
   // allMes = todos os lançamentos do mês (para métricas corretas), aplicando os filtros multi-seleção
   // e a busca livre (placa, cliente, proprietário, observação/cartão etc — mesmo critério da lupa)
   const allMes=filtBaixas().filter(bfMatch).filter(r=>!bxq||matchBusca(r,bxq));
@@ -3197,10 +3212,22 @@ function renderBaixas(){
   let rows=[...allMes];
   if(status==='pend') rows=rows.filter(r=>isPend(r));
   else if(status==='venc') rows=rows.filter(r=>isVenc(r));
+  else if(status==='hoje') rows=rows.filter(r=>isPend(r)&&r.prev_pgto===hoje);
   else if(status==='pago') rows=rows.filter(r=>isPago(r));
   rows.sort((a,b)=>(b.prev_pgto||'').localeCompare(a.prev_pgto||''));
 
-  const hoje=td();
+  // "Ver todos" — aparece sempre que o filtro de status não é "todos", pra
+  // voltar rápido depois de entrar filtrado pelos cards de vencidos/hoje.
+  const verTodosEl=document.getElementById('baixaVerTodos');
+  if(verTodosEl){
+    if(status==='todos'){verTodosEl.style.display='none';verTodosEl.innerHTML='';}
+    else{
+      verTodosEl.style.display='block';
+      const STATUS_LBL={pend:'Pendentes',venc:'Vencidos',hoje:'Vencem hoje',pago:'Pagos'};
+      verTodosEl.innerHTML=`<button class="btn btn-sm" onclick="verTodosRecebimentos()">← Ver todos (mostrando só: ${STATUS_LBL[status]||status})</button>`;
+    }
+  }
+
   // Métricas sempre do mês completo, independente do filtro de status
   const totPend=allMes.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
   const totRec=allMes.filter(r=>isPago(r)).reduce((a,r)=>a+fN(r.valor_pago),0);
@@ -3481,10 +3508,10 @@ function renderRecebHoje(){
   const totVenc=vencidos.reduce((a,r)=>a+fN(r.saldo),0);
 
   // Os dois lado a lado: vencidos à esquerda, recebimentos de hoje à direita.
-  // Antes era um ou outro — os vencidos só apareciam quando não havia nada
-  // vencendo hoje, então some justamente no dia em que há mais o que cobrar.
-  if(!vencidos.length && !itemsHoje.length){ el.innerHTML=''; return; }
-
+  // Sempre aparecem na dashboard, mesmo sem nenhum lançamento — cada lado
+  // cai no próprio estado "vazio" (✓ nada vencido / nada vencendo hoje) em
+  // vez de o painel inteiro sumir, senão passa a impressão de que a tela
+  // não carregou.
   const dias=d=>Math.round((new Date(hoje+'T12:00:00')-new Date(d+'T12:00:00'))/86400000);
   const fmtD=d=>{const[,m,dd]=d.split('-');return`${dd}/${m}`;};
 
@@ -3517,7 +3544,7 @@ function renderRecebHoje(){
   if(itemsHoje.length){
     const totHoje=itemsHoje.reduce((a,r)=>a+fN(r.saldo),0);
     const preview=itemsHoje.slice(0,4);
-    cardHoje=`<div class="receb-hoje" role="button" tabindex="0" onclick="go('baixas')" title="Ver todos os recebimentos">
+    cardHoje=`<div class="receb-hoje" role="button" tabindex="0" onclick="irHoje()" title="Ver só os recebimentos de hoje">
       <div class="rh-hd"><span>📥 Recebimentos de hoje</span><span class="rh-sub">${itemsHoje.length} · ${fR(totHoje)}</span></div>
       <div class="rh-list">${preview.map(r=>{const col=DC[r.dono]||'#888';return `<div class="rh-item">
         <span class="placa">${r.placa}</span>
