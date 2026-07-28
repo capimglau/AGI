@@ -349,6 +349,13 @@ body::before {
 .mc.amber .mc-value { color: var(--amber); }
 .mc-sub { font-size: 11.5px; color: var(--ink3); margin-top: 6px; }
 
+/* Painéis do resumo (Total faturado, Total recebido, A receber, Inadimplência) ~20% mais baixos */
+#res-m .mc { padding: 14px 20px; }
+#res-m .mc-icon { font-size: 15px; margin-bottom: 8px; }
+#res-m .mc-label { font-size: 9.5px; margin-bottom: 5px; }
+#res-m .mc-value { font-size: 20px; }
+#res-m .mc-sub { font-size: 10.5px; margin-top: 5px; }
+
 /* ─── BAIXAS LAYOUT ─── */
 .baixas-layout {
   display: grid;
@@ -2087,6 +2094,10 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <div class="cw-scroll"><div class="cw" style="height:230px"><canvas id="cAcum" role="img" aria-label="previsto, recebido e atrasado por mês"></canvas></div></div>
   </div>
   <div class="card">
+    <div class="card-hd" id="hdClientes">Top 10 clientes</div>
+    <div id="resClientes"></div>
+  </div>
+  <div class="card">
     <div class="card-hd" id="hdRecDono">Por proprietário — previsto × recebido</div>
     <div id="resRecDono"></div>
   </div>
@@ -2101,10 +2112,6 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   <div class="card">
     <div class="card-hd" id="hdVeic">Top 10 veículos</div>
     <div id="resVeic"></div>
-  </div>
-  <div class="card">
-    <div class="card-hd" id="hdClientes">Top 10 clientes</div>
-    <div id="resClientes"></div>
   </div>
   <div class="card">
     <div class="card-hd">Projeção de recebimentos — próximos 90 dias</div>
@@ -3439,7 +3446,7 @@ function renderBaixas(){
           ${parcial?`<span class="pcard-parcial-sub"><b>${fR(r.valor_pago)}</b> já recebido</span>`:''}
         </div>`;
       const temPago=fN(r.valor_pago)>0;
-      wrap.innerHTML=`<div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="swDo(${gi2},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="swDo(${gi2},2)"><span class="ic">◐</span>Parcial</button>`}${temPago?`<button class="swipe-act revert" onclick="swDo(${gi2},3)"><span class="ic">↺</span>Reverter</button>`:''}<button class="swipe-act edit" onclick="swDo(${gi2},0)"><span class="ic">✏</span>Editar</button><button class="swipe-act del" onclick="swDo(${gi2},4)"><span class="ic">🗑</span>Excluir</button></div>`;
+      wrap.innerHTML=`<div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="swDo(${gi2},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="swDo(${gi2},2)"><span class="ic">◐</span>Parcial</button>`}${temPago?`<button class="swipe-act revert" onclick="swDo(${gi2},3)"><span class="ic">↺</span>Reverter</button>`:''}<button class="swipe-act del" onclick="swDo(${gi2},4)"><span class="ic">🗑</span>Excluir</button><button class="swipe-act edit" onclick="swDo(${gi2},0)"><span class="ic">✏</span>Editar</button></div>`;
       wrap.appendChild(card);
       dayItems.appendChild(wrap);
     });
@@ -3604,8 +3611,8 @@ function rhItemHtml(r,cls){
   return `<div class="swipe"><div class="swipe-actions">
     <button class="swipe-act pay" onclick="event.stopPropagation();swDo(${i},1)" title="Baixar"><span class="ic">✓</span></button>
     ${temPago?`<button class="swipe-act revert" onclick="event.stopPropagation();swDo(${i},3)" title="Reverter pagamento"><span class="ic">↺</span></button>`:''}
-    <button class="swipe-act edit" onclick="event.stopPropagation();swDo(${i},0)" title="Editar"><span class="ic">✏</span></button>
     <button class="swipe-act del" onclick="event.stopPropagation();swDo(${i},4)" title="Excluir"><span class="ic">🗑</span></button>
+    <button class="swipe-act edit" onclick="event.stopPropagation();swDo(${i},0)" title="Editar"><span class="ic">✏</span></button>
   </div>
   <div class="pcard rh-item ${cls}">
     <span class="placa">${r.placa}</span>
@@ -3737,7 +3744,7 @@ function tipAtraso(o){
       // compactas — event.stopPropagation() pra não deixar o clique fechar
       // o próprio popup (o listener de clique que fixa/tira o popup fica em
       // document, e senão trataria o toque no botão como "fora do popup").
-      return`<div class="swipe"><div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="event.stopPropagation();swDo(${i},1)" title="Baixar"><span class="ic">✓</span></button>`}${temPago?`<button class="swipe-act revert" onclick="event.stopPropagation();swDo(${i},3)" title="Reverter pagamento"><span class="ic">↺</span></button>`:''}<button class="swipe-act edit" onclick="event.stopPropagation();swDo(${i},0)" title="Editar"><span class="ic">✏</span></button><button class="swipe-act del" onclick="event.stopPropagation();swDo(${i},4)" title="Excluir"><span class="ic">🗑</span></button></div><div class="pcard rb-tip-l${cls==='t-rec'?' rb-tip-pago':''}"><span class="rb-tip-d ${cls}">${dt}</span>
+      return`<div class="swipe"><div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="event.stopPropagation();swDo(${i},1)" title="Baixar"><span class="ic">✓</span></button>`}${temPago?`<button class="swipe-act revert" onclick="event.stopPropagation();swDo(${i},3)" title="Reverter pagamento"><span class="ic">↺</span></button>`:''}<button class="swipe-act del" onclick="event.stopPropagation();swDo(${i},4)" title="Excluir"><span class="ic">🗑</span></button><button class="swipe-act edit" onclick="event.stopPropagation();swDo(${i},0)" title="Editar"><span class="ic">✏</span></button></div><div class="pcard rb-tip-l${cls==='t-rec'?' rb-tip-pago':''}"><span class="rb-tip-d ${cls}">${dt}</span>
         <span class="rb-tip-c">${esc(r.cliente||'—')}<small>${esc(r.placa||'')}${sufixo(r)}</small></span>
         <span class="rb-tip-v">${fR(valorDe(r))}</span></div></div>`;
     }).join('');
@@ -3792,6 +3799,8 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
 // desce para a lista linha a linha quando o usuário clica para expandir.
 let bolExpandido=false;  // mostra a lista de boletos, um a um
 let bolFiltro='afazer';  // qual lista mostrar: 'afazer' | 'feitos' | 'todos'
+let clientesExpandido=false;  // "Ver mais" do painel Top 10 clientes
+function toggleClientesExpand(){clientesExpandido=!clientesExpandido;renderResumo();}
 function toggleBoletosExpand(){bolExpandido=!bolExpandido;renderResumo();}
 // Clicar em "a emitir" ou "emitidos" abre a lista já filtrada só por aquele
 // grupo; o botão "Ver todos" (no rodapé) junta os dois de novo.
@@ -3961,7 +3970,18 @@ function renderResumo(){
   document.getElementById('resRecDono').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.dono),{rank:true});
   document.getElementById('resForma').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.forma));
   document.getElementById('resVeic').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>r.placa),{rank:true,top:10,label:p=>`<span class="placa">${p}</span>`});
-  document.getElementById('resClientes').innerHTML=rbDuplo(agrupaPrevRec(rows,r=>(r.cliente||'').trim()||'—'),{rank:true,top:10,label:nomeDuplo});
+  {
+    const clientesAg=agrupaPrevRec(rows,r=>(r.cliente||'').trim()||'—');
+    const totClientesComDados=clientesAg.filter(([,o])=>o.prev>0||o.rec>0).length;
+    const nTop=clientesExpandido?0:10;
+    let htmlClientes=rbDuplo(clientesAg,{rank:true,top:nTop,label:nomeDuplo});
+    if(totClientesComDados>10){
+      htmlClientes+=`<div style="text-align:center;margin-top:6px">
+        <button class="btn btn-sm" onclick="toggleClientesExpand()">${clientesExpandido?'Ver menos ▲':`Ver mais (${totClientesComDados-10}) ▼`}</button>
+      </div>`;
+    }
+    document.getElementById('resClientes').innerHTML=htmlClientes;
+  }
   renderBoletosPainel(rows);
   // ── Projeção 90 dias: uma barra por dia COM vencimento ──
   // Só os dias que têm algo a receber. Dia vazio não vira espaço em branco —
@@ -4564,8 +4584,8 @@ function lcCardHtml(r,gi,fecharBusca){
     <div class="swipe-actions">
       ${pago?'':`<button class="swipe-act pay" onclick="${pre}swDo(${gi},1)"><span class="ic">✓</span>Baixar</button><button class="swipe-act partial" onclick="${pre}swDo(${gi},2)"><span class="ic">◐</span>Parcial</button>`}
       ${temPago?`<button class="swipe-act revert" onclick="${pre}swDo(${gi},3)"><span class="ic">↺</span>Reverter</button>`:''}
-      <button class="swipe-act edit" onclick="${pre}swDo(${gi},0)"><span class="ic">✏</span>Editar</button>
       <button class="swipe-act del" onclick="${pre}swDo(${gi},4)"><span class="ic">🗑</span>Excluir</button>
+      <button class="swipe-act edit" onclick="${pre}swDo(${gi},0)"><span class="ic">✏</span>Editar</button>
     </div>
     <div class="pcard lc-card${pago?' done':''}${parcial?' parcial':''}${venc&&!pago?' venc':''}${hojeCard?' hoje-card':''}">
       <div class="pcard-body">
