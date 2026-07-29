@@ -397,11 +397,13 @@ body::before {
 .filt-panel[hidden] { display: none; }
 .filt-panel-baixas { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .filt-panel-baixas[hidden] { display: none; }
-.filt-panel-baixas #baixasFilters { margin-bottom: 0; }
-/* Em Recebimentos cada tipo de filtro ocupa a linha inteira, um embaixo do
-   outro (proprietário, tipo, forma, cliente, placa), em vez de tudo
-   espremido lado a lado. */
-.filt-panel-baixas #baixasFilters { flex: 1 1 100%; }
+/* Em Recebimentos, status + os outros 4 filtros ficam lado a lado numa linha
+   só: #filtPanel é o grid, e #baixasFilters (gerado por JS com os 4 tipos)
+   fica "transparente" pro layout (display:contents) — suas seções entram
+   como se fossem filhas diretas do grid, ao lado do select de status. */
+#filtPanel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+@media (max-width: 760px) { #filtPanel { grid-template-columns: 1fr 1fr; } }
+#baixasFilters { display: contents; }
 /* Em Lançamentos os 4 filtros (tipo/forma/proprietário/status) ficam lado a
    lado, numa linha só, em vez de empilhados como em Recebimentos, e sempre
    visíveis (sem precisar abrir um painel "Filtros"). */
@@ -416,13 +418,12 @@ body::before {
    botão "Filtros" nem parecer um select qualquer. */
 .bf-status-destaque {
   width: 100%;
-  margin-bottom: 10px;
-  padding: 11px 14px;
+  padding: 8px 10px;
   border: 1.5px solid var(--blue);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--blue-soft, rgba(31,95,168,.08));
   color: var(--blue);
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1242,11 +1243,11 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .rf-sec-opts { display: flex; flex-direction: column; }
 /* Recebimentos: os tipos de filtro ficam lado a lado, numa linha só, cada um
    como sua própria caixinha — sem o dropdown "Filtros" por cima (que
-   duplicava o botão externo e escondia tudo junto). Ao abrir um, a lista de
-   opções flutua por cima do conteúdo (como um dropdown) em vez de empurrar
-   as caixas vizinhas pra baixo. */
-.rf-bar.rf-flat { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0; background: none; border: none; padding: 0; }
-@media (max-width: 640px) { .rf-bar.rf-flat { grid-template-columns: 1fr 1fr; } }
+   duplicava o botão externo e escondia tudo junto). #baixasFilters é
+   display:contents (ver #filtPanel), então quem realmente vira grid e
+   controla as colunas é o pai #filtPanel; aqui só o que sobra pras seções
+   em si. Ao abrir uma, a lista de opções flutua por cima do conteúdo (como
+   um dropdown) em vez de empurrar as caixas vizinhas pra baixo. */
 .rf-flat .rf-menu-hd { grid-column: 1 / -1; }
 .rf-flat .rf-sec { position: relative; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
 .rf-flat .rf-sec-tt { padding: 8px 10px; }
@@ -2033,26 +2034,21 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   <div class="mrow" id="baixa-metrics"></div>
 
   <!-- Busca, ações e filtros — largura cheia, acima do grid de 2 colunas, pra
-       os 4 filtros caberem numa linha só (o grid abaixo reserva 320px pro
-       painel de proprietário e apertaria demais essa linha). -->
+       os filtros caberem numa linha só (o grid abaixo reserva 320px pro
+       painel de proprietário e apertaria demais essa linha). Essa mesma
+       largura cheia empurra o painel de proprietário (que só começa no grid,
+       lá embaixo) pra baixo das ações Selec. Todos/Baixar. -->
   <div class="fbar" style="margin-bottom:10px">
     <input type="text" id="bx-q" class="search-input" style="flex:1;min-width:0;margin-bottom:0" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
-    <select id="bf-status" class="bf-status-destaque" onchange="renderBaixas()" style="flex:0 0 auto;width:auto;margin-bottom:0">
-      <option value="pend">Pendentes</option>
-      <option value="venc">Vencidos</option>
-      <option value="hoje">Vencem hoje</option>
-      <option value="futuro">Futuros</option>
-      <option value="pago">Pagos</option>
-      <option value="todos" selected>Todos</option>
-    </select>
+    <button class="btn btn-sm" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, cliente, período (saída/retorno), tipo, vencimento e valor">🔁 Duplicados</button>
   </div>
   <div class="fbar fbar-baixas">
     <button class="btn" onclick="selTodos()">Selec. Todos</button>
     <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
-    <button class="btn" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, cliente, período (saída/retorno), tipo, vencimento e valor">🔁 Duplicados</button>
   </div>
-  <!-- Proprietário fica de fora (já tem o painel dedicado ao lado) — só os
-       outros 4 filtros aparecem aqui, sempre visíveis, sem botão "Filtros". -->
+  <!-- Proprietário fica de fora (já tem o painel dedicado ao lado) — status
+       entra como o primeiro da linha, seguido dos outros 4 filtros, todos
+       sempre visíveis, sem botão "Filtros" (tudo montado por buildBaixasFilters). -->
   <div class="filt-panel filt-panel-baixas" id="filtPanel">
     <div id="baixasFilters" class="rf-bar rf-flat"></div>
   </div>
@@ -3558,7 +3554,7 @@ function filterMatch(state,r){ return RF_DIMS.every(d=>!state[d].size||state[d].
 // escondia todos os tipos juntos atrás de um segundo menu.
 // dims (opcional) restringe quais dimensões desenhar — em Recebimentos,
 // "proprietário" já tem o painel dedicado ao lado, então fica de fora daqui.
-function makeFilterSelector(mountId,state,onChange,flat,dims){
+function makeFilterSelector(mountId,state,onChange,flat,dims,extraHtml){
   const bar=document.getElementById(mountId); if(!bar) return;
   const data=allD();
   const dimsToRender=dims||RF_DIMS;
@@ -3571,7 +3567,7 @@ function makeFilterSelector(mountId,state,onChange,flat,dims){
     </details>`;
   }).join('');
   bar.innerHTML = flat
-    ? `<div class="rf-menu-hd"><span>Filtrar por</span><button class="rf-clear" data-clear style="display:none">✕ Limpar</button></div>${sections}`
+    ? `<div class="rf-menu-hd"><span>Filtrar por</span><button class="rf-clear" data-clear style="display:none">✕ Limpar</button></div>${extraHtml||''}${sections}`
     : `
     <details class="rf rf-single">
       <summary>Filtros<span class="rf-badge" data-badge="__all"></span><span class="rf-caret">▾</span></summary>
@@ -3601,7 +3597,17 @@ function rfMatch(r){ return filterMatch(RF,r); }
 
 // Recebimentos (mesmos filtros do Resumo)
 const BF=newFilterState();
-function buildBaixasFilters(){ makeFilterSelector('baixasFilters',BF,renderBaixas,true,RF_DIMS.filter(d=>d!=='dono')); }
+function buildBaixasFilters(){
+  const statusHtml = `<select id="bf-status" class="bf-status-destaque" onchange="renderBaixas()">
+    <option value="pend">Pendentes</option>
+    <option value="venc">Vencidos</option>
+    <option value="hoje">Vencem hoje</option>
+    <option value="futuro">Futuros</option>
+    <option value="pago">Pagos</option>
+    <option value="todos" selected>Todos</option>
+  </select>`;
+  makeFilterSelector('baixasFilters',BF,renderBaixas,true,RF_DIMS.filter(d=>d!=='dono'),statusHtml);
+}
 function bfMatch(r){ return filterMatch(BF,r); }
 
 // ── CONTROLES DO RESUMO: período · base (competência/caixa) · mensal/acumulado ──
