@@ -403,9 +403,14 @@ body::before {
    espremido lado a lado. */
 .filt-panel-baixas #baixasFilters { flex: 1 1 100%; }
 /* Em Lançamentos os 4 filtros (tipo/forma/proprietário/status) ficam lado a
-   lado, numa linha só, em vez de empilhados como em Recebimentos. */
+   lado, numa linha só, em vez de empilhados como em Recebimentos, e sempre
+   visíveis (sem precisar abrir um painel "Filtros"). */
 #lfFiltPanel { display: grid; grid-template-columns: repeat(4, 1fr); }
 @media (max-width: 420px) { #lfFiltPanel { grid-template-columns: 1fr 1fr; } }
+/* Busca + Excel/CSV na mesma linha, acima dos filtros. */
+.lf-searchbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.lf-searchbar .search-input { flex: 1 1 60px; min-width: 0; margin-bottom: 0; }
+.lf-searchbar .btn { flex: 0 0 auto; }
 /* Seletor de status sempre visível (fora do painel de filtros) e destacado —
    é o filtro mais usado em Recebimentos, não devia ficar escondido atrás do
    botão "Filtros" nem parecer um select qualquer. */
@@ -2055,16 +2060,13 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
 <!-- LANÇAMENTOS -->
 <div class="page" id="page-lancamentos">
-  <input type="text" id="lf-q" class="search-input" style="margin-bottom:10px" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderLanc()">
-  <div class="fbar">
-    <button class="btn" onclick="toggleLfFilters()">Filtros<span class="filt-dot" id="lfFiltDot" style="display:none"></span></button>
-    <div class="fbar-right">
-      <span class="fcnt" id="lf-cnt"></span>
-      <button class="btn btn-sm" onclick="openXls()">📊 Excel</button>
-      <button class="btn btn-sm" onclick="exportCSV()">⬇ CSV</button>
-    </div>
+  <div class="lf-searchbar">
+    <input type="text" id="lf-q" class="search-input" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderLanc()">
+    <button class="btn btn-sm" onclick="openXls()">📊 Excel</button>
+    <button class="btn btn-sm" onclick="exportCSV()">⬇ CSV</button>
   </div>
-  <div class="filt-panel filt-panel-baixas" id="lfFiltPanel" hidden>
+  <div class="fcnt" id="lf-cnt" style="text-align:right;margin-bottom:6px"></div>
+  <div class="filt-panel filt-panel-baixas" id="lfFiltPanel">
     <select id="lf-tipo" onchange="renderLanc()"><option value="">Todos os tipos</option></select>
     <select id="lf-forma" onchange="renderLanc()"><option value="">Todas as formas</option></select>
     <select id="lf-dono" onchange="renderLanc()"><option value="">Todos os proprietários</option></select>
@@ -3508,9 +3510,6 @@ function renderLanc(){
   rows.sort((a,b)=>(b.prev_pgto||'').localeCompare(a.prev_pgto||''));
   document.getElementById('lf-cnt').textContent=rows.length+' registros';
 
-  const fdot=document.getElementById('lfFiltDot');
-  if(fdot) fdot.style.display=(tipo||forma||dono||status)?'inline-block':'none';
-
   const totP=rows.reduce((a,r)=>a+fN(r.valor_pago),0);
   const totS=rows.reduce((a,r)=>a+fN(r.saldo),0);
   const totLiq=totP+totS;                         // líquido = pago + saldo (já descontada a taxa de cartão)
@@ -4815,7 +4814,6 @@ function swEnd(e){
   if(s.dx<=-s.pw/2)openRowEl(s.wrap,s.pw); else closeRow();
 }
 function toggleFilters(){const p=document.getElementById('filtPanel');if(p)p.hidden=!p.hidden;}
-function toggleLfFilters(){const p=document.getElementById('lfFiltPanel');if(p)p.hidden=!p.hidden;}
 
 // ── TEMA (claro/escuro) ──
 function isDark(){return document.documentElement.getAttribute('data-theme')==='dark';}
