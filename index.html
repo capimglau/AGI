@@ -1883,6 +1883,80 @@ details[open] summary::before { transform: rotate(90deg); }
   }
 }
 
+/* Mobile: aumentar fontes e espaçamento a partir do Top 10 clientes */
+@media (max-width: 760px) {
+  #resClientes,
+  #resRecDono,
+  #resTipo,
+  #resForma,
+  #resVeic {
+    /* Aumentar espaçamento entre itens (ranking bars) */
+  }
+
+  #resClientes .rb,
+  #resRecDono .rb,
+  #resTipo .rb,
+  #resForma .rb,
+  #resVeic .rb {
+    margin-bottom: 12px;
+    padding: 12px;
+    gap: 12px;
+    font-size: 14px;
+  }
+
+  /* Aumentar fonte dos labels e valores */
+  #resClientes .rb-l,
+  #resRecDono .rb-l,
+  #resTipo .rb-l,
+  #resForma .rb-l,
+  #resVeic .rb-l {
+    font-size: 14px;
+    font-weight: 600;
+    min-width: 120px;
+  }
+
+  #resClientes .rb-r,
+  #resRecDono .rb-r,
+  #resTipo .rb-r,
+  #resForma .rb-r,
+  #resVeic .rb-r {
+    font-size: 14px;
+    font-weight: 600;
+    gap: 8px;
+  }
+
+  #resClientes .rb-rank,
+  #resRecDono .rb-rank,
+  #resTipo .rb-rank,
+  #resForma .rb-rank,
+  #resVeic .rb-rank {
+    font-size: 16px;
+    font-weight: 700;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  /* Aumentar espaço dos cards com os gráficos */
+  #page-resumo > .card:nth-child(n+4) {
+    padding: 18px;
+  }
+
+  #page-resumo > .card:nth-child(n+4) .card-hd {
+    font-size: 15px;
+    margin-bottom: 16px;
+  }
+
+  /* Botões "Ver mais/menos" maiores */
+  #resClientes .btn,
+  #resRecDono .btn,
+  #resTipo .btn,
+  #resForma .btn,
+  #resVeic .btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+}
+
 @media (max-width: 420px) {
   .header-right { flex-wrap: wrap; }
   .header-right .stat-pill { font-size: 12px; padding: 6px 8px; }
