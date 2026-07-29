@@ -1955,6 +1955,35 @@ details[open] summary::before { transform: rotate(90deg); }
     padding: 10px 16px;
     font-size: 14px;
   }
+
+  /* Gráficos: aumentar altura e melhorar visualização no mobile */
+  #cMes,
+  #cAcum,
+  #cProj {
+    height: 300px !important;
+  }
+
+  .cw-scroll .cw {
+    height: 300px !important;
+  }
+
+  /* Melhorar legenda dos gráficos */
+  #page-resumo > .card .cw-scroll {
+    margin: 0 -12px;
+    padding: 0 12px;
+  }
+
+  /* Texto dos headers dos gráficos maiores */
+  #hdMes,
+  #hdAcum,
+  #hdVeic,
+  #hdClientes,
+  #hdRecDono,
+  #hdTipo,
+  #hdForma {
+    font-size: 15px;
+    font-weight: 700;
+  }
 }
 
 @media (max-width: 420px) {
