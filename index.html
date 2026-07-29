@@ -3937,11 +3937,12 @@ function renderBaixas(){
     }
   }
 
-  // Métricas sempre do mês completo, independente do filtro de status
-  const totPend=allMes.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
-  const totRec=allMes.filter(r=>isPago(r)).reduce((a,r)=>a+fN(r.valor_pago),0);
-  const nVenc=allMes.filter(r=>isVenc(r)).length;
-  const nHoje=allMes.filter(r=>isPend(r)&&r.prev_pgto===hoje).length;
+  // Métricas do mês completo, considerando filtro de proprietário (selDono) e filtros aplicados
+  const metricsBase=allMes;
+  const totPend=metricsBase.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
+  const totRec=metricsBase.filter(r=>isPago(r)).reduce((a,r)=>a+fN(r.valor_pago),0);
+  const nVenc=metricsBase.filter(r=>isVenc(r)).length;
+  const nHoje=metricsBase.filter(r=>isPend(r)&&r.prev_pgto===hoje).length;
 
   // Metrics (compactos — sem 3ª linha)
   document.getElementById('baixa-metrics').innerHTML=`
