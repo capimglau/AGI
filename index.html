@@ -3604,8 +3604,12 @@ async function pfBioToggle(el){
 
 // ─── TRAVA DE ABERTURA (só aparece se a biometria estiver ativada) ───
 async function iniciarApp(){
-  // Sempre mostrar a tela de login primeiro
-  openLoginModal();
+  const autenticado=localStorage.getItem('agi-autenticado');
+  if(!autenticado){
+    openLoginModal();
+  } else {
+    setupInactivityTimeout();
+  }
   boot();
 }
 async function desbloquearComBiometria(){
