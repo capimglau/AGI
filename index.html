@@ -442,8 +442,13 @@ body::before {
 .fc-table .fc-pend { color: var(--amber); font-size: 12px; text-align: right; }
 .fc-table .fc-ac { color: var(--blue); font-weight: 700; text-align: right; font-size: 13px; }
 .fc-table .fc-bar-wrap { width: 100px; }
-.fc-bar { height: 6px; border-radius: 3px; background: var(--blue); transition: width .3s; }
+/* Preenchimento = % já recebido do dia (não o volume do dia vs. o mês): dia
+   100% pago fica com a barra toda verde; o resto da trilha mostra em âmbar
+   o que ainda falta receber (ou cinza neutro quando não há movimento). */
+.fc-bar { height: 6px; border-radius: 3px; background: var(--green); transition: width .3s; }
 .fc-bar-bg { background: var(--line); border-radius: 3px; height: 6px; overflow: hidden; }
+.fc-day-row { cursor: pointer; }
+.fc-day-row:hover td { background: var(--surface); }
 .fc-today-row { background: var(--blue-soft); }
 .fc-today-row td:first-child { border-left: 3px solid var(--blue); }
 .fc-week-sep td { padding-top: 12px; }
@@ -4088,7 +4093,6 @@ function renderFluxo(){
   let acum = 0;
   const totRec = days.reduce((a,k)=>a+(dmap[k]?dmap[k].rec:0), 0);
   const totPend = days.reduce((a,k)=>a+(dmap[k]?dmap[k].pend:0), 0);
-  const maxDia = Math.max(...days.map(k=>dmap[k]?(dmap[k].rec+dmap[k].pend):0), 1);
 
   // Summary cards
   const [cy,cm] = curMes.split('-');
@@ -4109,9 +4113,11 @@ function renderFluxo(){
     const isToday = k === today;
     const entry = dmap[k] || {rec:0,pend:0,n:0,np:0};
     acum += entry.rec;
-    const barPct = maxDia > 0 ? ((entry.rec + entry.pend) / maxDia * 100).toFixed(1) : 0;
-    const recBarPct = (entry.rec + entry.pend) > 0 ? (entry.rec / (entry.rec + entry.pend) * 100).toFixed(1) : 0;
     const hasMov = entry.rec > 0 || entry.pend > 0;
+    // % do dia já recebido — 100% pago = barra toda verde, independente do
+    // volume do dia (que era o que a versão antiga media).
+    const pctPago = hasMov ? (entry.rec / (entry.rec + entry.pend) * 100).toFixed(1) : 0;
+    const trilhaBg = hasMov && entry.pend > 0 ? 'var(--amber-soft)' : 'var(--line)';
 
     // Separador de semana
     if(week !== lastWeek && i > 0){
@@ -4119,10 +4125,10 @@ function renderFluxo(){
     }
     lastWeek = week;
 
-    const rowClass = isToday ? 'fc-today-row' : (!hasMov ? 'fc-empty-row' : '');
+    const rowClass = [hasMov ? 'fc-day-row' : '', isToday ? 'fc-today-row' : '', !hasMov ? 'fc-empty-row' : ''].filter(Boolean).join(' ');
     const d = String(dt.getDate()).padStart(2,'0');
     const mo = String(m).padStart(2,'0');
-    html += `<tr class="${rowClass}">
+    html += `<tr class="${rowClass}" ${hasMov?`onclick="mostrarLancDiaFluxo('${k}')" title="Ver lançamentos de ${d}/${mo}"`:''}>
       <td>
         <div class="fc-day">${d}/${mo} ${isToday?'<span style="font-size:10px;background:var(--blue);color:#fff;border-radius:4px;padding:1px 5px;vertical-align:middle">Hoje</span>':''}</div>
         <div class="fc-dow">${DIAS_PT[dow]}</div>
@@ -4131,8 +4137,8 @@ function renderFluxo(){
       <td class="fc-pend">${entry.pend>0?fR(entry.pend):'<span style="color:var(--ink3);font-weight:400">—</span>'}</td>
       <td class="fc-ac">${acum>0?fR(acum):'<span style="color:var(--ink3);font-weight:400">—</span>'}</td>
       <td class="fc-bar-wrap">
-        <div class="fc-bar-bg">
-          <div class="fc-bar" style="width:${barPct}%;background:linear-gradient(90deg,var(--green) ${recBarPct}%,var(--amber) ${recBarPct}%)"></div>
+        <div class="fc-bar-bg" style="background:${trilhaBg}">
+          <div class="fc-bar" style="width:${pctPago}%"></div>
         </div>
       </td>
     </tr>`;
@@ -4682,6 +4688,32 @@ function mostrarLancDia(dia){
   const totVal=items.reduce((a,{r})=>a+fN(r.saldo),0);
   const totHtml=`<div class="search-total"><div class="st-blk">
     <div class="st-main"><span>${items.length} lançamento${items.length>1?'s':''}</span><span class="st-val">${fR(totVal)}</span></div>
+  </div></div>`;
+  box.innerHTML=totHtml+lancListHtml(items,true);
+}
+// Clique num dia do Fluxo de Caixa Diário: mostra TODOS os lançamentos
+// daquele dia (recebidos e pendentes, não só os pendentes como em
+// mostrarLancDia) — mesmo modal/cartões da busca global, com
+// baixar/parcial/reverter/editar/excluir via swipe.
+function mostrarLancDiaFluxo(dia){
+  const all=allD();
+  const items=[];
+  all.forEach((r,i)=>{
+    if(selDono&&r.dono!==selDono)return;
+    if((r.prev_pgto||'').slice(0,10)===dia)items.push({r,i});
+  });
+  if(!items.length)return;
+  items.sort((a,b)=>fN(b.r.saldo)-fN(a.r.saldo));
+  document.getElementById('mSearch').classList.add('on');
+  const input=document.getElementById('searchInput'); if(input)input.style.display='none';
+  const tit=document.getElementById('searchModalTit');
+  if(tit) tit.textContent=fDM(dia);
+  const box=document.getElementById('searchResults');
+  const totPago=items.reduce((a,{r})=>a+(isPago(r)?fN(r.valor_pago):0),0);
+  const totPend=items.reduce((a,{r})=>a+(isPend(r)?fN(r.saldo):0),0);
+  const totHtml=`<div class="search-total"><div class="st-blk">
+    <div class="st-main"><span>${items.length} lançamento${items.length>1?'s':''}</span><span class="st-val">${fR(totPago+totPend)}</span></div>
+    <div class="st-sub"><span class="st-pago">Pago ${fR(totPago)}</span><span class="st-pend">Saldo ${fR(totPend)}</span></div>
   </div></div>`;
   box.innerHTML=totHtml+lancListHtml(items,true);
 }
