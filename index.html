@@ -1075,10 +1075,10 @@ tr:hover td { background: #f9f8f5; }
 .rb-bg { flex: 1; height: 14px; background: var(--surface); border-radius: 3px; overflow: hidden; }
 .rb-f { height: 100%; border-radius: 3px; transition: width .6s ease; }
 .rb-v { font-size: 11px; font-weight: 600; width: 45px; text-align: right; flex-shrink: 0; margin: 0; padding: 0; }
-#resClientes .rb-l { width: 150px; }
+#resClientes .rb-l { max-width: 150px; }
 /* Placa é curta e ilegível abreviada — sempre por extenso, com coluna larga
    o bastante pro número da posição (rank) + a placa inteira. */
-#resVeic .rb-l { width: 98px; }
+#resVeic .rb-l { max-width: 98px; }
 /* Barra dupla numa linha só: amarela = previsto, verde = recebido por cima.
    Traço fino de pontas arredondadas, com um ponto marcando onde o recebido
    termina — mesmo acabamento das barras de contratos/despesas. */
@@ -1119,7 +1119,7 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
   .rb-v2 i { display: none; }
   .rb-v2 .v-full { display: none; }
   .rb-v2 .v-curto { display: inline; }
-  .rb-l { width: 64px; }
+  .rb-l { max-width: 64px; }
   .lbl-full { display: none; }
   .lbl-curto { display: inline; }
 }
@@ -1953,7 +1953,6 @@ details[open] summary::before { transform: rotate(90deg); }
   #resVeic .rb-l {
     font-size: 14px;
     font-weight: 600;
-    min-width: 120px;
   }
 
   #resClientes .rb-r,
