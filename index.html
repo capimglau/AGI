@@ -2172,7 +2172,8 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         Novo lançamento
       </div>
       <div class="fg">
-        <div class="fp"><label>Placa</label><input type="text" id="nf-p" placeholder="Ex: UFR2H17"></div>
+        <div class="fp"><label>Placa</label><input type="text" id="nf-p" placeholder="Ex: UFR2H17" list="placaDL" autocomplete="off"></div>
+        <datalist id="placaDL"></datalist>
         <div class="fp"><label>Proprietário</label><select id="nf-d"><option value="">Selecione</option></select></div>
         <div class="fp s2"><label>Cliente</label><input type="text" id="nf-c"></div>
         <div class="fp"><label>Tipo</label>
@@ -2458,7 +2459,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <details>
       <summary>✏ Editar campos</summary>
       <div class="fg" style="margin-top:12px">
-        <div class="fp"><label>Placa</label><input type="text" id="e-p"></div>
+        <div class="fp"><label>Placa</label><input type="text" id="e-p" list="placaDL" autocomplete="off"></div>
         <div class="fp"><label>Proprietário</label><select id="e-d"></select></div>
         <div class="fp s2"><label>Cliente</label><input type="text" id="e-c"></div>
         <div class="fp"><label>Tipo</label>
@@ -5509,6 +5510,16 @@ function popSel(){
   ['lf-dono'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Todos os proprietários</option>';donos.forEach(d=>el.innerHTML+=`<option>${d}</option>`);el.value=cv;});
   ['lf-tipo'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Todos os tipos</option>';tipos.forEach(t=>el.innerHTML+=`<option>${t}</option>`);el.value=cv;});
   ['lf-forma'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const cv=el.value;el.innerHTML='<option value="">Todas as formas</option>';formas.forEach(f=>el.innerHTML+=`<option>${f}</option>`);el.value=cv;});
+  // Placas cadastradas em Premissas (Veículos) — alimenta o autocomplete da
+  // placa em Novo lançamento e Editar, pra sugerir conforme digita e já
+  // reconhecer o proprietário assim que a placa bater com um veículo.
+  const placaDL=document.getElementById('placaDL');
+  if(placaDL){
+    const vistas=new Set();
+    placaDL.innerHTML=[...VEICULOS].sort((a,b)=>(a.placa||'').localeCompare(b.placa||''))
+      .filter(v=>{const p=(v.placa||'').toUpperCase();if(!p||vistas.has(p))return false;vistas.add(p);return true;})
+      .map(v=>`<option value="${v.placa}" label="${v.dono||''}${v.modelo?' · '+v.modelo:''}">`).join('');
+  }
 }
 
 // ── CSV ──
