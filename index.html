@@ -790,7 +790,13 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   gap: 14px;
   position: sticky;
   top: 76px;
+  /* Deixa claro que o painel fica ABAIXO das ações Selec. Todos/Baixar (que
+     ficam fora do grid, em cima) — sem essa margem ele nasce alinhado com o
+     topo da lista de lançamentos, ao lado do primeiro dia, e mistura com ela
+     visualmente. */
+  margin-top: 60px;
 }
+@media (max-width: 1100px) { .side-panel { margin-top: 0; } }
 
 /* Owner filter pills */
 .owner-pills {
