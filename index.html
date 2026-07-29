@@ -386,7 +386,14 @@ body::before {
   gap: 20px;
   align-items: start;
 }
-@media(max-width:1100px){ .baixas-layout { grid-template-columns: 1fr; } }
+@media(max-width:1100px){
+  .baixas-layout { grid-template-columns: 1fr; }
+  /* No desktop o grid de 2 colunas já deixa os botões (side-panel) ao lado
+     da lista; ao colapsar pra 1 coluna, a ordem do HTML jogava o side-panel
+     (Sel.Todos/Baixar) pro final, depois de todos os lançamentos. Reordena
+     pra ele aparecer primeiro, acima da lista. */
+  .side-panel { order: -1; }
+}
 
 /* ─── FILTER BAR ─── */
 .fbar {
@@ -680,6 +687,14 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .pcard-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pcard-name { font-weight: 600; font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pcard-tags { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+/* Obs/referência numa linha própria, sempre — não mais dentro de .pcard-tags,
+   senão o wrap dela dependia do espaço sobrando ali e ficava imprevisível. */
+.pcard-obs {
+  display: inline-flex; align-self: flex-start; align-items: center; gap: 4px;
+  background: var(--surface); color: var(--ink3); font-size: 10.5px; font-style: italic;
+  padding: 4px 10px; border-radius: 20px; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .pcard-meta { font-size: 11.5px; color: var(--ink3); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pcard-meta > span { display: inline-flex; align-items: center; }
 .pcard-right {
@@ -687,7 +702,7 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   flex-direction: column;
   align-items: flex-end;
   align-self: flex-start;
-  margin-top: 30px;
+  margin-top: 50px;
   gap: 8px;
   flex-shrink: 0;
 }
@@ -4269,9 +4284,9 @@ function renderBaixas(){
             ${tipTag(r.tipo)}
             <span class="tag tag-forma">${fFormaLabel(r.forma)}</span>
             ${parcial?`<span class="tag tag-parcial">◐ Parcial</span>`:''}
-            ${r.obs?`<span class="tag" style="background:var(--surface);color:var(--ink3);font-size:10.5px;font-style:italic;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.obs)}">📝 ${esc(r.obs)}</span>`:''}
             ${r.data_pagamento?`<span class="tag" style="background:var(--green-soft);color:var(--green);font-size:10.5px" title="Pago em ${fD(r.data_pagamento)}">✓ pago ${fDM(r.data_pagamento)}</span>`:''}
           </div>
+          ${r.obs?`<div class="pcard-obs" title="${esc(r.obs)}">📝 ${esc(r.obs)}</div>`:''}
           <div class="pcard-meta">
             <span class="pcard-period">🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
           </div>
@@ -5437,9 +5452,9 @@ function lcCardHtml(r,gi,fecharBusca){
           <span style="font-size:11.5px;color:var(--ink3)">${esc(r.dono||'—')}</span>
           ${tipTag(r.tipo)}
           <span class="tag tag-forma">${fFormaLabel(r.forma)}</span>
-          ${r.obs?`<span class="tag" style="background:var(--surface);color:var(--ink3);font-size:10.5px;font-style:italic;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.obs)}">📝 ${esc(r.obs)}</span>`:''}
           ${r.data_pagamento?`<span class="tag" style="background:var(--green-soft);color:var(--green);font-size:10.5px" title="Pago em ${fD(r.data_pagamento)}">✓ pago ${fDM(r.data_pagamento)}</span>`:''}
         </div>
+        ${r.obs?`<div class="pcard-obs" title="${esc(r.obs)}">📝 ${esc(r.obs)}</div>`:''}
         <div class="pcard-meta">
           <span>🗓 ${fDM(r.saida)} → ${fDM(r.retorno)}</span>
           <span>Vencimento <b style="color:var(--red);font-weight:700">${fDM(r.prev_pgto)}</b></span>
