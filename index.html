@@ -1263,10 +1263,6 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .res-ctrls .rf-bar { margin-bottom: 0; display: flex; }
 .res-ctrls .rf-single { flex: 1; }
 .res-ctrls .rf-single > summary { width: 100%; justify-content: center; gap: 4px; padding: 6px 4px; font-size: 11px; }
-.rc-seg { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 2px; gap: 1px; }
-.rc-seg button { flex: 1; border: none; background: none; padding: 5px 3px; border-radius: 8px; font-family: inherit; font-size: 11px; font-weight: 600; color: var(--ink3); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .12s, background .12s, box-shadow .12s; }
-.rc-seg button:hover { color: var(--ink); }
-.rc-seg button.on { background: var(--card); color: var(--blue); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
 .rc-sel { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 4px; font-family: inherit; font-size: 11px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: center; }
 .rc-sel:focus { outline: none; border-color: var(--blue); }
 html[data-theme="dark"] .rc-sel { background: var(--surface2); color: var(--ink); border-color: var(--line); }
@@ -2117,10 +2113,10 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   </div>
   <div class="res-ctrls" id="resCtrls">
     <div class="rf-bar" id="resumoFilters"></div>
-    <div class="rc-seg" data-kind="base">
-      <button class="on" onclick="setResCtrl('base','comp',this)" data-v="comp">Previsto</button>
-      <button onclick="setResCtrl('base','caixa',this)" data-v="caixa">Recebido</button>
-    </div>
+    <select class="rc-sel" id="rc-base" onchange="setResBase(this.value)" title="Previsto ou recebido">
+      <option value="comp" selected>Previsto</option>
+      <option value="caixa">Recebido</option>
+    </select>
     <select class="rc-sel" id="rc-ano" onchange="setResAno(this.value)" title="Ano dos gráficos mensais"></select>
     <select class="rc-sel" id="rc-acum" onchange="setResAcum(this.value)">
       <option value="0">Mensal</option>
@@ -3612,13 +3608,7 @@ function bfMatch(r){ return filterMatch(BF,r); }
 let resPeriodo='tudo';   // fixo: jan/2026 em diante (sem seletor de período)
 let resBase='comp';    // 'comp' (faturado/competência) | 'caixa' (recebido)
 let resAcum=false;     // false=mensal · true=acumulado
-function setResCtrl(kind,val,el){
-  if(kind==='periodo')resPeriodo=val;
-  else if(kind==='base')resBase=val;
-  else if(kind==='acum')resAcum=(val==='1');
-  if(el&&el.parentElement)el.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===el));
-  renderResumo();
-}
+function setResBase(v){ resBase=v; renderResumo(); }
 function setResAcum(v){ resAcum=(v==='1'); renderResumo(); }
 function setResAno(v){ resAno=v; renderResumo(); }
 // Ano dos gráficos mensais. Começa no ano do mês em que o app abriu.
