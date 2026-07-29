@@ -1235,14 +1235,27 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .rf-sec > summary { cursor: pointer; list-style: none; user-select: none; }
 .rf-sec > summary::-webkit-details-marker { display: none; }
 .rf-sec-tt { display: flex; align-items: center; gap: 7px; padding: 4px 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink3); }
+.rf-sec-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .rf-sec-tt:hover { color: var(--ink2); }
 .rf-sec-tt .rf-caret { margin-left: auto; transition: transform .15s; }
 .rf-sec[open] > .rf-sec-tt .rf-caret { transform: rotate(180deg); }
 .rf-sec-opts { display: flex; flex-direction: column; }
-/* Recebimentos: cada tipo de filtro direto na tela, sem o dropdown "Filtros"
-   por cima (que duplicava o botão externo e escondia tudo junto). */
-.rf-bar.rf-flat { display: block; margin-bottom: 0; background: var(--card); border: 1px solid var(--line); border-radius: 13px; padding: 6px 10px; }
-.rf-flat .rf-sec-opts { max-height: 170px; overflow-y: auto; }
+/* Recebimentos: os tipos de filtro ficam lado a lado, numa linha só, cada um
+   como sua própria caixinha — sem o dropdown "Filtros" por cima (que
+   duplicava o botão externo e escondia tudo junto). Ao abrir um, a lista de
+   opções flutua por cima do conteúdo (como um dropdown) em vez de empurrar
+   as caixas vizinhas pra baixo. */
+.rf-bar.rf-flat { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0; background: none; border: none; padding: 0; }
+@media (max-width: 640px) { .rf-bar.rf-flat { grid-template-columns: 1fr 1fr; } }
+.rf-flat .rf-menu-hd { grid-column: 1 / -1; }
+.rf-flat .rf-sec { position: relative; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.rf-flat .rf-sec-tt { padding: 8px 10px; }
+.rf-flat .rf-sec-opts {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 45;
+  max-height: 240px; overflow-y: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: var(--shadow-lg); padding: 4px;
+}
 
 /* ─── CONTROLES DO RESUMO (período · base · acumulado) ─── */
 .res-ctrls { display: flex; align-items: stretch; gap: 6px; margin-bottom: 16px; }
@@ -2022,32 +2035,36 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <!-- RECEBIMENTOS -->
 <div class="page" id="page-baixas">
   <div class="mrow" id="baixa-metrics"></div>
+
+  <!-- Busca, ações e filtros — largura cheia, acima do grid de 2 colunas, pra
+       os 4 filtros caberem numa linha só (o grid abaixo reserva 320px pro
+       painel de proprietário e apertaria demais essa linha). -->
+  <div class="fbar" style="margin-bottom:10px">
+    <input type="text" id="bx-q" class="search-input" style="flex:1;min-width:0;margin-bottom:0" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
+    <select id="bf-status" class="bf-status-destaque" onchange="renderBaixas()" style="flex:0 0 auto;width:auto;margin-bottom:0">
+      <option value="pend">Pendentes</option>
+      <option value="venc">Vencidos</option>
+      <option value="hoje">Vencem hoje</option>
+      <option value="futuro">Futuros</option>
+      <option value="pago">Pagos</option>
+      <option value="todos" selected>Todos</option>
+    </select>
+  </div>
+  <div class="fbar fbar-baixas">
+    <button class="btn" onclick="selTodos()">Selec. Todos</button>
+    <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
+    <button class="btn" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, cliente, período (saída/retorno), tipo, vencimento e valor">🔁 Duplicados</button>
+  </div>
+  <!-- Proprietário fica de fora (já tem o painel dedicado ao lado) — só os
+       outros 4 filtros aparecem aqui, sempre visíveis, sem botão "Filtros". -->
+  <div class="filt-panel filt-panel-baixas" id="filtPanel">
+    <div id="baixasFilters" class="rf-bar rf-flat"></div>
+  </div>
+
   <div class="baixas-layout">
 
     <!-- LEFT: day groups -->
     <div>
-      <div class="fbar" style="margin-bottom:10px">
-        <input type="text" id="bx-q" class="search-input" style="flex:1;min-width:0;margin-bottom:0" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
-        <select id="bf-status" class="bf-status-destaque" onchange="renderBaixas()" style="flex:0 0 auto;width:auto;margin-bottom:0">
-          <option value="pend">Pendentes</option>
-          <option value="venc">Vencidos</option>
-          <option value="hoje">Vencem hoje</option>
-          <option value="futuro">Futuros</option>
-          <option value="pago">Pagos</option>
-          <option value="todos" selected>Todos</option>
-        </select>
-      </div>
-      <div class="fbar fbar-baixas">
-        <button class="btn" onclick="selTodos()">Selec. Todos</button>
-        <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
-      </div>
-      <div class="fbar" style="margin-bottom:10px">
-        <button class="btn" style="flex:1" onclick="toggleFilters()">Filtros<span class="filt-dot" id="filtDot" style="display:none"></span></button>
-        <button class="btn" style="flex:1" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, cliente, período (saída/retorno), tipo, vencimento e valor">🔁 Duplicados</button>
-      </div>
-      <div class="filt-panel filt-panel-baixas" id="filtPanel" hidden>
-        <div id="baixasFilters" class="rf-bar rf-flat"></div>
-      </div>
       <div id="baixaVerTodos" style="display:none;margin-bottom:10px"></div>
       <div id="baixasContainer"></div>
     </div>
@@ -3394,13 +3411,6 @@ function renderBaixas(){
     <div class="mc red"><div class="mc-label">Já vencidos</div><div class="mc-value">${nVenc}</div></div>
   `;
 
-  // Indicador de filtro ativo — só reflete os filtros escondidos atrás do
-  // botão (proprietário/tipo/forma/cliente/placa); o status tem seu próprio
-  // seletor sempre visível, então não precisa de indicador redundante.
-  const fdot=document.getElementById('filtDot');
-  const anyBF=Object.values(BF).some(s=>s.size);
-  if(fdot) fdot.style.display=anyBF?'inline-block':'none';
-
   const container=document.getElementById('baixasContainer');
   container.innerHTML='';
   openRow=null;
@@ -3550,14 +3560,17 @@ function filterMatch(state,r){ return RF_DIMS.every(d=>!state[d].size||state[d].
 // flat=true (Recebimentos) desenha cada tipo de filtro direto na tela, já
 // separado — em vez do dropdown único "Filtros" (usado no Resumo), que
 // escondia todos os tipos juntos atrás de um segundo menu.
-function makeFilterSelector(mountId,state,onChange,flat){
+// dims (opcional) restringe quais dimensões desenhar — em Recebimentos,
+// "proprietário" já tem o painel dedicado ao lado, então fica de fora daqui.
+function makeFilterSelector(mountId,state,onChange,flat,dims){
   const bar=document.getElementById(mountId); if(!bar) return;
   const data=allD();
+  const dimsToRender=dims||RF_DIMS;
   const uniq=k=>[...new Set(data.map(r=>r[k]).filter(v=>v!=null&&v!==''))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
-  const sections=RF_DIMS.map(dim=>{
+  const sections=dimsToRender.map(dim=>{
     const opts=uniq(dim);
     return `<details class="rf-sec">
-      <summary class="rf-sec-tt">${RF_LABELS[dim]}<span class="rf-badge" data-badge="${dim}"></span><span class="rf-caret">▾</span></summary>
+      <summary class="rf-sec-tt"><span class="rf-sec-label">${RF_LABELS[dim]}</span><span class="rf-badge" data-badge="${dim}"></span><span class="rf-caret">▾</span></summary>
       <div class="rf-sec-opts">${opts.length?opts.map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" data-dim="${dim}"${state[dim].has(String(v))?' checked':''}> ${escHtml(String(v))}</label>`).join(''):'<div class="rf-empty">Sem dados</div>'}</div>
     </details>`;
   }).join('');
@@ -3592,7 +3605,7 @@ function rfMatch(r){ return filterMatch(RF,r); }
 
 // Recebimentos (mesmos filtros do Resumo)
 const BF=newFilterState();
-function buildBaixasFilters(){ makeFilterSelector('baixasFilters',BF,renderBaixas,true); }
+function buildBaixasFilters(){ makeFilterSelector('baixasFilters',BF,renderBaixas,true,RF_DIMS.filter(d=>d!=='dono')); }
 function bfMatch(r){ return filterMatch(BF,r); }
 
 // ── CONTROLES DO RESUMO: período · base (competência/caixa) · mensal/acumulado ──
@@ -4822,7 +4835,6 @@ function swEnd(e){
   if(!s.horiz)return;
   if(s.dx<=-s.pw/2)openRowEl(s.wrap,s.pw); else closeRow();
 }
-function toggleFilters(){const p=document.getElementById('filtPanel');if(p)p.hidden=!p.hidden;}
 
 // ── TEMA (claro/escuro) ──
 function isDark(){return document.documentElement.getAttribute('data-theme')==='dark';}
