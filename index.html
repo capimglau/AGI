@@ -3341,6 +3341,35 @@ function initMobileFilters(){
     }
   }
 }
+let inactivityTimer;
+let lastActivityTime=Date.now();
+const INACTIVITY_TIMEOUT=20*60*1000;
+function resetInactivityTimer(){
+  lastActivityTime=Date.now();
+}
+function setupInactivityTimeout(){
+  document.removeEventListener('click',resetInactivityTimer);
+  document.removeEventListener('keydown',resetInactivityTimer);
+  document.removeEventListener('touchstart',resetInactivityTimer);
+  document.removeEventListener('mousemove',resetInactivityTimer);
+  document.addEventListener('click',resetInactivityTimer);
+  document.addEventListener('keydown',resetInactivityTimer);
+  document.addEventListener('touchstart',resetInactivityTimer);
+  document.addEventListener('mousemove',resetInactivityTimer);
+  if(inactivityTimer)clearInterval(inactivityTimer);
+  inactivityTimer=setInterval(()=>{
+    const elapsed=Date.now()-lastActivityTime;
+    if(elapsed>=INACTIVITY_TIMEOUT){
+      clearInterval(inactivityTimer);
+      document.removeEventListener('click',resetInactivityTimer);
+      document.removeEventListener('keydown',resetInactivityTimer);
+      document.removeEventListener('touchstart',resetInactivityTimer);
+      document.removeEventListener('mousemove',resetInactivityTimer);
+      localStorage.removeItem('agi-autenticado');
+      openLoginModal();
+    }
+  },10000);
+}
 function abrirAlterarSenhaPremissas(){
   document.getElementById('ps-senha-atual').value='';
   document.getElementById('ps-nova-senha').value='';
@@ -3394,6 +3423,7 @@ async function fazerLogin(){
     msg.textContent='';
     localStorage.setItem('agi-autenticado','1');
     closeLoginModal();
+    setupInactivityTimeout();
   } else {
     msg.innerHTML='<span style="color:var(--red)">Senha incorreta.</span>';
   }
