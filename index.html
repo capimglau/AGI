@@ -2972,7 +2972,7 @@ function donosFrota(){
 }
 function mesAdd(mes,delta){const [y,m]=mes.split('-').map(Number);const d=new Date(y,m-1+delta,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
 function donoResultado(dono,mes){
-  const rec=allD().filter(r=>r.dono===dono&&(r.prev_pgto||'').startsWith(mes)).reduce((a,r)=>a+fN(r.valor),0);
+  const rec=allD().filter(r=>r.dono===dono&&(r.prev_pgto||'').startsWith(mes)).reduce((a,r)=>a+liq(r),0);
   const desp=DESPESAS.filter(x=>x.dono===dono&&x.mes===mes).reduce((a,x)=>a+fN(x.valor),0);
   return rec-desp;
 }
@@ -3062,6 +3062,9 @@ const isPago = r => fN(r.saldo) <= 0.005;
 const isPend = r => fN(r.saldo) > 0.005;
 const isVenc = r => isPend(r) && r.prev_pgto && r.prev_pgto < td();
 const isParcial = r => isPend(r) && fN(r.valor_pago) > 0;
+// Valor líquido do lançamento (recebido + saldo a receber), já descontada a
+// taxa de cartão — use no lugar de r.valor em qualquer total/painel financeiro.
+const liq = r => fN(r.valor_pago) + fN(r.saldo);
 
 function tipTag(t){
   const m={Locação:'loc',Avarias:'ava',Lavagem:'lav',Multas:'mul',Outros:'out','Taxa Mario':'tax','Taxa Alfredo':'tax','Taxa Bruno':'tax'};
@@ -3478,13 +3481,13 @@ function renderLanc(){
   const fdot=document.getElementById('lfFiltDot');
   if(fdot) fdot.style.display=(tipo||forma||dono||status)?'inline-block':'none';
 
-  const totV=rows.reduce((a,r)=>a+fN(r.valor),0);
   const totP=rows.reduce((a,r)=>a+fN(r.valor_pago),0);
   const totS=rows.reduce((a,r)=>a+fN(r.saldo),0);
+  const totLiq=totP+totS;                         // líquido = pago + saldo (já descontada a taxa de cartão)
   const totEl=document.getElementById('lf-total');
   totEl.innerHTML=rows.length?`<div class="search-total" style="margin-bottom:10px">
     <div class="st-blk">
-      <div class="st-main"><span>${rows.length} lançamento${rows.length===1?'':'s'}</span><span class="st-val">${fR(totV)}</span></div>
+      <div class="st-main"><span>${rows.length} lançamento${rows.length===1?'':'s'}</span><span class="st-val">${fR(totLiq)}</span></div>
       <div class="st-sub"><span class="st-pago">Pago ${fR(totP)}</span><span class="st-pend">Saldo ${fR(totS)}</span></div>
     </div>
   </div>`:'';
@@ -3700,7 +3703,7 @@ function agrupaPrevRec(rows,chave){
     const k=chave(r);
     if(k===null||k===undefined||k==='')return;
     const o=g[k]||(g[k]={prev:0,rec:0,atr:0,atrRows:[],recRows:[],venRows:[]});
-    o.prev+=fN(r.valor);
+    o.prev+=liq(r);
     if(isPago(r)){o.rec+=fN(r.valor_pago);o.recRows.push(r);}
     else if(isVenc(r)){o.atr+=fN(r.saldo);o.atrRows.push(r);}
     else o.venRows.push(r);
@@ -3823,7 +3826,7 @@ function renderBoletosPainel(rows){
   }
   const feitosRows=bol.filter(r=>r.boleto_feito), afazerRows=bol.filter(r=>!r.boleto_feito);
   const feitos=feitosRows.length, afazer=afazerRows.length;
-  const totFeitos=feitosRows.reduce((a,r)=>a+fN(r.valor),0), totFazer=afazerRows.reduce((a,r)=>a+fN(r.valor),0);
+  const totFeitos=feitosRows.reduce((a,r)=>a+liq(r),0), totFazer=afazerRows.reduce((a,r)=>a+liq(r),0);
   if(hd)hd.textContent=`Boletos do mês — ${feitos} de ${bol.length} emitidos`;
 
   const resumo=`<div class="bol-resumo" role="button" tabindex="0">
@@ -3878,24 +3881,23 @@ function renderBoletosPainel(rows){
 function renderResumo(){
   // Todos os lançamentos com prev_pgto no mês (competência de caixa)
   const rows=allD().filter(r=>(!selDono||r.dono===selDono)&&rfMatch(r)&&(r.prev_pgto||'').startsWith(curMes));
-  const totV=rows.reduce((a,r)=>a+fN(r.valor),0);
   const totP=rows.filter(r=>isPago(r)).reduce((a,r)=>a+fN(r.valor_pago),0);
   const totS=rows.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
   const nL=rows.length, nPend=rows.filter(r=>isPend(r)).length;
-  const ticket=nL?totV/nL:0;
-  const vencVal=rows.filter(r=>isVenc(r)).reduce((a,r)=>a+fN(r.saldo),0);
   const prevLiq=totP+totS;                       // previsto líquido = recebido + a receber
+  const ticket=nL?prevLiq/nL:0;
+  const vencVal=rows.filter(r=>isVenc(r)).reduce((a,r)=>a+fN(r.saldo),0);
   const inad=prevLiq>0?(vencVal/prevLiq*100):0;
-  // Comparativo vs. mês anterior (faturamento)
+  // Comparativo vs. mês anterior (previsto líquido)
   const baseRows=allD().filter(r=>(!selDono||r.dono===selDono)&&rfMatch(r));
-  const bM={};baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)bM[m]=(bM[m]||0)+fN(r.valor);});
+  const bM={};baseRows.forEach(r=>{const m=(r.prev_pgto||'').slice(0,7);if(m)bM[m]=(bM[m]||0)+liq(r);});
   const [cy,cm]=curMes.split('-').map(Number);
   const pd=new Date(cy,cm-2,1);const prevKey=`${pd.getFullYear()}-${String(pd.getMonth()+1).padStart(2,'0')}`;
   const prevV=bM[prevKey]||0;
   let deltaBadge='';
-  if(prevV>0){const dp=(totV-prevV)/prevV*100;const up=dp>=0;deltaBadge=` · <span class="mc-delta ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(dp).toFixed(0)}%</span>`;}
+  if(prevV>0){const dp=(prevLiq-prevV)/prevV*100;const up=dp>=0;deltaBadge=` · <span class="mc-delta ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(dp).toFixed(0)}%</span>`;}
   document.getElementById('res-m').innerHTML=`
-    <div class="mc blue" role="button" tabindex="0" onclick="irLancMetric('')" title="Ver todos os lançamentos do mês"><div class="mc-label">Total faturado</div><div class="mc-value">${fR(totV)}</div><div class="mc-sub">${nL} lançamentos${deltaBadge}</div></div>
+    <div class="mc blue" role="button" tabindex="0" onclick="irLancMetric('')" title="Ver todos os lançamentos do mês"><div class="mc-label">Total previsto</div><div class="mc-value">${fR(prevLiq)}</div><div class="mc-sub">${nL} lançamentos${deltaBadge}</div></div>
     <div class="mc green" role="button" tabindex="0" onclick="irLancMetric('pago')" title="Ver só os recebidos"><div class="mc-label">Total recebido</div><div class="mc-value">${fR(totP)}</div><div class="mc-sub">${prevLiq>0?((totP/prevLiq)*100).toFixed(1):'0'}% do previsto</div></div>
     <div class="mc amber" role="button" tabindex="0" onclick="irLancMetric('pend')" title="Ver só os pendentes"><div class="mc-label">A receber</div><div class="mc-value">${fR(totS)}</div><div class="mc-sub">${nPend} pendentes</div></div>
     <div class="mc red" role="button" tabindex="0" onclick="irLancMetric('venc')" title="Ver só os vencidos"><div class="mc-label">Inadimplência</div><div class="mc-value">${inad.toFixed(1)}%</div><div class="mc-sub">${fR(vencVal)} vencido</div></div>
@@ -3948,7 +3950,7 @@ function renderResumo(){
   const fatM={},rcvM={},atrM={};
   baseRows.forEach(r=>{
     const m=(r.prev_pgto||'').slice(0,7);if(!m)return;
-    fatM[m]=(fatM[m]||0)+fN(r.valor);
+    fatM[m]=(fatM[m]||0)+liq(r);
     rcvM[m]=(rcvM[m]||0)+(isPago(r)?fN(r.valor_pago):0);
     atrM[m]=(atrM[m]||0)+(isVenc(r)?fN(r.saldo):0);
   });
@@ -4128,12 +4130,12 @@ function renderProp(){
   const rows=allD().filter(r=>(r.prev_pgto||'').startsWith(curMes));
   const recRowsProp=rows.filter(r=>isPago(r));
   const donos=[...new Set(rows.map(r=>r.dono))].sort();
-  const totG=rows.reduce((a,r)=>a+fN(r.valor),0);
+  const totG=rows.reduce((a,r)=>a+liq(r),0);
   document.getElementById('propCards').innerHTML=donos.map(d=>{
     const dr=rows.filter(r=>r.dono===d);
-    const tv=dr.reduce((a,r)=>a+fN(r.valor),0);
     const tp=recRowsProp.filter(r=>r.dono===d).reduce((a,r)=>a+fN(r.valor_pago),0);
     const ts=dr.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
+    const tv=tp+ts;                                 // previsto líquido = recebido + pendente
     const np=new Set(dr.map(r=>r.placa)).size;
     const pct=totG>0?((tv/totG)*100).toFixed(1):'0';
     const col=DC[d]||'#888';
@@ -4146,7 +4148,7 @@ function renderProp(){
         <div><div style="font-weight:700;font-size:14px;letter-spacing:-.01em">${d}</div><div style="font-size:11.5px;color:var(--ink3)">${np} veículos · ${dr.length} lançamentos</div></div>
       </div>
       <div class="oc-g">
-        <div class="oc-s"><div class="oc-sl">Faturado</div><div class="oc-sv" style="color:${col}">${fR(tv)}</div></div>
+        <div class="oc-s"><div class="oc-sl">Previsto</div><div class="oc-sv" style="color:${col}">${fR(tv)}</div></div>
         <div class="oc-s"><div class="oc-sl">Recebido</div><div class="oc-sv" style="color:var(--green)">${fR(tp)}</div></div>
         <div class="oc-s"><div class="oc-sl">Pendente</div><div class="oc-sv" style="color:var(--red)">${fR(ts)}</div></div>
         <div class="oc-s"><div class="oc-sl">Despesas</div><div class="oc-sv" style="color:var(--red)">${fR(tDesp)}</div></div>
@@ -4161,7 +4163,7 @@ function renderProp(){
   let meses=[...new Set(evoBase.map(r=>(r.prev_pgto||'').slice(0,7)).filter(Boolean))].sort();
   if(meses.length>12) meses=meses.slice(-12);
   const evoSum={};
-  evoBase.forEach(r=>{const k=(r.prev_pgto||'').slice(0,7);if(!k||!r.dono)return;(evoSum[r.dono]||(evoSum[r.dono]={}))[k]=(evoSum[r.dono][k]||0)+fN(r.valor);});
+  evoBase.forEach(r=>{const k=(r.prev_pgto||'').slice(0,7);if(!k||!r.dono)return;(evoSum[r.dono]||(evoSum[r.dono]={}))[k]=(evoSum[r.dono][k]||0)+liq(r);});
   mkC('cEvo',{type:'line',data:{labels:meses.map(k=>{const[y,m]=k.split('-');return MN[parseInt(m)-1]+' '+y.slice(2);}),datasets:donos.map(d=>({label:d,data:meses.map(m=>(evoSum[d]&&evoSum[d][m])||0),borderColor:DC[d]||'#888',backgroundColor:(DC[d]||'#888')+'18',tension:.4,fill:true,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:'#fff',pointBorderWidth:2}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:12,family:'DM Sans'},boxWidth:10,padding:16,usePointStyle:true}},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw)}}},scales:{y:{ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',font:{size:11,family:'DM Sans'}},grid:{color:gridCol()},border:{dash:[4,4]}},x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'}}}}}});
 }
 
@@ -4203,13 +4205,13 @@ function renderDonoModal(){
   // RECEITAS previstas do mês (automáticas a partir dos lançamentos)
   const rec=allD().filter(r=>r.dono===d && (r.prev_pgto||'').startsWith(curMes))
                   .sort((a,b)=>(a.prev_pgto||'').localeCompare(b.prev_pgto||''));
-  const totRec=rec.reduce((a,r)=>a+fN(r.valor),0);
+  const totRec=rec.reduce((a,r)=>a+liq(r),0);
   document.getElementById('dnSub').textContent=`${new Set(rec.map(r=>r.placa)).size} veículos · ${rec.length} lançamentos`;
   document.getElementById('dnRecCt').textContent=fR(totRec);
   document.getElementById('dnRecList').innerHTML = rec.length ? rec.map(r=>`
     <div class="dn-row${isPago(r)?' pago':''}">
       <div><div class="r-main">${r.cliente||'—'}</div><div class="r-sub">${r.placa} · ${r.tipo||'—'} · ${fDM(r.prev_pgto)}</div></div>
-      <div class="r-val" style="color:${isPago(r)?'var(--green)':'var(--blue)'}">${fR(r.valor)}</div>
+      <div class="r-val" style="color:${isPago(r)?'var(--green)':'var(--blue)'}">${fR(liq(r))}</div>
     </div>`).join('') : '<div class="dn-empty">Sem receitas previstas neste mês.</div>';
 
   // DESPESAS lançadas no mês
@@ -4280,7 +4282,7 @@ async function delDespesa(id){
 
 function renderDonoChart(d){
   const recM={},despM={};
-  allD().filter(r=>r.dono===d).forEach(r=>{const k=(r.prev_pgto||'').slice(0,7);if(k)recM[k]=(recM[k]||0)+fN(r.valor);});
+  allD().filter(r=>r.dono===d).forEach(r=>{const k=(r.prev_pgto||'').slice(0,7);if(k)recM[k]=(recM[k]||0)+liq(r);});
   DESPESAS.filter(x=>x.dono===d).forEach(x=>{const k=x.mes;if(k)despM[k]=(despM[k]||0)+fN(x.valor);});
   let meses=[...new Set([...Object.keys(recM),...Object.keys(despM)])].sort();
   if(meses.length>12) meses=meses.slice(-12);
@@ -4424,7 +4426,7 @@ function reverterPagamento(idx){
   if(!confirm(`Reverter o pagamento de ${r.cliente||r.placa}? Volta a ficar pendente.`))return;
   const prev={valor_pago:r.valor_pago,saldo:r.saldo,data_pagamento:r.data_pagamento};
   r.valor_pago=0;
-  r.saldo=fN(r.valor);
+  r.saldo=fN(r.valor)*(1-getTaxaForma(r.forma||''));
   r.data_pagamento=null;
   dbUpdate(r);renderAll();
   showToast(`↺ ${r.cliente||r.placa}: pagamento revertido`,'Desfazer',()=>{
@@ -4536,14 +4538,14 @@ function runSearch(){
   // Mais recentes primeiro (por data de vencimento/baixa)
   res.sort((a,b)=>(b.r.prev_pgto||'').localeCompare(a.r.prev_pgto||''));
   if(!res.length){box.innerHTML='<div class="srow-empty">Nada encontrado.</div>';return;}
-  const totVal=res.reduce((a,{r})=>a+fN(r.valor),0);                          // faturado (bruto)
   const totPago=res.reduce((a,{r})=>a+(isPago(r)?fN(r.valor_pago):0),0);      // recebido (líquido)
   const totPend=res.reduce((a,{r})=>a+(isPend(r)?fN(r.saldo):0),0);           // a receber (líquido)
+  const totLiq=totPago+totPend;                                              // total líquido (já descontada a taxa de cartão)
   // Totais do mês vigente (curMes), por competência (prev_pgto)
   const inMes=res.filter(({r})=>(r.prev_pgto||'').slice(0,7)===curMes);
-  const mVal=inMes.reduce((a,{r})=>a+fN(r.valor),0);
   const mPago=inMes.reduce((a,{r})=>a+(isPago(r)?fN(r.valor_pago):0),0);
   const mPend=inMes.reduce((a,{r})=>a+(isPend(r)?fN(r.saldo):0),0);
+  const mLiq=mPago+mPend;                                                    // total líquido do mês
   const [my,mm]=curMes.split('-');
   const mesLabel=MN[parseInt(mm)-1]+'/'+my.slice(2);
   // Se a busca corresponde a proprietário(s), mostra os totais de LOCAÇÃO do mês (previsto/recebido)
@@ -4564,11 +4566,11 @@ function runSearch(){
   }
   const totHtml=`<div class="search-total">
     <div class="st-blk">
-      <div class="st-main"><span>Geral · ${res.length} resultado${res.length>1?'s':''}</span><span class="st-val">${fR(totVal)}</span></div>
+      <div class="st-main"><span>Geral · ${res.length} resultado${res.length>1?'s':''}</span><span class="st-val">${fR(totLiq)}</span></div>
       <div class="st-sub"><span class="st-pago">Pago ${fR(totPago)}</span><span class="st-pend">Pendente ${fR(totPend)}</span></div>
     </div>
     <div class="st-blk st-month">
-      <div class="st-main"><span>Mês ${mesLabel} · ${inMes.length} resultado${inMes.length===1?'':'s'}</span><span class="st-val">${fR(mVal)}</span></div>
+      <div class="st-main"><span>Mês ${mesLabel} · ${inMes.length} resultado${inMes.length===1?'':'s'}</span><span class="st-val">${fR(mLiq)}</span></div>
       <div class="st-sub"><span class="st-pago">Pago ${fR(mPago)}</span><span class="st-pend">Pendente ${fR(mPend)}</span></div>
     </div>
   </div>`;
@@ -4612,7 +4614,7 @@ function lcCardHtml(r,gi,fecharBusca){
         </div>
       </div>
       <div class="pcard-right">
-        <span class="pcard-value">${fR(r.valor)}</span>
+        <span class="pcard-value">${fR(liq(r))}</span>
         ${parcial?`<span class="pcard-parcial-sub"><b>${fR(r.valor_pago)}</b> pago</span>`:(pago?'':`<span class="pcard-parcial-sub" style="color:var(--red)">Saldo ${fR(r.saldo)}</span>`)}
       </div>
     </div>
