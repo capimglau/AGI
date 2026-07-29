@@ -3020,6 +3020,26 @@ const PLACA_DONO = {
   'TKAS':'Silvio 2','UDOS':'Silvio 2',
 };
 
+// Completa a placa sozinha quando o que foi digitado até agora só combina
+// com UM veículo cadastrado (ex.: "SVT6" → "SVT6C02"), deixando o resto
+// selecionado pra sumir na próxima tecla. Se casar com mais de um, não força
+// nada — o <datalist> já mostra as opções pra escolher. Não completa ao
+// apagar (backspace/delete), senão vira briga entre o usuário e o campo.
+function autoCompletePlaca(placaId) {
+  const placa = document.getElementById(placaId);
+  if (!placa) return;
+  placa.addEventListener('input', function(e) {
+    if (e.inputType && e.inputType.startsWith('delete')) return;
+    const digitado = this.value.trim();
+    if (!digitado) return;
+    const p = digitado.toUpperCase();
+    const candidatas = [...new Set(VEICULOS.map(v => (v.placa||'').toUpperCase()).filter(pl => pl.startsWith(p)))];
+    if (candidatas.length === 1 && candidatas[0].length > p.length) {
+      this.value = candidatas[0];
+      this.setSelectionRange(digitado.length, candidatas[0].length);
+    }
+  });
+}
 function autoFillDono(placaId, donoSelectId) {
   const placa = document.getElementById(placaId);
   const donoSel = document.getElementById(donoSelectId);
@@ -5616,6 +5636,8 @@ async function boot(){
   buildResumoFilters();
   buildBaixasFilters();
   renderAll();
+  autoCompletePlaca('nf-p');
+  autoCompletePlaca('e-p');
   autoFillDono('nf-p','nf-d');
   autoFillDono('e-p','e-d');
   setTimeout(renderPremissas, 100);
