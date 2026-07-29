@@ -822,7 +822,16 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   position: sticky;
   top: 76px;
 }
-@media (max-width: 1100px) { .side-panel { margin-top: 0; } }
+@media (max-width: 1100px) {
+  /* Sem o grid de 2 colunas, "sticky" prende o painel no topo por cima da
+     lista rolando por baixo (o "primeiro plano/fundo" reportado) — no
+     layout de 1 coluna ele já abre no topo (order:-1), não precisa grudar. */
+  .side-panel { margin-top: 0; position: static; }
+  /* A lista de pills (uma linha por proprietário) é grande demais pro
+     mobile — vira um <select> único, compacto. */
+  .owner-pills { display: none; }
+  .owner-select-mobile { display: block; }
+}
 
 /* Owner filter pills */
 .owner-pills {
@@ -830,6 +839,17 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   border: 1px solid var(--line);
   border-radius: var(--rl);
   padding: 14px;
+}
+.owner-select-mobile {
+  display: none;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--rl);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
 }
 .owner-pills h3 {
   font-size: 11px;
@@ -2323,11 +2343,15 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <button class="btn" onclick="selTodos()">Selec. Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
       </div>
-      <!-- Filtro rápido por proprietário -->
+      <!-- Filtro rápido por proprietário — lista de pills no desktop;
+           no mobile vira um seletor único (dropdown), compacto. -->
       <div class="owner-pills">
         <h3>Proprietário</h3>
         <div id="ownerPills"></div>
       </div>
+      <select class="owner-select-mobile" id="ownerSelectMobile" onchange="setDono(this.value)">
+        <option value="">Todos os proprietários</option>
+      </select>
 
       <!-- Resumo do mês -->
       <div class="mini-summary" id="miniSummary"></div>
@@ -4128,12 +4152,20 @@ function buildOwnerPills(){
     </button>`;
   });
   document.getElementById('ownerPills').innerHTML=html;
+
+  const sel=document.getElementById('ownerSelectMobile');
+  if(sel){
+    sel.innerHTML=`<option value="">Todos os proprietários</option>`+donos.map(d=>`<option value="${escHtml(d)}"${selDono===d?' selected':''}>${escHtml(d)}</option>`).join('');
+    sel.value=selDono||'';
+  }
 }
 
 function setDono(d,el){
   selDono=d;
   document.querySelectorAll('.owner-pill').forEach(b=>b.classList.remove('on'));
   if(el)el.classList.add('on');
+  const sel=document.getElementById('ownerSelectMobile');
+  if(sel)sel.value=d||'';
   renderAll();
 }
 
