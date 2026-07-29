@@ -790,11 +790,6 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   gap: 14px;
   position: sticky;
   top: 76px;
-  /* Deixa claro que o painel fica ABAIXO das ações Selec. Todos/Baixar (que
-     ficam fora do grid, em cima) — sem essa margem ele nasce alinhado com o
-     topo da lista de lançamentos, ao lado do primeiro dia, e mistura com ela
-     visualmente. */
-  margin-top: 60px;
 }
 @media (max-width: 1100px) { .side-panel { margin-top: 0; } }
 
@@ -2069,10 +2064,6 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <input type="text" id="bx-q" class="search-input" style="flex:1;min-width:0;margin-bottom:0" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
     <button class="btn btn-sm" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, cliente, período (saída/retorno), tipo, vencimento e valor">🔁 Duplicados</button>
   </div>
-  <div class="fbar fbar-baixas">
-    <button class="btn" onclick="selTodos()">Selec. Todos</button>
-    <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
-  </div>
   <!-- Proprietário fica de fora (já tem o painel dedicado ao lado) — status
        entra como o primeiro da linha, seguido dos outros 4 filtros, todos
        sempre visíveis, sem botão "Filtros" (tudo montado por buildBaixasFilters). -->
@@ -2090,6 +2081,11 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
     <!-- RIGHT: side panel -->
     <div class="side-panel">
+      <!-- Botões de ações -->
+      <div class="fbar fbar-baixas">
+        <button class="btn" onclick="selTodos()">Selec. Todos</button>
+        <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
+      </div>
       <!-- Filtro rápido por proprietário -->
       <div class="owner-pills">
         <h3>Proprietário</h3>
