@@ -1071,10 +1071,10 @@ tr:hover td { background: #f9f8f5; }
 .rh-link { font-size: 12.5px; font-weight: 700; color: var(--blue); cursor: pointer; }
 .rh-link:hover { text-decoration: underline; }
 .vc-datas b { color: var(--red); font-weight: 700; }
-.rb-l { font-size: 12.5px; width: 90px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rb-l { font-size: 12.5px; width: 90px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; padding: 0; }
 .rb-bg { flex: 1; height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
 .rb-f { height: 100%; border-radius: 3px; transition: width .6s ease; }
-.rb-v { font-size: 12.5px; font-weight: 600; width: 90px; text-align: right; flex-shrink: 0; }
+.rb-v { font-size: 12.5px; font-weight: 600; width: 90px; text-align: right; flex-shrink: 0; margin: 0; padding: 0; }
 #resClientes .rb-l { width: 150px; }
 /* Placa é curta e ilegível abreviada — sempre por extenso, com coluna larga
    o bastante pro número da posição (rank) + a placa inteira. */
@@ -1123,7 +1123,7 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
   .lbl-full { display: none; }
   .lbl-curto { display: inline; }
 }
-.rb-rank { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 5px; background: var(--surface); font-size: 10px; font-weight: 700; color: var(--ink3); margin-right: 6px; flex-shrink: 0; }
+.rb-rank { display: none; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 5px; background: var(--surface); font-size: 10px; font-weight: 700; color: var(--ink3); margin-right: 6px; flex-shrink: 0; }
 .mc-delta { font-weight: 700; }
 .mc-delta.up { color: var(--green); }
 .mc-delta.down { color: var(--red); }
