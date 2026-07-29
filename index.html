@@ -402,6 +402,10 @@ body::before {
    outro (proprietário, tipo, forma, cliente, placa), em vez de tudo
    espremido lado a lado. */
 .filt-panel-baixas #baixasFilters { flex: 1 1 100%; }
+/* Em Lançamentos os 4 filtros (tipo/forma/proprietário/status) ficam lado a
+   lado, numa linha só, em vez de empilhados como em Recebimentos. */
+#lfFiltPanel { display: grid; grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 420px) { #lfFiltPanel { grid-template-columns: 1fr 1fr; } }
 /* Seletor de status sempre visível (fora do painel de filtros) e destacado —
    é o filtro mais usado em Recebimentos, não devia ficar escondido atrás do
    botão "Filtros" nem parecer um select qualquer. */
