@@ -1228,7 +1228,16 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .rf-menu-hd .rf-clear { padding: 0; }
 .rf-sec { padding: 6px 0; }
 .rf-sec + .rf-sec { border-top: 1px solid var(--line); }
+/* Cada tipo de filtro (proprietário, tipo, forma…) começa recolhido — só
+   mostra a lista de opções (que pode ser longa, ex. cliente/placa) ao clicar
+   no cabeçalho. O badge com a contagem de selecionados fica visível mesmo
+   fechado, pra dar pra ver o que já está filtrado sem precisar abrir. */
+.rf-sec > summary { cursor: pointer; list-style: none; user-select: none; }
+.rf-sec > summary::-webkit-details-marker { display: none; }
 .rf-sec-tt { display: flex; align-items: center; gap: 7px; padding: 4px 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ink3); }
+.rf-sec-tt:hover { color: var(--ink2); }
+.rf-sec-tt .rf-caret { margin-left: auto; transition: transform .15s; }
+.rf-sec[open] > .rf-sec-tt .rf-caret { transform: rotate(180deg); }
 .rf-sec-opts { display: flex; flex-direction: column; }
 /* Recebimentos: cada tipo de filtro direto na tela, sem o dropdown "Filtros"
    por cima (que duplicava o botão externo e escondia tudo junto). */
@@ -3547,10 +3556,10 @@ function makeFilterSelector(mountId,state,onChange,flat){
   const uniq=k=>[...new Set(data.map(r=>r[k]).filter(v=>v!=null&&v!==''))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
   const sections=RF_DIMS.map(dim=>{
     const opts=uniq(dim);
-    return `<div class="rf-sec">
-      <div class="rf-sec-tt">${RF_LABELS[dim]}<span class="rf-badge" data-badge="${dim}"></span></div>
+    return `<details class="rf-sec">
+      <summary class="rf-sec-tt">${RF_LABELS[dim]}<span class="rf-badge" data-badge="${dim}"></span><span class="rf-caret">▾</span></summary>
       <div class="rf-sec-opts">${opts.length?opts.map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" data-dim="${dim}"${state[dim].has(String(v))?' checked':''}> ${escHtml(String(v))}</label>`).join(''):'<div class="rf-empty">Sem dados</div>'}</div>
-    </div>`;
+    </details>`;
   }).join('');
   bar.innerHTML = flat
     ? `<div class="rf-menu-hd"><span>Filtrar por</span><button class="rf-clear" data-clear style="display:none">✕ Limpar</button></div>${sections}`
