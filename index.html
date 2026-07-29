@@ -988,8 +988,9 @@ body.tip-pinned::before {
 }
 .rb.tip-on .rb-tip { display: block; }
 /* O cartão tem backdrop-filter, o que cria contexto de empilhamento: sem
-   levantar o cartão inteiro, o próximo painel pinta por cima do tooltip. */
-.card:has(.rb.tip-on) { position: relative; z-index: 40; }
+   levantar o cartão inteiro, o próximo painel (ou o fundo escurecido do
+   modal) pinta por cima do tooltip. Precisa ficar acima do backdrop (490). */
+.card:has(.rb.tip-on) { position: relative; z-index: 495; }
 .rb-tip-hd { font-weight: 700; margin: 0 0 12px; font-size: 18px; }
 .swipe + .rb-tip-hd, .rb-tip-mais + .rb-tip-hd { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .rb-tip-hd.t-atr, .rb-tip-d.t-atr { color: var(--red); }
