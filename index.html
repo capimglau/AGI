@@ -2496,6 +2496,30 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <button class="icon-btn" onclick="toggleTheme()" title="Tema" aria-label="Tema" id="themeBtn" style="width:40px;height:24px;border-radius:12px;padding:0;position:relative;flex-shrink:0"></button>
     </div>
 
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:14px;margin-bottom:24px">
+      <span style="font-size:18px">🔐</span>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:var(--ink)">Alterar Senha de Acesso</div>
+        <div style="font-size:12px;color:var(--ink3)">Atualize a senha de login da aplicação</div>
+      </div>
+      <button class="btn btn-sm" onclick="abrirAlterarSenhaPremissas()">Alterar</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── MODAL ALTERAR SENHA (PREMISSAS) ─── -->
+<div class="overlay" id="mAlterarSenha">
+  <div class="modal" style="max-width:380px">
+    <div class="mhd">Alterar Senha de Acesso <button class="mcl" onclick="fecharAlterarSenhaPremissas()">✕</button></div>
+    <div class="fg">
+      <div class="fp s2"><label>Senha atual</label><input type="password" id="ps-senha-atual" autocomplete="off"></div>
+      <div class="fp s2"><label>Nova senha</label><input type="password" id="ps-nova-senha" autocomplete="off"></div>
+      <div class="fp s2"><label>Confirmar</label><input type="password" id="ps-confirmar-senha" autocomplete="off" onkeydown="if(event.key==='Enter')salvarSenhaPremissas()"></div>
+    </div>
+    <div id="psSenhaMsg" class="login-msg"></div>
+    <button class="btn btn-green" style="width:100%;justify-content:center;padding:10px;margin-bottom:8px" onclick="salvarSenhaPremissas()">Salvar</button>
+    <button class="btn" style="width:100%;justify-content:center;padding:10px" onclick="fecharAlterarSenhaPremissas()">Cancelar</button>
   </div>
 </div>
 
@@ -2660,24 +2684,14 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <!-- ─── MODAL LOGIN / CRIAR CONTA ─── -->
 <div class="overlay" id="mLogin">
   <div class="modal" style="max-width:380px">
-    <div class="mhd"><span></span><button class="mcl" onclick="closeLoginModal()">✕</button></div>
+    <div class="mhd"><span></span><button class="mcl" onclick="closeLoginModal()" style="opacity:0;pointer-events:none">✕</button></div>
     <div class="login-logo"><img src="logo-agi.png" alt="AGI Locadora"></div>
-    <div class="login-sub" id="loginSub">Entre com seu e-mail e senha</div>
+    <div class="login-sub" id="loginSub">Digite a senha de acesso</div>
     <div id="loginFields" class="fg">
-      <div class="fp s2"><label>E-mail</label><input type="email" id="li-email" autocomplete="username"></div>
-      <div class="fp s2"><label>Senha</label><input type="password" id="li-senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
+      <div class="fp s2"><label>Senha</label><input type="password" id="li-senha" autocomplete="off" onkeydown="if(event.key==='Enter')fazerLogin()" autofocus></div>
     </div>
     <div id="loginMsg" class="login-msg"></div>
     <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px" onclick="fazerLogin()">Entrar</button>
-    <div class="login-links">
-      <a onclick="esqueciSenha()">Esqueci minha senha</a>
-      <a onclick="criarConta()">Criar conta</a>
-    </div>
-    <!-- Definir nova senha (aparece sozinho ao voltar do link de "esqueci a senha") -->
-    <div id="loginRecovery" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
-      <div class="fp s2"><label>Nova senha</label><input type="password" id="li-nova-senha"></div>
-      <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;margin-top:8px" onclick="definirNovaSenha()">Salvar nova senha</button>
-    </div>
   </div>
 </div>
 
@@ -3078,23 +3092,68 @@ function perfilBtnClick(){ CURRENT_USER ? openPerfilModal() : openLoginModal(); 
 
 function openLoginModal(){
   document.getElementById('loginMsg').textContent='';
-  document.getElementById('loginRecovery').style.display='none';
   document.getElementById('loginFields').style.display='';
   document.getElementById('li-senha').value='';
   document.getElementById('mLogin').classList.add('on');
+  setTimeout(()=>document.getElementById('li-senha').focus(),100);
 }
 function closeLoginModal(){ document.getElementById('mLogin').classList.remove('on'); }
+function abrirAlterarSenhaPremissas(){
+  document.getElementById('ps-senha-atual').value='';
+  document.getElementById('ps-nova-senha').value='';
+  document.getElementById('ps-confirmar-senha').value='';
+  document.getElementById('psSenhaMsg').textContent='';
+  document.getElementById('mAlterarSenha').classList.add('on');
+  setTimeout(()=>document.getElementById('ps-senha-atual').focus(),100);
+}
+function fecharAlterarSenhaPremissas(){
+  document.getElementById('mAlterarSenha').classList.remove('on');
+}
+function salvarSenhaPremissas(){
+  const msg=document.getElementById('psSenhaMsg');
+  const senhaAtual=document.getElementById('ps-senha-atual').value;
+  const novaSenha=document.getElementById('ps-nova-senha').value;
+  const confirmar=document.getElementById('ps-confirmar-senha').value;
+  const senhaCorreta=localStorage.getItem('agi-login-senha')||'1234';
+
+  if(!senhaAtual||!novaSenha||!confirmar){
+    msg.innerHTML='<span style="color:var(--red)">Preencha todos os campos.</span>';
+    return;
+  }
+
+  if(senhaAtual!==senhaCorreta){
+    msg.innerHTML='<span style="color:var(--red)">Senha atual incorreta.</span>';
+    return;
+  }
+
+  if(novaSenha!==confirmar){
+    msg.innerHTML='<span style="color:var(--red)">Novas senhas não conferem.</span>';
+    return;
+  }
+
+  if(novaSenha.length<4){
+    msg.innerHTML='<span style="color:var(--red)">Nova senha precisa ter pelo menos 4 caracteres.</span>';
+    return;
+  }
+
+  localStorage.setItem('agi-login-senha',novaSenha);
+  msg.innerHTML='<span style="color:var(--green)">✓ Senha alterada com sucesso!</span>';
+  setTimeout(fecharAlterarSenhaPremissas,1500);
+}
 async function fazerLogin(){
   const msg=document.getElementById('loginMsg');
-  if(!SB){ msg.innerHTML='<span style="color:var(--red)">Sem conexão com o Supabase agora (modo demo) — login indisponível.</span>'; return; }
-  const email=document.getElementById('li-email').value.trim();
   const senha=document.getElementById('li-senha').value;
-  if(!email||!senha){ msg.innerHTML='<span style="color:var(--red)">Preencha e-mail e senha.</span>'; return; }
-  msg.textContent='Entrando…';
-  const {error}=await SB.auth.signInWithPassword({email,password:senha});
-  if(error){ msg.innerHTML=`<span style="color:var(--red)">${escHtml(error.message)}</span>`; return; }
-  msg.textContent='';
-  closeLoginModal();
+  const senhaCorreta=localStorage.getItem('agi-login-senha')||'1234';
+
+  if(!senha){ msg.innerHTML='<span style="color:var(--red)">Preencha a senha.</span>'; return; }
+
+  if(senha===senhaCorreta){
+    msg.textContent='';
+    localStorage.setItem('agi-autenticado','1');
+    closeLoginModal();
+  } else {
+    msg.innerHTML='<span style="color:var(--red)">Senha incorreta.</span>';
+  }
 }
 async function criarConta(){
   const msg=document.getElementById('loginMsg');
@@ -3272,18 +3331,9 @@ async function pfBioToggle(el){
 
 // ─── TRAVA DE ABERTURA (só aparece se a biometria estiver ativada) ───
 async function iniciarApp(){
-  const bioAtiva=localStorage.getItem(BIO_LS_KEY)==='1';
-  let temSessao=false;
-  if(SB){
-    const {data:{session}}=await SB.auth.getSession();
-    temSessao=!!session;
-  }
-  if(bioAtiva&&temSessao){
-    document.getElementById('mBioLock').classList.add('on');
-  } else {
-    await authInit();
-    boot();
-  }
+  // Sempre mostrar a tela de login primeiro
+  openLoginModal();
+  boot();
 }
 async function desbloquearComBiometria(){
   const st=document.getElementById('bioLockSt');
