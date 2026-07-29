@@ -1722,6 +1722,47 @@ details[open] summary::before { transform: rotate(90deg); }
   .btn-sm { padding: 7px 12px; font-size: 13px; }
   .mn-btn { width: 32px; height: 32px; font-size: 16px; }
 
+  /* Filtros recolhidos no mobile */
+  .filt-toggle-btn {
+    display: block !important;
+    width: 100%;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .filt-toggle-btn:hover {
+    background: linear-gradient(135deg, #357abd 0%, #2a5a9d 100%);
+    transform: translateY(-2px);
+  }
+
+  .filt-toggle-btn.expanded {
+    background: linear-gradient(135deg, #2a5a9d 0%, #1f3d6b 100%);
+  }
+
+  #filtPanel,
+  #lfFiltPanel {
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+    opacity: 1;
+  }
+
+  #filtPanel.collapsed,
+  #lfFiltPanel.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
   /* Recebimentos: cards mais limpos e legíveis */
   .day-header { padding: 12px 2px 8px; }
   .day-title { font-size: 16px; }
@@ -2067,6 +2108,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   <!-- Proprietário fica de fora (já tem o painel dedicado ao lado) — status
        entra como o primeiro da linha, seguido dos outros 4 filtros, todos
        sempre visíveis, sem botão "Filtros" (tudo montado por buildBaixasFilters). -->
+  <button class="filt-toggle-btn" id="filtToggleBtnBaixas" onclick="toggleFilterPanel('filtPanel')" style="display:none">▼ Filtros</button>
   <div class="filt-panel filt-panel-baixas" id="filtPanel">
     <div id="baixasFilters" class="rf-bar rf-flat"></div>
   </div>
@@ -2107,6 +2149,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <button class="btn btn-sm" onclick="exportCSV()">⬇ CSV</button>
   </div>
   <div class="fcnt" id="lf-cnt" style="text-align:right;margin-bottom:6px"></div>
+  <button class="filt-toggle-btn" id="filtToggleBtnLanc" onclick="toggleFilterPanel('lfFiltPanel')" style="display:none">▼ Filtros</button>
   <div class="filt-panel filt-panel-baixas" id="lfFiltPanel">
     <select id="lf-tipo" onchange="renderLanc()"><option value="">Todos os tipos</option></select>
     <select id="lf-forma" onchange="renderLanc()"><option value="">Todas as formas</option></select>
@@ -3084,6 +3127,44 @@ function openLoginModal(){
   document.getElementById('mLogin').classList.add('on');
 }
 function closeLoginModal(){ document.getElementById('mLogin').classList.remove('on'); }
+function toggleFilterPanel(panelId){
+  const panel=document.getElementById(panelId);
+  const btn=panelId==='filtPanel'?document.getElementById('filtToggleBtnBaixas'):document.getElementById('filtToggleBtnLanc');
+
+  if(!panel||!btn)return;
+
+  const isCollapsed=panel.classList.contains('collapsed');
+  if(isCollapsed){
+    panel.classList.remove('collapsed');
+    btn.classList.add('expanded');
+    btn.textContent='▲ Filtros';
+  }else{
+    panel.classList.add('collapsed');
+    btn.classList.remove('expanded');
+    btn.textContent='▼ Filtros';
+  }
+}
+function initMobileFilters(){
+  if(window.innerWidth<=760){
+    const filtPanel=document.getElementById('filtPanel');
+    const lfFiltPanel=document.getElementById('lfFiltPanel');
+    const filtToggleBtnBaixas=document.getElementById('filtToggleBtnBaixas');
+    const filtToggleBtnLanc=document.getElementById('filtToggleBtnLanc');
+
+    if(filtPanel){
+      filtPanel.classList.add('collapsed');
+    }
+    if(lfFiltPanel){
+      lfFiltPanel.classList.add('collapsed');
+    }
+    if(filtToggleBtnBaixas){
+      filtToggleBtnBaixas.style.display='block';
+    }
+    if(filtToggleBtnLanc){
+      filtToggleBtnLanc.style.display='block';
+    }
+  }
+}
 async function fazerLogin(){
   const msg=document.getElementById('loginMsg');
   if(!SB){ msg.innerHTML='<span style="color:var(--red)">Sem conexão com o Supabase agora (modo demo) — login indisponível.</span>'; return; }
@@ -6123,6 +6204,7 @@ async function boot(){
   buildResumoFilters();
   buildBaixasFilters();
   renderAll();
+  initMobileFilters();
   autoCompletePlaca('nf-p');
   autoCompletePlaca('e-p');
   autoFillDono('nf-p','nf-d');
