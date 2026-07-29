@@ -1882,6 +1882,42 @@ details[open] summary::before { transform: rotate(90deg); }
     margin: 0 !important;
   }
 
+  /* Cartões de métricas (Recebimentos) recolhidos atrás de um resumo de 1
+     linha — mesmo padrão visual do botão "Filtros". */
+  .metrics-toggle-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--rl);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .metrics-toggle-btn #metricsMiniText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mtb-arrow { flex-shrink: 0; transition: transform 0.2s ease; }
+  .metrics-toggle-btn.expanded .mtb-arrow { transform: rotate(180deg); }
+
+  #baixa-metrics {
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+    opacity: 1;
+  }
+  #baixa-metrics.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin: 0 !important;
+  }
+
   /* Recebimentos: cards mais limpos e legíveis */
   .day-header { padding: 12px 2px 8px; }
   .day-title { font-size: 16px; }
@@ -2315,6 +2351,12 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
 <!-- RECEBIMENTOS -->
 <div class="page" id="page-baixas">
+  <!-- No mobile os 4 cartões ficam recolhidos atrás de um resumo de 1 linha
+       — a lista de lançamentos (o que importa) ficava distante demais do
+       topo. No desktop os cartões continuam sempre visíveis. -->
+  <button class="metrics-toggle-btn" id="metricsToggleBtn" onclick="toggleMetrics()" style="display:none">
+    <span id="metricsMiniText"></span><span class="mtb-arrow">▼</span>
+  </button>
   <div class="mrow" id="baixa-metrics"></div>
 
   <!-- Busca, ações e filtros — largura cheia, acima do grid de 2 colunas, pra
@@ -3404,6 +3446,24 @@ function initMobileFilters(){
     if(filtToggleBtnLanc){
       filtToggleBtnLanc.style.display='block';
     }
+
+    const metrics=document.getElementById('baixa-metrics');
+    const metricsBtn=document.getElementById('metricsToggleBtn');
+    if(metrics)metrics.classList.add('collapsed');
+    if(metricsBtn)metricsBtn.style.display='flex';
+  }
+}
+function toggleMetrics(){
+  const el=document.getElementById('baixa-metrics');
+  const btn=document.getElementById('metricsToggleBtn');
+  if(!el||!btn)return;
+  const isCollapsed=el.classList.contains('collapsed');
+  if(isCollapsed){
+    el.classList.remove('collapsed');
+    btn.classList.add('expanded');
+  }else{
+    el.classList.add('collapsed');
+    btn.classList.remove('expanded');
   }
 }
 let inactivityTimer;
@@ -4242,6 +4302,8 @@ function renderBaixas(){
     <div class="mc blue"><div class="mc-label">Vencem hoje</div><div class="mc-value">${nHoje}</div></div>
     <div class="mc red"><div class="mc-label">Já vencidos</div><div class="mc-value">${nVenc}</div></div>
   `;
+  const metricsMiniText=document.getElementById('metricsMiniText');
+  if(metricsMiniText)metricsMiniText.textContent=`${fR(totPend)} a receber · ${nHoje} hoje · ${nVenc} vencidos`;
 
   const container=document.getElementById('baixasContainer');
   container.innerHTML='';
