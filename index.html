@@ -243,6 +243,25 @@ body::before {
 .theme-toggle { width: 32px; height: 32px; margin-left: 12px; }
 .theme-toggle svg { width: 16px; height: 16px; }
 
+/* ─── LOGIN / PERFIL / BIOMETRIA ─── */
+.perfil-btn { margin-left: 6px; overflow: hidden; background: var(--blue-soft, rgba(31,95,168,.08)); color: var(--blue); }
+.perfil-btn svg { width: 20px; height: 20px; }
+.login-logo { display: flex; justify-content: center; margin-bottom: 6px; }
+.login-logo img { height: 40px; }
+.login-sub { text-align: center; color: var(--ink3); font-size: 12.5px; margin-bottom: 16px; }
+.login-links { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 12.5px; }
+.login-links a { color: var(--blue); font-weight: 600; cursor: pointer; text-decoration: none; }
+.login-links a:hover { text-decoration: underline; }
+.login-msg { min-height: 18px; font-size: 12.5px; margin: 8px 0 2px; }
+.pf-foto-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.pf-foto-circle { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: var(--blue-soft, rgba(31,95,168,.08)); color: var(--blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pf-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); margin-top: 6px; }
+.pf-toggle-row .pf-toggle-lbl { font-size: 13px; font-weight: 600; }
+.pf-toggle-row .pf-toggle-sub { font-size: 11.5px; color: var(--ink3); margin-top: 2px; }
+.bio-lock-body { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 18px 6px; }
+.bio-lock-body img { height: 44px; margin-bottom: 18px; }
+.bio-lock-ico { font-size: 40px; margin-bottom: 10px; }
+
 /* ─── PAGES ─── */
 .page { display: none; padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
 .page.on { display: block; }
@@ -1585,7 +1604,8 @@ details[open] summary::before { transform: rotate(90deg); }
   #dock-main .ntab[data-pg="baixas"],
   #dock-main .ntab[data-pg="lancamentos"],
   #dock-main .ntab[data-pg="premissas"],
-  #dock-main .ntab[data-pg="fluxo"] { display: none !important; }
+  #dock-main .ntab[data-pg="fluxo"],
+  #dock-main .ntab[data-pg="auditoria"] { display: none !important; }
   #dock-main .ntab-mais-mobile { display: flex !important; }
 }
 .empty { text-align: center; padding: 48px 20px; color: var(--ink3); }
@@ -2025,6 +2045,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
   </div>
   <button class="icon-btn theme-toggle" onclick="toggleTheme()" title="Alterar tema" aria-label="Alterar tema" id="themeBtnHdr"></button>
+  <button class="icon-btn perfil-btn" onclick="perfilBtnClick()" title="Entrar" aria-label="Entrar / Perfil" id="perfilBtn"></button>
 </div>
 
 <!-- ─── PAGES ─── -->
@@ -2175,6 +2196,24 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <tbody id="fc-body"></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- AUDITORIA -->
+<div class="page" id="page-auditoria">
+  <div class="card">
+    <div class="card-hd">Log de auditoria</div>
+    <div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">Quem criou, alterou ou excluiu cada lançamento, e quando. Só registra ações feitas com login (ações anônimas aparecem como "Anônimo").</div>
+    <div class="fbar" style="margin-bottom:12px">
+      <select id="ad-acao" class="rc-sel" style="width:auto;flex:0 0 auto" onchange="renderAuditoria()">
+        <option value="">Todas as ações</option>
+        <option value="criação">Criação</option>
+        <option value="atualização">Atualização</option>
+        <option value="exclusão">Exclusão</option>
+      </select>
+      <button class="btn btn-sm" onclick="renderAuditoria()" title="Atualizar">⟳ Atualizar</button>
+    </div>
+    <div id="auditoriaBody"></div>
   </div>
 </div>
 
@@ -2616,6 +2655,80 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   </div>
 </div>
 
+<!-- ─── MODAL LOGIN / CRIAR CONTA ─── -->
+<div class="overlay" id="mLogin">
+  <div class="modal" style="max-width:380px">
+    <div class="mhd"><span></span><button class="mcl" onclick="closeLoginModal()">✕</button></div>
+    <div class="login-logo"><img src="logo-agi.png" alt="AGI Locadora"></div>
+    <div class="login-sub" id="loginSub">Entre com seu e-mail e senha</div>
+    <div id="loginFields" class="fg">
+      <div class="fp s2"><label>E-mail</label><input type="email" id="li-email" autocomplete="username"></div>
+      <div class="fp s2"><label>Senha</label><input type="password" id="li-senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
+    </div>
+    <div id="loginMsg" class="login-msg"></div>
+    <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px" onclick="fazerLogin()">Entrar</button>
+    <div class="login-links">
+      <a onclick="esqueciSenha()">Esqueci minha senha</a>
+      <a onclick="criarConta()">Criar conta</a>
+    </div>
+    <!-- Definir nova senha (aparece sozinho ao voltar do link de "esqueci a senha") -->
+    <div id="loginRecovery" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+      <div class="fp s2"><label>Nova senha</label><input type="password" id="li-nova-senha"></div>
+      <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;margin-top:8px" onclick="definirNovaSenha()">Salvar nova senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL PERFIL (foto, nome, biometria, sair) ─── -->
+<div class="overlay" id="mPerfil">
+  <div class="modal" style="max-width:380px">
+    <div class="mhd">Meu perfil <button class="mcl" onclick="closePerfilModal()">✕</button></div>
+    <div class="pf-foto-row">
+      <div class="pf-foto-circle" id="pf-foto-preview"></div>
+      <div>
+        <label class="btn btn-sm" style="cursor:pointer">
+          📷 Trocar foto
+          <input type="file" id="pf-foto-input" accept="image/*" style="display:none" onchange="pfFotoChange(this)">
+        </label>
+        <div id="pf-email" style="font-size:11.5px;color:var(--ink3);margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fp s2"><label>Nome</label><input type="text" id="pf-nome" placeholder="Como quer ser chamado"></div>
+    </div>
+    <div id="pfMsg" class="login-msg"></div>
+    <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px" onclick="salvarPerfil()">Salvar</button>
+
+    <div class="pf-toggle-row">
+      <div>
+        <div class="pf-toggle-lbl">🔒 Face ID / digital neste aparelho</div>
+        <div class="pf-toggle-sub">Trava o app aqui até confirmar a biometria</div>
+      </div>
+      <input type="checkbox" id="pf-bio-toggle" style="width:20px;height:20px" onchange="pfBioToggle(this)">
+    </div>
+
+    <button class="btn" style="width:100%;justify-content:center;padding:10px;margin-top:14px;color:var(--red)" onclick="sairDaConta()">Sair da conta</button>
+  </div>
+</div>
+
+<!-- ─── TRAVA BIOMÉTRICA (aparece no lugar do app, se ativada) ─── -->
+<div class="overlay" id="mBioLock" style="z-index:9998">
+  <div class="modal" style="max-width:340px">
+    <div class="bio-lock-body">
+      <img src="logo-agi.png" alt="AGI Locadora">
+      <div class="bio-lock-ico">🔒</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px">App travado</div>
+      <div style="font-size:12.5px;color:var(--ink3);margin-bottom:18px">Confirme com Face ID ou digital pra continuar</div>
+      <button class="btn btn-blue" style="width:100%;justify-content:center;padding:11px" onclick="desbloquearComBiometria()">🔓 Desbloquear</button>
+      <div id="bioLockSt" class="login-msg"></div>
+      <div class="login-links" style="width:100%;margin-top:10px">
+        <a onclick="bioLockEntrarComSenha()">Entrar com senha</a>
+        <a onclick="bioLockSair()">Sair</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ─── EXTRATO DO DONO ─── -->
 <div class="overlay" id="mDono">
   <div class="modal" style="max-width:860px">
@@ -2775,6 +2888,7 @@ async function dbInsert(rec){
   if(!SB) return rec;
   const {data,error}=await SB.from('lancamentos').insert(_clean(rec)).select().single();
   if(error){console.error(error);alert('Erro ao salvar no Supabase: '+error.message);return rec;}
+  logAuditoria('criação','lancamentos',data.id,data);
   return data;
 }
 async function dbInsertMany(recs){
@@ -2786,7 +2900,8 @@ async function dbInsertMany(recs){
 async function dbUpdate(rec){
   if(!SB||rec.id==null) return;
   const {error}=await SB.from('lancamentos').update(_clean(rec)).eq('id',rec.id);
-  if(error){console.error(error);alert('Erro ao atualizar no Supabase: '+error.message);}
+  if(error){console.error(error);alert('Erro ao atualizar no Supabase: '+error.message);return;}
+  logAuditoria('atualização','lancamentos',rec.id,_clean(rec));
 }
 async function dedupLancamentos(){
   if(!SB){alert('Não conectado ao Supabase.');return;}
@@ -2869,7 +2984,329 @@ async function limparEReimportar(){
 async function dbDelete(id){
   if(!SB||id==null) return;
   const {error}=await SB.from('lancamentos').delete().eq('id',id);
-  if(error){console.error(error);alert('Erro ao excluir no Supabase: '+error.message);}
+  if(error){console.error(error);alert('Erro ao excluir no Supabase: '+error.message);return;}
+  logAuditoria('exclusão','lancamentos',id,null);
+}
+
+// ─── AUDITORIA (log de quem criou/alterou/excluiu cada lançamento) ───
+// Roda em segundo plano — se falhar (ex.: tabela ainda não criada porque o
+// supabase/auth_setup.sql não foi rodado), só avisa no console e segue,
+// nunca interrompe a ação principal.
+async function logAuditoria(acao,tabela,registroId,dados){
+  if(!SB) return;
+  try{
+    await SB.from('auditoria').insert({
+      usuario_id: CURRENT_USER?.id||null,
+      usuario_nome: CURRENT_USER?.email||'Anônimo',
+      acao, tabela, registro_id: String(registroId??''),
+      dados: dados||null,
+    });
+  }catch(e){ console.warn('Auditoria: falha ao registrar (rode supabase/auth_setup.sql?).',e); }
+}
+async function renderAuditoria(){
+  const body=document.getElementById('auditoriaBody'); if(!body) return;
+  if(!SB){ body.innerHTML='<div class="empty"><div class="empty-text">Modo demo — sem Supabase, não há log de auditoria.</div></div>'; return; }
+  body.innerHTML='<div style="padding:20px;text-align:center;color:var(--ink3)">Carregando…</div>';
+  const acaoF=document.getElementById('ad-acao')?.value||'';
+  let q=SB.from('auditoria').select('*').order('criado_em',{ascending:false}).limit(200);
+  if(acaoF) q=q.eq('acao',acaoF);
+  const {data,error}=await q;
+  if(error){
+    body.innerHTML=`<div class="empty"><div class="empty-text">Não foi possível carregar o log.</div><div class="empty-sub">${escHtml(error.message)} — rode supabase/auth_setup.sql no Supabase se ainda não rodou.</div></div>`;
+    return;
+  }
+  if(!data||!data.length){ body.innerHTML='<div class="empty"><div class="empty-text">Nenhum registro ainda.</div><div class="empty-sub">Toda criação, edição ou exclusão de lançamento passa a aparecer aqui.</div></div>'; return; }
+  const acaoIco={'criação':'✚','atualização':'✏️','exclusão':'🗑'};
+  const acaoCor={'criação':'var(--green)','atualização':'var(--blue)','exclusão':'var(--red)'};
+  body.innerHTML=data.map(a=>{
+    const d=a.dados||{};
+    const resumo=[d.placa,d.cliente,d.valor!=null?fR(d.valor):null].filter(Boolean).join(' · ');
+    return `<div class="dn-row">
+      <div>
+        <div class="r-main">${acaoIco[a.acao]||'•'} <span style="color:${acaoCor[a.acao]||'var(--ink)'}">${escHtml(a.acao)}</span> — lançamento #${escHtml(a.registro_id||'—')}</div>
+        <div class="r-sub">${escHtml(a.usuario_nome||'Anônimo')} · ${fD(a.criado_em?a.criado_em.slice(0,10):'')} ${a.criado_em?a.criado_em.slice(11,16):''}${resumo?' · '+escHtml(resumo):''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── LOGIN (Supabase Auth) — opcional, não trava o app ───
+// O login aqui serve pra: identificar quem fez cada ação no log de
+// auditoria, guardar nome/foto de perfil, e permitir travar o app com Face
+// ID/digital do aparelho. O banco continua liberado pra chave anônima (ver
+// aviso no topo de supabase/auth_setup.sql) — ninguém fica de fora do app
+// por não ter conta.
+let CURRENT_USER = null;    // {id,email} logado, ou null
+let CURRENT_PERFIL = null;  // linha da tabela perfis (nome, foto_url), ou null
+
+async function authInit(){
+  if(!SB) return;
+  const {data:{session}}=await SB.auth.getSession();
+  await onAuthChange(session);
+  SB.auth.onAuthStateChange((event,session)=>{
+    if(event==='PASSWORD_RECOVERY'){ abrirRecuperacaoSenha(); return; }
+    onAuthChange(session);
+  });
+}
+async function onAuthChange(session){
+  CURRENT_USER = session&&session.user ? {id:session.user.id,email:session.user.email} : null;
+  if(CURRENT_USER){
+    const {data}=await SB.from('perfis').select('*').eq('id',CURRENT_USER.id).maybeSingle();
+    CURRENT_PERFIL = data||null;
+  } else {
+    CURRENT_PERFIL = null;
+  }
+  renderPerfilBtn();
+}
+function renderPerfilBtn(){
+  const btn=document.getElementById('perfilBtn'); if(!btn) return;
+  if(CURRENT_USER){
+    const nome=CURRENT_PERFIL?.nome||CURRENT_USER.email.split('@')[0];
+    const foto=CURRENT_PERFIL?.foto_url;
+    btn.innerHTML=foto
+      ? `<img src="${foto}" alt="${escHtml(nome)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+      : `<span style="font-weight:700;font-size:14px">${escHtml(nome.slice(0,2).toUpperCase())}</span>`;
+    btn.title=nome;
+  } else {
+    btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    btn.title='Entrar';
+  }
+}
+function perfilBtnClick(){ CURRENT_USER ? openPerfilModal() : openLoginModal(); }
+
+function openLoginModal(){
+  document.getElementById('loginMsg').textContent='';
+  document.getElementById('loginRecovery').style.display='none';
+  document.getElementById('loginFields').style.display='';
+  document.getElementById('li-senha').value='';
+  document.getElementById('mLogin').classList.add('on');
+}
+function closeLoginModal(){ document.getElementById('mLogin').classList.remove('on'); }
+async function fazerLogin(){
+  const msg=document.getElementById('loginMsg');
+  if(!SB){ msg.innerHTML='<span style="color:var(--red)">Sem conexão com o Supabase agora (modo demo) — login indisponível.</span>'; return; }
+  const email=document.getElementById('li-email').value.trim();
+  const senha=document.getElementById('li-senha').value;
+  if(!email||!senha){ msg.innerHTML='<span style="color:var(--red)">Preencha e-mail e senha.</span>'; return; }
+  msg.textContent='Entrando…';
+  const {error}=await SB.auth.signInWithPassword({email,password:senha});
+  if(error){ msg.innerHTML=`<span style="color:var(--red)">${escHtml(error.message)}</span>`; return; }
+  msg.textContent='';
+  closeLoginModal();
+}
+async function criarConta(){
+  const msg=document.getElementById('loginMsg');
+  if(!SB){ msg.innerHTML='<span style="color:var(--red)">Sem conexão com o Supabase agora (modo demo) — cadastro indisponível.</span>'; return; }
+  const email=document.getElementById('li-email').value.trim();
+  const senha=document.getElementById('li-senha').value;
+  if(!email||!senha){ msg.innerHTML='<span style="color:var(--red)">Preencha e-mail e senha.</span>'; return; }
+  if(senha.length<6){ msg.innerHTML='<span style="color:var(--red)">A senha precisa ter pelo menos 6 caracteres.</span>'; return; }
+  msg.textContent='Criando conta…';
+  const {data,error}=await SB.auth.signUp({email,password:senha});
+  if(error){ msg.innerHTML=`<span style="color:var(--red)">${escHtml(error.message)}</span>`; return; }
+  if(data.session){ msg.textContent=''; closeLoginModal(); }
+  else msg.innerHTML='<span style="color:var(--green)">✓ Conta criada! Se a confirmação por e-mail estiver ativada no Supabase, confirme antes de entrar.</span>';
+}
+async function esqueciSenha(){
+  const email=document.getElementById('li-email').value.trim();
+  const msg=document.getElementById('loginMsg');
+  if(!SB){ msg.innerHTML='<span style="color:var(--red)">Sem conexão com o Supabase agora (modo demo).</span>'; return; }
+  if(!email){ msg.innerHTML='<span style="color:var(--red)">Informe o e-mail acima antes de clicar aqui.</span>'; return; }
+  const {error}=await SB.auth.resetPasswordForEmail(email);
+  msg.innerHTML = error
+    ? `<span style="color:var(--red)">${escHtml(error.message)}</span>`
+    : '<span style="color:var(--green)">✓ Se esse e-mail tiver conta, o link de redefinição foi enviado.</span>';
+}
+function abrirRecuperacaoSenha(){
+  document.getElementById('loginMsg').textContent='';
+  document.getElementById('loginFields').style.display='none';
+  document.getElementById('loginRecovery').style.display='block';
+  document.getElementById('mLogin').classList.add('on');
+}
+async function definirNovaSenha(){
+  const senha=document.getElementById('li-nova-senha').value;
+  const msg=document.getElementById('loginMsg');
+  if(!SB){ msg.innerHTML='<span style="color:var(--red)">Sem conexão com o Supabase agora (modo demo).</span>'; return; }
+  if(!senha||senha.length<6){ msg.innerHTML='<span style="color:var(--red)">A senha precisa ter pelo menos 6 caracteres.</span>'; return; }
+  msg.textContent='Salvando…';
+  const {error}=await SB.auth.updateUser({password:senha});
+  if(error){ msg.innerHTML=`<span style="color:var(--red)">${escHtml(error.message)}</span>`; return; }
+  msg.innerHTML='<span style="color:var(--green)">✓ Senha alterada!</span>';
+  setTimeout(closeLoginModal,900);
+}
+async function sairDaConta(){
+  if(!confirm('Sair da conta?')) return;
+  desativarBiometria();
+  if(SB) await SB.auth.signOut();
+  closePerfilModal();
+}
+
+// ─── PERFIL (nome + foto) ───
+function openPerfilModal(){
+  document.getElementById('pf-nome').value=CURRENT_PERFIL?.nome||'';
+  document.getElementById('pf-email').textContent=CURRENT_USER?.email||'';
+  document.getElementById('pf-foto-input').removeAttribute('data-pending-foto');
+  atualizarFotoPreview(CURRENT_PERFIL?.foto_url);
+  document.getElementById('pf-bio-toggle').checked=localStorage.getItem(BIO_LS_KEY)==='1';
+  document.getElementById('pfMsg').textContent='';
+  document.getElementById('mPerfil').classList.add('on');
+}
+function closePerfilModal(){ document.getElementById('mPerfil').classList.remove('on'); }
+function atualizarFotoPreview(url){
+  const el=document.getElementById('pf-foto-preview'); if(!el) return;
+  const iniciais=(CURRENT_PERFIL?.nome||CURRENT_USER?.email||'?').slice(0,2).toUpperCase();
+  el.innerHTML = url
+    ? `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+    : `<span style="font-size:20px;font-weight:700">${escHtml(iniciais)}</span>`;
+}
+function pfFotoChange(inp){
+  const file=inp.files&&inp.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      // Reduz a foto pra caber bem num campo de texto (evita fotos gigantes no banco).
+      const MAX=240;
+      const scale=Math.min(1,MAX/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');
+      c.width=Math.max(1,Math.round(img.width*scale)); c.height=Math.max(1,Math.round(img.height*scale));
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      const dataUrl=c.toDataURL('image/jpeg',0.82);
+      atualizarFotoPreview(dataUrl);
+      inp.setAttribute('data-pending-foto',dataUrl);
+    };
+    img.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+async function salvarPerfil(){
+  if(!SB||!CURRENT_USER) return;
+  const nome=document.getElementById('pf-nome').value.trim();
+  const fotoInp=document.getElementById('pf-foto-input');
+  const foto=fotoInp.getAttribute('data-pending-foto')||CURRENT_PERFIL?.foto_url||null;
+  const msg=document.getElementById('pfMsg');
+  msg.textContent='Salvando…';
+  const {data,error}=await SB.from('perfis').upsert({id:CURRENT_USER.id,nome:nome||null,foto_url:foto,atualizado_em:new Date().toISOString()}).select().single();
+  if(error){ msg.innerHTML=`<span style="color:var(--red)">${escHtml(error.message)}</span>`; return; }
+  CURRENT_PERFIL=data;
+  renderPerfilBtn();
+  msg.innerHTML='<span style="color:var(--green)">✓ Salvo!</span>';
+}
+
+// ─── BIOMETRIA LOCAL (Face ID / digital travando o app neste aparelho) ───
+// Usa WebAuthn com autenticador "platform" (Face ID/Touch ID/Windows Hello/
+// digital do Android) — mas só como trava LOCAL do aparelho, não como login
+// remoto: o navigator.credentials.create/get roda inteiramente no
+// dispositivo, sem servidor de verificação. Quem garante que é mesmo o dono
+// do aparelho é o próprio sistema operacional ao pedir a biometria; o app só
+// confia que o get() só resolve depois dessa confirmação real do SO.
+const BIO_LS_KEY='agi_bio_ativa';
+const BIO_CRED_LS_KEY='agi_bio_cred_id';
+function b64uParaBuffer(s){
+  s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='=';
+  const bin=atob(s); const buf=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
+  return buf.buffer;
+}
+function bufferParaB64u(buf){
+  const bytes=new Uint8Array(buf); let bin='';
+  bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function bioDisponivel(){
+  return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(()=>false));
+}
+async function ativarBiometria(){
+  if(!CURRENT_USER){ alert('Entre com e-mail e senha primeiro.'); return false; }
+  if(!(await bioDisponivel())){ alert('Este aparelho/navegador não tem Face ID, digital ou PIN do sistema disponível.'); return false; }
+  try{
+    const userIdBuf=new TextEncoder().encode(CURRENT_USER.id).slice(0,64);
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rp: {name:'AGI Locadora'},
+      user: {id:userIdBuf, name:CURRENT_USER.email, displayName:CURRENT_PERFIL?.nome||CURRENT_USER.email},
+      pubKeyCredParams: [{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection: {authenticatorAttachment:'platform',userVerification:'required'},
+      timeout: 60000,
+    }});
+    if(!cred) return false;
+    localStorage.setItem(BIO_CRED_LS_KEY, bufferParaB64u(cred.rawId));
+    localStorage.setItem(BIO_LS_KEY,'1');
+    return true;
+  }catch(err){
+    console.error(err);
+    alert('Não deu pra ativar a biometria: '+(err.message||err));
+    return false;
+  }
+}
+function desativarBiometria(){
+  localStorage.removeItem(BIO_LS_KEY);
+  localStorage.removeItem(BIO_CRED_LS_KEY);
+}
+async function verificarBiometria(){
+  const credId=localStorage.getItem(BIO_CRED_LS_KEY);
+  if(!credId) return false;
+  try{
+    const res=await navigator.credentials.get({publicKey:{
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials: [{id:b64uParaBuffer(credId),type:'public-key'}],
+      userVerification: 'required',
+      timeout: 60000,
+    }});
+    return !!res;
+  }catch(err){
+    console.warn('Biometria não confirmada/cancelada:',err);
+    return false;
+  }
+}
+async function pfBioToggle(el){
+  if(el.checked){
+    const ok=await ativarBiometria();
+    if(!ok) el.checked=false;
+  } else {
+    desativarBiometria();
+  }
+}
+
+// ─── TRAVA DE ABERTURA (só aparece se a biometria estiver ativada) ───
+async function iniciarApp(){
+  const bioAtiva=localStorage.getItem(BIO_LS_KEY)==='1';
+  let temSessao=false;
+  if(SB){
+    const {data:{session}}=await SB.auth.getSession();
+    temSessao=!!session;
+  }
+  if(bioAtiva&&temSessao){
+    document.getElementById('mBioLock').classList.add('on');
+  } else {
+    await authInit();
+    boot();
+  }
+}
+async function desbloquearComBiometria(){
+  const st=document.getElementById('bioLockSt');
+  st.textContent='Verificando…';
+  const ok=await verificarBiometria();
+  if(ok){
+    document.getElementById('mBioLock').classList.remove('on');
+    await authInit();
+    boot();
+  } else {
+    st.innerHTML='<span style="color:var(--red)">Não foi possível confirmar. Tente de novo.</span>';
+  }
+}
+async function bioLockEntrarComSenha(){
+  document.getElementById('mBioLock').classList.remove('on');
+  await authInit();
+  boot();
+  openLoginModal();
+}
+async function bioLockSair(){
+  desativarBiometria();
+  if(SB) await SB.auth.signOut();
+  document.getElementById('mBioLock').classList.remove('on');
+  await authInit();
+  boot();
 }
 
 // ─── DESPESAS (camada de dados) ───
@@ -5613,6 +6050,7 @@ function renderAll(){
   else if(curPage==='proprietarios')renderProp();
   else if(curPage==='premissas')renderPremissas();
   else if(curPage==='fluxo')renderFluxo();
+  else if(curPage==='auditoria')renderAuditoria();
 }
 function go(id){
   curPage=id;
@@ -5621,7 +6059,7 @@ function go(id){
 
   // No desktop (sidebar): dock-main sempre visível, dock-mais sempre oculto
   // No mobile: alterna entre grupo principal e grupo "Mais"
-  const maisPages=['baixas','lancamentos','premissas','fluxo'];
+  const maisPages=['baixas','lancamentos','premissas','fluxo','auditoria'];
   const dMain=document.getElementById('dock-main'),dMais=document.getElementById('dock-mais');
   const isDesktop=window.innerWidth>=761;
   if(isDesktop){
@@ -5736,7 +6174,7 @@ function setDockHidden(hidden){
   },{passive:true});
 })();
 
-boot();
+iniciarApp();
 </script>
 
 <!-- ─── DOCK / SIDEBAR (posição fixa, fora do header) ─── -->
@@ -5753,6 +6191,7 @@ boot();
     <button class="ntab" onclick="go('lancamentos')" data-pg="lancamentos"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nt-short">Lançam.</span></button>
     <button class="ntab" onclick="go('premissas')" data-pg="premissas"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span class="nt-short">Premissas</span></button>
     <button class="ntab" onclick="go('fluxo')" data-pg="fluxo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nt-short">Fluxo</span></button>
+    <button class="ntab" onclick="go('auditoria')" data-pg="auditoria"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span class="nt-short">Auditoria</span></button>
     <!-- Mais: botão visível só no mobile -->
     <button class="ntab ntab-mais-mobile" onclick="showMais()" style="display:none"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="nt-short">Mais</span></button>
   </div>
@@ -5762,6 +6201,7 @@ boot();
     <button class="ntab" onclick="go('lancamentos')" data-pg="lancamentos"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nt-short">Lançam.</span></button>
     <button class="ntab" onclick="go('premissas')" data-pg="premissas"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span class="nt-short">Premissas</span></button>
     <button class="ntab" onclick="go('fluxo')" data-pg="fluxo"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="nt-short">Fluxo</span></button>
+    <button class="ntab" onclick="go('auditoria')" data-pg="auditoria"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span class="nt-short">Auditoria</span></button>
     <button class="ntab ntab-back" onclick="hideMais()"><span class="nt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg></span><span class="nt-short">Voltar</span></button>
   </div>
 </div>
