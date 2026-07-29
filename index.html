@@ -1293,14 +1293,59 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 }
 
 /* ─── CONTROLES DO RESUMO (período · base · acumulado) ─── */
-.res-ctrls { display: flex; align-items: stretch; gap: 6px; margin-bottom: 16px; }
+.res-ctrls {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 20px;
+  background: var(--blue-soft);
+  border: 2px solid var(--blue-mid);
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 16px rgba(31, 95, 168, 0.12);
+}
 .res-ctrls > * { flex: 1 1 0; min-width: 0; }
-.res-ctrls .rf-bar { margin-bottom: 0; display: flex; }
+.res-ctrls .rf-bar { margin-bottom: 0; display: flex; gap: 8px; }
 .res-ctrls .rf-single { flex: 1; }
-.res-ctrls .rf-single > summary { width: 100%; justify-content: center; gap: 4px; padding: 6px 4px; font-size: 11px; }
-.rc-sel { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 4px; font-family: inherit; font-size: 11px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: center; }
-.rc-sel:focus { outline: none; border-color: var(--blue); }
-html[data-theme="dark"] .rc-sel { background: var(--surface2); color: var(--ink); border-color: var(--line); }
+.res-ctrls .rf-single > summary { width: 100%; justify-content: center; gap: 4px; padding: 8px 6px; font-size: 11.5px; font-weight: 600; }
+.rc-sel {
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid var(--blue-mid);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+.rc-sel:hover {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  box-shadow: 0 2px 8px rgba(31, 95, 168, 0.15);
+}
+.rc-sel:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(31, 95, 168, 0.1);
+}
+html[data-theme="dark"] .res-ctrls {
+  background: rgba(31, 95, 168, 0.15);
+  border-color: rgba(91, 155, 213, 0.4);
+  box-shadow: 0 4px 16px rgba(31, 95, 168, 0.15);
+}
+html[data-theme="dark"] .rc-sel {
+  background: rgba(255, 255, 255, 0.08);
+  color: #7ab8e8;
+  border-color: rgba(91, 155, 213, 0.5);
+}
+html[data-theme="dark"] .rc-sel:hover {
+  background: rgba(31, 95, 168, 0.2);
+  border-color: #7ab8e8;
+}
 
 /* ─── RECEBIMENTOS DE HOJE (janela no Resumo) ─── */
 .receb-hoje { background: linear-gradient(165deg, rgba(31,95,168,.06) 0%, #ffffff 70%); border: 1px solid var(--blue-mid); border-radius: var(--rl); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); cursor: pointer; transition: box-shadow .15s, transform .15s, border-color .15s; }
