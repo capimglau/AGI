@@ -528,54 +528,61 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 #baixa-metrics .mc-value { font-size: 18px; }
 
 /* ─── DAY GROUP ─── */
-.day-group { margin-bottom: 18px; }
+.day-group { margin-bottom: 24px; }
 .day-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 4px 10px;
-  margin-bottom: 8px;
+  gap: 12px;
+  padding: 8px 4px 14px;
+  margin-bottom: 12px;
   cursor: pointer;
   user-select: none;
 }
 .day-header:hover .day-title { color: var(--blue); }
 .day-weekday {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .08em;
   color: var(--ink3);
-  width: 28px;
+  width: 32px;
+  flex-shrink: 0;
 }
 .day-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: -.02em;
   transition: color .03s;
+  min-width: 50px;
 }
 .day-title.hoje { color: var(--blue); }
 .day-title.venc { color: var(--red); }
 .day-tag {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 20px;
   letter-spacing: .03em;
+  white-space: nowrap;
 }
 .day-tag.hoje { background: var(--blue-soft); color: var(--blue); }
 .day-tag.venc { background: var(--red-soft); color: var(--red); }
 .day-count {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink3);
   background: var(--surface);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .day-total {
   margin-left: auto;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .day-total.pend { color: var(--amber); }
 .day-total.done { color: var(--green); font-size: 12px; }
@@ -592,12 +599,12 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   display: grid;
   grid-template-columns: 20px 1fr auto;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   background: var(--card);
   border: none;
   border-radius: 18px;
-  padding: 12px 14px 12px 18px;
-  margin-bottom: 8px;
+  padding: 14px 18px 14px 20px;
+  margin-bottom: 10px;
   box-shadow: 0 1px 6px rgba(0,0,0,.06);
   transition: box-shadow .15s;
   position: relative;
@@ -669,11 +676,11 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   color: var(--green);
   flex-shrink: 0;
 }
-.pcard-body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.pcard-top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.pcard-body { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.pcard-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pcard-name { font-weight: 600; font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pcard-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.pcard-meta { font-size: 11.5px; color: var(--ink3); display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.pcard-tags { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.pcard-meta { font-size: 11.5px; color: var(--ink3); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pcard-meta > span { display: inline-flex; align-items: center; }
 .pcard-right {
   display: flex;
@@ -683,29 +690,33 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   flex-shrink: 0;
 }
 .pcard-value {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -.02em;
   color: var(--blue);
   white-space: nowrap;
+  min-width: 80px;
+  text-align: right;
+  flex-shrink: 0;
 }
 .pcard.done .pcard-value { color: var(--green); text-decoration: line-through; opacity: .7; }
 .pcard-actions { display: flex; gap: 6px; }
 
 /* Lista agrupada estilo iOS: um bloco branco com divisórias por dia */
 .day-items {
-  background: var(--card);
+  background: transparent;
   border: none;
   border-radius: 22px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,.07);
+  overflow: visible;
+  box-shadow: none;
 }
 .day-items .pcard {
   border: none;
-  border-radius: 0;
-  box-shadow: none;
-  margin: 0;
-  border-bottom: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  margin: 0 0 10px 0;
+  border-bottom: none;
+  padding: 14px 16px 14px 18px;
 }
 .day-items .swipe:last-child .pcard { border-bottom: none; }
 .day-items .pcard:hover { box-shadow: none; }
@@ -747,9 +758,9 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -759,19 +770,22 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .tag-mul { background: var(--amber-soft); color: var(--amber); }
 .tag-out { background: var(--surface); color: var(--ink3); }
 .tag-tax { background: var(--purple-soft); color: var(--purple); }
-.tag-forma { background: var(--surface); color: var(--ink2); font-size: 10.5px; }
+.tag-forma { background: var(--surface); color: var(--ink2); font-size: 11px; }
 
 /* PLACA */
 .placa {
   font-family: 'DM Mono', 'SF Mono', 'Consolas', 'Monaco', monospace;
-  font-size: 11.5px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   background: var(--surface2);
   color: var(--ink2);
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
   letter-spacing: .04em;
   border: none;
+  min-width: 60px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 /* DONO DOT */
