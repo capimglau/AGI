@@ -528,54 +528,61 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 #baixa-metrics .mc-value { font-size: 18px; }
 
 /* ─── DAY GROUP ─── */
-.day-group { margin-bottom: 18px; }
+.day-group { margin-bottom: 24px; }
 .day-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 4px 10px;
-  margin-bottom: 8px;
+  gap: 12px;
+  padding: 8px 4px 14px;
+  margin-bottom: 12px;
   cursor: pointer;
   user-select: none;
 }
 .day-header:hover .day-title { color: var(--blue); }
 .day-weekday {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .08em;
   color: var(--ink3);
-  width: 28px;
+  width: 32px;
+  flex-shrink: 0;
 }
 .day-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: -.02em;
   transition: color .03s;
+  min-width: 50px;
 }
 .day-title.hoje { color: var(--blue); }
 .day-title.venc { color: var(--red); }
 .day-tag {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 20px;
   letter-spacing: .03em;
+  white-space: nowrap;
 }
 .day-tag.hoje { background: var(--blue-soft); color: var(--blue); }
 .day-tag.venc { background: var(--red-soft); color: var(--red); }
 .day-count {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink3);
   background: var(--surface);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .day-total {
   margin-left: auto;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .day-total.pend { color: var(--amber); }
 .day-total.done { color: var(--green); font-size: 12px; }
@@ -592,12 +599,12 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   display: grid;
   grid-template-columns: 20px 1fr auto;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   background: var(--card);
   border: none;
   border-radius: 18px;
-  padding: 12px 14px 12px 18px;
-  margin-bottom: 8px;
+  padding: 14px 18px 14px 20px;
+  margin-bottom: 10px;
   box-shadow: 0 1px 6px rgba(0,0,0,.06);
   transition: box-shadow .15s;
   position: relative;
@@ -669,11 +676,11 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   color: var(--green);
   flex-shrink: 0;
 }
-.pcard-body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.pcard-top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.pcard-body { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.pcard-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pcard-name { font-weight: 600; font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pcard-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.pcard-meta { font-size: 11.5px; color: var(--ink3); display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.pcard-tags { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.pcard-meta { font-size: 11.5px; color: var(--ink3); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pcard-meta > span { display: inline-flex; align-items: center; }
 .pcard-right {
   display: flex;
@@ -683,29 +690,33 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   flex-shrink: 0;
 }
 .pcard-value {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -.02em;
   color: var(--blue);
   white-space: nowrap;
+  min-width: 80px;
+  text-align: right;
+  flex-shrink: 0;
 }
 .pcard.done .pcard-value { color: var(--green); text-decoration: line-through; opacity: .7; }
 .pcard-actions { display: flex; gap: 6px; }
 
 /* Lista agrupada estilo iOS: um bloco branco com divisórias por dia */
 .day-items {
-  background: var(--card);
+  background: transparent;
   border: none;
   border-radius: 22px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,.07);
+  overflow: visible;
+  box-shadow: none;
 }
 .day-items .pcard {
   border: none;
-  border-radius: 0;
-  box-shadow: none;
-  margin: 0;
-  border-bottom: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  margin: 0 0 10px 0;
+  border-bottom: none;
+  padding: 14px 16px 14px 18px;
 }
 .day-items .swipe:last-child .pcard { border-bottom: none; }
 .day-items .pcard:hover { box-shadow: none; }
@@ -747,9 +758,9 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -759,19 +770,22 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 .tag-mul { background: var(--amber-soft); color: var(--amber); }
 .tag-out { background: var(--surface); color: var(--ink3); }
 .tag-tax { background: var(--purple-soft); color: var(--purple); }
-.tag-forma { background: var(--surface); color: var(--ink2); font-size: 10.5px; }
+.tag-forma { background: var(--surface); color: var(--ink2); font-size: 11px; }
 
 /* PLACA */
 .placa {
   font-family: 'DM Mono', 'SF Mono', 'Consolas', 'Monaco', monospace;
-  font-size: 11.5px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   background: var(--surface2);
   color: var(--ink2);
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
   letter-spacing: .04em;
   border: none;
+  min-width: 60px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 /* DONO DOT */
@@ -1279,14 +1293,59 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 }
 
 /* ─── CONTROLES DO RESUMO (período · base · acumulado) ─── */
-.res-ctrls { display: flex; align-items: stretch; gap: 6px; margin-bottom: 16px; }
+.res-ctrls {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 20px;
+  background: var(--blue-soft);
+  border: 2px solid var(--blue-mid);
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 16px rgba(31, 95, 168, 0.12);
+}
 .res-ctrls > * { flex: 1 1 0; min-width: 0; }
-.res-ctrls .rf-bar { margin-bottom: 0; display: flex; }
+.res-ctrls .rf-bar { margin-bottom: 0; display: flex; gap: 8px; }
 .res-ctrls .rf-single { flex: 1; }
-.res-ctrls .rf-single > summary { width: 100%; justify-content: center; gap: 4px; padding: 6px 4px; font-size: 11px; }
-.rc-sel { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 4px; font-family: inherit; font-size: 11px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: center; }
-.rc-sel:focus { outline: none; border-color: var(--blue); }
-html[data-theme="dark"] .rc-sel { background: var(--surface2); color: var(--ink); border-color: var(--line); }
+.res-ctrls .rf-single > summary { width: 100%; justify-content: center; gap: 4px; padding: 8px 6px; font-size: 11.5px; font-weight: 600; }
+.rc-sel {
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid var(--blue-mid);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+.rc-sel:hover {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  box-shadow: 0 2px 8px rgba(31, 95, 168, 0.15);
+}
+.rc-sel:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(31, 95, 168, 0.1);
+}
+html[data-theme="dark"] .res-ctrls {
+  background: rgba(31, 95, 168, 0.15);
+  border-color: rgba(91, 155, 213, 0.4);
+  box-shadow: 0 4px 16px rgba(31, 95, 168, 0.15);
+}
+html[data-theme="dark"] .rc-sel {
+  background: rgba(255, 255, 255, 0.08);
+  color: #7ab8e8;
+  border-color: rgba(91, 155, 213, 0.5);
+}
+html[data-theme="dark"] .rc-sel:hover {
+  background: rgba(31, 95, 168, 0.2);
+  border-color: #7ab8e8;
+}
 
 /* ─── RECEBIMENTOS DE HOJE (janela no Resumo) ─── */
 .receb-hoje { background: linear-gradient(165deg, rgba(31,95,168,.06) 0%, #ffffff 70%); border: 1px solid var(--blue-mid); border-radius: var(--rl); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); cursor: pointer; transition: box-shadow .15s, transform .15s, border-color .15s; }
@@ -1862,6 +1921,109 @@ details[open] summary::before { transform: rotate(90deg); }
     border-radius: 3px;
     background: rgba(0,0,0,.18);
     margin: -6px auto 14px;
+  }
+}
+
+/* Mobile: aumentar fontes e espaçamento a partir do Top 10 clientes */
+@media (max-width: 760px) {
+  #resClientes,
+  #resRecDono,
+  #resTipo,
+  #resForma,
+  #resVeic {
+    /* Aumentar espaçamento entre itens (ranking bars) */
+  }
+
+  #resClientes .rb,
+  #resRecDono .rb,
+  #resTipo .rb,
+  #resForma .rb,
+  #resVeic .rb {
+    margin-bottom: 12px;
+    padding: 12px;
+    gap: 12px;
+    font-size: 14px;
+  }
+
+  /* Aumentar fonte dos labels e valores */
+  #resClientes .rb-l,
+  #resRecDono .rb-l,
+  #resTipo .rb-l,
+  #resForma .rb-l,
+  #resVeic .rb-l {
+    font-size: 14px;
+    font-weight: 600;
+    min-width: 120px;
+  }
+
+  #resClientes .rb-r,
+  #resRecDono .rb-r,
+  #resTipo .rb-r,
+  #resForma .rb-r,
+  #resVeic .rb-r {
+    font-size: 14px;
+    font-weight: 600;
+    gap: 8px;
+  }
+
+  #resClientes .rb-rank,
+  #resRecDono .rb-rank,
+  #resTipo .rb-rank,
+  #resForma .rb-rank,
+  #resVeic .rb-rank {
+    font-size: 16px;
+    font-weight: 700;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  /* Aumentar espaço dos cards com os gráficos */
+  #page-resumo > .card:nth-child(n+4) {
+    padding: 18px;
+  }
+
+  #page-resumo > .card:nth-child(n+4) .card-hd {
+    font-size: 15px;
+    margin-bottom: 16px;
+  }
+
+  /* Botões "Ver mais/menos" maiores */
+  #resClientes .btn,
+  #resRecDono .btn,
+  #resTipo .btn,
+  #resForma .btn,
+  #resVeic .btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  /* Gráficos: aumentar altura e melhorar visualização no mobile */
+  #cMes,
+  #cAcum,
+  #cProj {
+    height: 300px !important;
+  }
+
+  .cw-scroll .cw {
+    height: 300px !important;
+  }
+
+  /* Melhorar legenda dos gráficos */
+  #page-resumo > .card .cw-scroll {
+    margin: 0 -12px;
+    padding: 0 12px;
+  }
+
+  /* Texto dos headers dos gráficos maiores */
+  #hdMes,
+  #hdAcum,
+  #hdVeic,
+  #hdClientes,
+  #hdRecDono,
+  #hdTipo,
+  #hdForma {
+    font-size: 15px;
+    font-weight: 700;
   }
 }
 
@@ -2539,6 +2701,30 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <button class="icon-btn" onclick="toggleTheme()" title="Tema" aria-label="Tema" id="themeBtn" style="width:40px;height:24px;border-radius:12px;padding:0;position:relative;flex-shrink:0"></button>
     </div>
 
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border-radius:14px;margin-bottom:24px">
+      <span style="font-size:18px">🔐</span>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:var(--ink)">Alterar Senha de Acesso</div>
+        <div style="font-size:12px;color:var(--ink3)">Atualize a senha de login da aplicação</div>
+      </div>
+      <button class="btn btn-sm" onclick="abrirAlterarSenhaPremissas()">Alterar</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── MODAL ALTERAR SENHA (PREMISSAS) ─── -->
+<div class="overlay" id="mAlterarSenha">
+  <div class="modal" style="max-width:380px">
+    <div class="mhd">Alterar Senha de Acesso <button class="mcl" onclick="fecharAlterarSenhaPremissas()">✕</button></div>
+    <div class="fg">
+      <div class="fp s2"><label>Senha atual</label><input type="password" id="ps-senha-atual" autocomplete="off"></div>
+      <div class="fp s2"><label>Nova senha</label><input type="password" id="ps-nova-senha" autocomplete="off"></div>
+      <div class="fp s2"><label>Confirmar</label><input type="password" id="ps-confirmar-senha" autocomplete="off" onkeydown="if(event.key==='Enter')salvarSenhaPremissas()"></div>
+    </div>
+    <div id="psSenhaMsg" class="login-msg"></div>
+    <button class="btn btn-green" style="width:100%;justify-content:center;padding:10px;margin-bottom:8px" onclick="salvarSenhaPremissas()">Salvar</button>
+    <button class="btn" style="width:100%;justify-content:center;padding:10px" onclick="fecharAlterarSenhaPremissas()">Cancelar</button>
   </div>
 </div>
 
@@ -2703,24 +2889,14 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <!-- ─── MODAL LOGIN / CRIAR CONTA ─── -->
 <div class="overlay" id="mLogin">
   <div class="modal" style="max-width:380px">
-    <div class="mhd"><span></span><button class="mcl" onclick="closeLoginModal()">✕</button></div>
+    <div class="mhd"><span></span><button class="mcl" onclick="closeLoginModal()" style="opacity:0;pointer-events:none">✕</button></div>
     <div class="login-logo"><img src="logo-agi.png" alt="AGI Locadora"></div>
-    <div class="login-sub" id="loginSub">Entre com seu e-mail e senha</div>
+    <div class="login-sub" id="loginSub">Digite a senha de acesso</div>
     <div id="loginFields" class="fg">
-      <div class="fp s2"><label>E-mail</label><input type="email" id="li-email" autocomplete="username"></div>
-      <div class="fp s2"><label>Senha</label><input type="password" id="li-senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
+      <div class="fp s2"><label>Senha</label><input type="password" id="li-senha" autocomplete="off" onkeydown="if(event.key==='Enter')fazerLogin()" autofocus></div>
     </div>
     <div id="loginMsg" class="login-msg"></div>
     <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px" onclick="fazerLogin()">Entrar</button>
-    <div class="login-links">
-      <a onclick="esqueciSenha()">Esqueci minha senha</a>
-      <a onclick="criarConta()">Criar conta</a>
-    </div>
-    <!-- Definir nova senha (aparece sozinho ao voltar do link de "esqueci a senha") -->
-    <div id="loginRecovery" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
-      <div class="fp s2"><label>Nova senha</label><input type="password" id="li-nova-senha"></div>
-      <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px;margin-top:8px" onclick="definirNovaSenha()">Salvar nova senha</button>
-    </div>
   </div>
 </div>
 
@@ -3121,10 +3297,10 @@ function perfilBtnClick(){ CURRENT_USER ? openPerfilModal() : openLoginModal(); 
 
 function openLoginModal(){
   document.getElementById('loginMsg').textContent='';
-  document.getElementById('loginRecovery').style.display='none';
   document.getElementById('loginFields').style.display='';
   document.getElementById('li-senha').value='';
   document.getElementById('mLogin').classList.add('on');
+  setTimeout(()=>document.getElementById('li-senha').focus(),100);
 }
 function closeLoginModal(){ document.getElementById('mLogin').classList.remove('on'); }
 function toggleFilterPanel(panelId){
@@ -3165,17 +3341,62 @@ function initMobileFilters(){
     }
   }
 }
+function abrirAlterarSenhaPremissas(){
+  document.getElementById('ps-senha-atual').value='';
+  document.getElementById('ps-nova-senha').value='';
+  document.getElementById('ps-confirmar-senha').value='';
+  document.getElementById('psSenhaMsg').textContent='';
+  document.getElementById('mAlterarSenha').classList.add('on');
+  setTimeout(()=>document.getElementById('ps-senha-atual').focus(),100);
+}
+function fecharAlterarSenhaPremissas(){
+  document.getElementById('mAlterarSenha').classList.remove('on');
+}
+function salvarSenhaPremissas(){
+  const msg=document.getElementById('psSenhaMsg');
+  const senhaAtual=document.getElementById('ps-senha-atual').value;
+  const novaSenha=document.getElementById('ps-nova-senha').value;
+  const confirmar=document.getElementById('ps-confirmar-senha').value;
+  const senhaCorreta=localStorage.getItem('agi-login-senha')||'1234';
+
+  if(!senhaAtual||!novaSenha||!confirmar){
+    msg.innerHTML='<span style="color:var(--red)">Preencha todos os campos.</span>';
+    return;
+  }
+
+  if(senhaAtual!==senhaCorreta){
+    msg.innerHTML='<span style="color:var(--red)">Senha atual incorreta.</span>';
+    return;
+  }
+
+  if(novaSenha!==confirmar){
+    msg.innerHTML='<span style="color:var(--red)">Novas senhas não conferem.</span>';
+    return;
+  }
+
+  if(novaSenha.length<4){
+    msg.innerHTML='<span style="color:var(--red)">Nova senha precisa ter pelo menos 4 caracteres.</span>';
+    return;
+  }
+
+  localStorage.setItem('agi-login-senha',novaSenha);
+  msg.innerHTML='<span style="color:var(--green)">✓ Senha alterada com sucesso!</span>';
+  setTimeout(fecharAlterarSenhaPremissas,1500);
+}
 async function fazerLogin(){
   const msg=document.getElementById('loginMsg');
-  if(!SB){ msg.innerHTML='<span style="color:var(--red)">Sem conexão com o Supabase agora (modo demo) — login indisponível.</span>'; return; }
-  const email=document.getElementById('li-email').value.trim();
   const senha=document.getElementById('li-senha').value;
-  if(!email||!senha){ msg.innerHTML='<span style="color:var(--red)">Preencha e-mail e senha.</span>'; return; }
-  msg.textContent='Entrando…';
-  const {error}=await SB.auth.signInWithPassword({email,password:senha});
-  if(error){ msg.innerHTML=`<span style="color:var(--red)">${escHtml(error.message)}</span>`; return; }
-  msg.textContent='';
-  closeLoginModal();
+  const senhaCorreta=localStorage.getItem('agi-login-senha')||'1234';
+
+  if(!senha){ msg.innerHTML='<span style="color:var(--red)">Preencha a senha.</span>'; return; }
+
+  if(senha===senhaCorreta){
+    msg.textContent='';
+    localStorage.setItem('agi-autenticado','1');
+    closeLoginModal();
+  } else {
+    msg.innerHTML='<span style="color:var(--red)">Senha incorreta.</span>';
+  }
 }
 async function criarConta(){
   const msg=document.getElementById('loginMsg');
@@ -3353,18 +3574,9 @@ async function pfBioToggle(el){
 
 // ─── TRAVA DE ABERTURA (só aparece se a biometria estiver ativada) ───
 async function iniciarApp(){
-  const bioAtiva=localStorage.getItem(BIO_LS_KEY)==='1';
-  let temSessao=false;
-  if(SB){
-    const {data:{session}}=await SB.auth.getSession();
-    temSessao=!!session;
-  }
-  if(bioAtiva&&temSessao){
-    document.getElementById('mBioLock').classList.add('on');
-  } else {
-    await authInit();
-    boot();
-  }
+  // Sempre mostrar a tela de login primeiro
+  openLoginModal();
+  boot();
 }
 async function desbloquearComBiometria(){
   const st=document.getElementById('bioLockSt');
@@ -3909,11 +4121,12 @@ function renderBaixas(){
     }
   }
 
-  // Métricas sempre do mês completo, independente do filtro de status
-  const totPend=allMes.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
-  const totRec=allMes.filter(r=>isPago(r)).reduce((a,r)=>a+fN(r.valor_pago),0);
-  const nVenc=allMes.filter(r=>isVenc(r)).length;
-  const nHoje=allMes.filter(r=>isPend(r)&&r.prev_pgto===hoje).length;
+  // Métricas do mês completo, considerando filtro de proprietário (selDono) e filtros aplicados
+  const metricsBase=allMes;
+  const totPend=metricsBase.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
+  const totRec=metricsBase.filter(r=>isPago(r)).reduce((a,r)=>a+fN(r.valor_pago),0);
+  const nVenc=metricsBase.filter(r=>isVenc(r)).length;
+  const nHoje=metricsBase.filter(r=>isPend(r)&&r.prev_pgto===hoje).length;
 
   // Metrics (compactos — sem 3ª linha)
   document.getElementById('baixa-metrics').innerHTML=`
