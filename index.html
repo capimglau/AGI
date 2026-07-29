@@ -831,13 +831,14 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
 }
 .owner-select-mobile {
   display: none;
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: var(--rl);
+  flex: 1;
+  min-width: 0;
+  padding: 11px 10px;
+  border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
 }
 @media (max-width: 1100px) {
@@ -1131,7 +1132,7 @@ body.tip-pinned::before {
 .rh-link:hover { text-decoration: underline; }
 .vc-datas b { color: var(--red); font-weight: 700; }
 .rb-l { font-size: 12.5px; width: auto; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; padding: 0; margin-right: 12px; }
-.rb-bg { flex: 1; height: 10.5px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+.rb-bg { flex: 1; height: 8.4px; background: var(--surface); border-radius: 3px; overflow: hidden; }
 .rb-f { height: 100%; border-radius: 3px; transition: width .6s ease; }
 .rb-v { font-size: 11px; font-weight: 600; width: 45px; text-align: right; flex-shrink: 0; margin: 0; padding: 0; }
 #resClientes .rb-l { max-width: 150px; }
@@ -1141,7 +1142,7 @@ body.tip-pinned::before {
 /* Barra dupla numa linha só: amarela = previsto, verde = recebido por cima.
    Traço fino de pontas arredondadas, com um ponto marcando onde o recebido
    termina — mesmo acabamento das barras de contratos/despesas. */
-.rb-bg2 { position: relative; height: 7.5px; border-radius: 999px; overflow: visible; }
+.rb-bg2 { position: relative; height: 6px; border-radius: 999px; overflow: visible; }
 .rb-bg2 .rb-f { position: absolute; left: 0; top: 0; border-radius: 999px; }
 /* Halo em volta do traço: o borrão com espalhamento faz a cor sair da linha e
    se dissolver para fora, como no print — não é sombra embaixo, é gradiente
@@ -2343,20 +2344,22 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
     <!-- RIGHT: side panel -->
     <div class="side-panel">
-      <!-- Botões de ações -->
+      <!-- Botões de ações — no mobile o seletor de proprietário entra na
+           mesma linha, ao lado dos botões (o filtro rápido de pills vira
+           dropdown compacto só aí, junto com Selec.Todos/Baixar). -->
       <div class="fbar fbar-baixas">
         <button class="btn" onclick="selTodos()">Selec. Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
+        <select class="owner-select-mobile" id="ownerSelectMobile" onchange="setDono(this.value)">
+          <option value="">Todos os proprietários</option>
+        </select>
       </div>
-      <!-- Filtro rápido por proprietário — lista de pills no desktop;
-           no mobile vira um seletor único (dropdown), compacto. -->
+      <!-- Filtro rápido por proprietário — lista de pills, só no desktop
+           (no mobile some, vira o seletor acima). -->
       <div class="owner-pills">
         <h3>Proprietário</h3>
         <div id="ownerPills"></div>
       </div>
-      <select class="owner-select-mobile" id="ownerSelectMobile" onchange="setDono(this.value)">
-        <option value="">Todos os proprietários</option>
-      </select>
 
       <!-- Resumo do mês -->
       <div class="mini-summary" id="miniSummary"></div>
