@@ -833,13 +833,22 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   display: none;
   flex: 1;
   min-width: 0;
-  padding: 11px 10px;
+  padding: 11px 26px 11px 14px;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: var(--ink);
+  border: 1px solid rgba(255,255,255,.8);
+  background: rgba(255,255,255,.6) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231f5fa8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px;
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  box-shadow: 0 1px 6px rgba(60,70,120,.06);
+  color: var(--blue2);
   font-size: 13px;
   font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
 }
 @media (max-width: 1100px) {
   /* Sem o grid de 2 colunas, "sticky" prende o painel no topo por cima da
@@ -2393,7 +2402,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <button class="btn" onclick="selTodos()">Selec. Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
         <select class="owner-select-mobile" id="ownerSelectMobile" onchange="setDono(this.value)">
-          <option value="">Todos os proprietários</option>
+          <option value="">Proprietário</option>
         </select>
       </div>
       <!-- Filtro rápido por proprietário — lista de pills, só no desktop
@@ -3451,6 +3460,14 @@ function initMobileFilters(){
     const metricsBtn=document.getElementById('metricsToggleBtn');
     if(metrics)metrics.classList.add('collapsed');
     if(metricsBtn)metricsBtn.style.display='flex';
+
+    // Placeholder curto — o texto completo ("Buscar placa, cliente,
+    // proprietário...") não cabe ao lado do botão Duplicados/Excel/CSV
+    // e ficava cortado no meio de uma palavra.
+    ['bx-q','lf-q'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.placeholder='Buscar…';
+    });
   }
 }
 function toggleMetrics(){
@@ -4223,7 +4240,7 @@ function buildOwnerPills(){
 
   const sel=document.getElementById('ownerSelectMobile');
   if(sel){
-    sel.innerHTML=`<option value="">Todos os proprietários</option>`+donos.map(d=>`<option value="${escHtml(d)}"${selDono===d?' selected':''}>${escHtml(d)}</option>`).join('');
+    sel.innerHTML=`<option value="">Proprietário</option>`+donos.map(d=>`<option value="${escHtml(d)}"${selDono===d?' selected':''}>${escHtml(d)}</option>`).join('');
     sel.value=selDono||'';
   }
 }
