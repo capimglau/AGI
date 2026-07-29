@@ -1031,7 +1031,8 @@ body.tip-pinned::before {
 .rb-tip-c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rb-tip-c small { color: var(--ink3); font-size: 13px; margin-left: 7px; }
 .rb-tip-v { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rb-tip-mais { color: var(--ink3); font-size: 14px; padding-top: 10px; }
+.rb-tip-mais { color: var(--blue); font-size: 14px; padding-top: 10px; font-weight: 600; cursor: pointer; }
+.rb-tip-mais:hover { text-decoration: underline; }
 /* Botões de swipe compactos (só ícone) — a linha do popup é baixa demais
    pro tamanho normal (76px, ícone + rótulo) usado em Recebimentos. */
 .rb-tip .swipe-act { width: 48px; }
@@ -4590,19 +4591,22 @@ function tipAtraso(o){
     if(!rows||!rows.length)return '';
     const lista=[...rows].sort((a,b)=>(a.prev_pgto||'').localeCompare(b.prev_pgto||''));
     const tot=lista.reduce((a,r)=>a+fN(valorDe(r)),0);
-    const linhas=lista.slice(0,MAX).map(r=>{
+    const linhas=lista.map((r,idx)=>{
       const dt=r.prev_pgto?`${r.prev_pgto.split('-')[2]}/${r.prev_pgto.split('-')[1]}`:'—';
       const i=allD().indexOf(r);
       const pago=isPago(r),temPago=fN(r.valor_pago)>0;
+      const extra=idx>=MAX;
       // Mesmas ações do swipe de Recebimentos (Baixar/Reverter/Editar),
       // compactas — event.stopPropagation() pra não deixar o clique fechar
       // o próprio popup (o listener de clique que fixa/tira o popup fica em
       // document, e senão trataria o toque no botão como "fora do popup").
-      return`<div class="swipe"><div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="event.stopPropagation();swDo(${i},1)" title="Baixar"><span class="ic">✓</span></button>`}${temPago?`<button class="swipe-act revert" onclick="event.stopPropagation();swDo(${i},3)" title="Reverter pagamento"><span class="ic">↺</span></button>`:''}<button class="swipe-act del" onclick="event.stopPropagation();swDo(${i},4)" title="Excluir"><span class="ic">🗑</span></button><button class="swipe-act edit" onclick="event.stopPropagation();swDo(${i},0)" title="Editar"><span class="ic">✏</span></button></div><div class="pcard rb-tip-l${cls==='t-rec'?' rb-tip-pago':''}"><span class="rb-tip-d ${cls}">${dt}</span>
+      // Itens além do MAX ficam prontos no DOM, só escondidos (rb-tip-extra)
+      // — "+N lançamento(s)" revela em vez de precisar recarregar/re-render.
+      return`<div class="swipe${extra?' rb-tip-extra':''}"${extra?' style="display:none"':''}><div class="swipe-actions">${pago?'':`<button class="swipe-act pay" onclick="event.stopPropagation();swDo(${i},1)" title="Baixar"><span class="ic">✓</span></button>`}${temPago?`<button class="swipe-act revert" onclick="event.stopPropagation();swDo(${i},3)" title="Reverter pagamento"><span class="ic">↺</span></button>`:''}<button class="swipe-act del" onclick="event.stopPropagation();swDo(${i},4)" title="Excluir"><span class="ic">🗑</span></button><button class="swipe-act edit" onclick="event.stopPropagation();swDo(${i},0)" title="Editar"><span class="ic">✏</span></button></div><div class="pcard rb-tip-l${cls==='t-rec'?' rb-tip-pago':''}"><span class="rb-tip-d ${cls}">${dt}</span>
         <span class="rb-tip-c">${esc(r.cliente||'—')}<small>${esc(r.placa||'')}${sufixo(r)}</small></span>
         <span class="rb-tip-v">${fR(valorDe(r))}</span></div></div>`;
     }).join('');
-    const resto=lista.length>MAX?`<div class="rb-tip-mais">+${lista.length-MAX} lançamento(s)…</div>`:'';
+    const resto=lista.length>MAX?`<div class="rb-tip-mais" onclick="event.stopPropagation();verMaisTip(this)">+${lista.length-MAX} lançamento(s)…</div>`:'';
     return`<div class="rb-tip-hd ${cls}">${icone} ${lista.length} ${titulo} · ${fR(tot)}</div>${linhas}${resto}`;
   };
   const corpo=
@@ -4610,6 +4614,15 @@ function tipAtraso(o){
     bloco(o.venRows,'t-ven','◷','a vencer',r=>r.saldo,r=>r.prev_pgto?` · vence em ${-dias(r.prev_pgto)}d`:'')+
     bloco(o.recRows,'t-rec','✓','recebido(s)',r=>r.valor_pago,()=>'');
   return corpo?`<div class="rb-tip">${corpo}</div>`:'';
+}
+// Clique no "+N lançamento(s)…" do popup das barras: os itens extras já
+// estão no DOM (só escondidos com display:none), então é só revelar os
+// irmãos anteriores marcados como rb-tip-extra (do mesmo bloco) e remover
+// o próprio aviso — sem precisar re-renderizar o popup inteiro.
+function verMaisTip(el){
+  let prev=el.previousElementSibling;
+  while(prev&&prev.classList.contains('rb-tip-extra')){prev.style.display='';prev=prev.previousElementSibling;}
+  el.remove();
 }
 // Valor por extenso no desktop e abreviado no celular (o CSS escolhe qual
 // aparece). Sem isso os dois valores estouram a coluna e espremem a barra.
