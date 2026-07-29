@@ -960,7 +960,7 @@ tr:hover td { background: #f9f8f5; }
 .cw-scroll .cw { width: auto; }
 
 /* RANK BAR */
-.rb { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; position: relative; }
+.rb { display: flex; align-items: center; gap: 0; margin-bottom: 7px; position: relative; }
 /* Lista de atrasados ao passar o mouse na barra. */
 .rb-tip {
   display: none; position: absolute; left: 92px; top: calc(100% + 5px); z-index: 60;
@@ -3343,7 +3343,7 @@ function initMobileFilters(){
 }
 let inactivityTimer;
 let lastActivityTime=Date.now();
-const INACTIVITY_TIMEOUT=20*60*1000;
+const INACTIVITY_TIMEOUT=30*60*1000;
 function resetInactivityTimer(){
   lastActivityTime=Date.now();
 }
