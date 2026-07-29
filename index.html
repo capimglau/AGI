@@ -822,17 +822,6 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   position: sticky;
   top: 76px;
 }
-@media (max-width: 1100px) {
-  /* Sem o grid de 2 colunas, "sticky" prende o painel no topo por cima da
-     lista rolando por baixo (o "primeiro plano/fundo" reportado) — no
-     layout de 1 coluna ele já abre no topo (order:-1), não precisa grudar. */
-  .side-panel { margin-top: 0; position: static; }
-  /* A lista de pills (uma linha por proprietário) é grande demais pro
-     mobile — vira um <select> único, compacto. */
-  .owner-pills { display: none; }
-  .owner-select-mobile { display: block; }
-}
-
 /* Owner filter pills */
 .owner-pills {
   background: var(--card);
@@ -850,6 +839,22 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   color: var(--ink);
   font-size: 15px;
   font-weight: 600;
+}
+@media (max-width: 1100px) {
+  /* Sem o grid de 2 colunas, "sticky" prende o painel no topo por cima da
+     lista rolando por baixo (o "primeiro plano/fundo" reportado) — no
+     layout de 1 coluna ele já abre no topo (order:-1), não precisa grudar. */
+  .side-panel { margin-top: 0; position: static; }
+  /* A lista de pills (uma linha por proprietário) é grande demais pro
+     mobile — vira um <select> único, compacto. Essas regras precisam vir
+     DEPOIS das declarações base acima (mesma especificidade — a ordem no
+     arquivo decide, e a media query só ganha se vier por último). */
+  .owner-pills { display: none; }
+  .owner-select-mobile { display: block; }
+  /* Resumo do mês (pendente/recebido/vencem hoje/próximos 7 dias/vencidos)
+     já aparece nos cartões de métricas no topo da página — some daqui só
+     no mobile pra não duplicar informação e economizar espaço. */
+  .mini-summary { display: none; }
 }
 .owner-pills h3 {
   font-size: 11px;
