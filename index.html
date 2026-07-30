@@ -849,11 +849,11 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   padding: 11px 26px 11px 14px;
   border-radius: 999px;
   border: none;
-  background: rgba(255,255,255,.3) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231f5fa8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px;
+  background: rgba(255,255,255,.3) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%232e2e38" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px;
   -webkit-backdrop-filter: blur(18px) saturate(180%);
   backdrop-filter: blur(18px) saturate(180%);
   box-shadow: 0 1px 6px rgba(60,70,120,.05), inset 0 1px 0 rgba(255,255,255,.35);
-  color: var(--blue2);
+  color: var(--ink2);
   font-size: 13px;
   font-weight: 600;
   text-align: center;
@@ -864,7 +864,7 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   -webkit-appearance: none;
   transition: background .15s ease;
 }
-.owner-select-mobile:hover { background: rgba(255,255,255,.45) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231f5fa8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px; }
+.owner-select-mobile:hover { background: rgba(255,255,255,.45) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%232e2e38" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px; }
 @media (max-width: 1100px) {
   /* Sem o grid de 2 colunas, "sticky" prende o painel no topo por cima da
      lista rolando por baixo (o "primeiro plano/fundo" reportado) — no
@@ -1403,7 +1403,7 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: var(--blue);
+  color: var(--ink2);
   cursor: pointer;
   text-align: center;
   box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 1px 0 rgba(255,255,255,.35);
@@ -1411,12 +1411,11 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 }
 .rc-sel:hover {
   background: rgba(255,255,255,.5);
-  box-shadow: 0 2px 8px rgba(31, 95, 168, 0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
 }
 .rc-sel:focus {
   outline: none;
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(31, 95, 168, 0.1);
+  box-shadow: 0 0 0 3px rgba(120,120,128,.15);
 }
 html[data-theme="dark"] .res-ctrls {
   background: rgba(31, 95, 168, 0.15);
@@ -1425,11 +1424,11 @@ html[data-theme="dark"] .res-ctrls {
 }
 html[data-theme="dark"] .rc-sel {
   background: rgba(255, 255, 255, 0.06);
-  color: #7ab8e8;
+  color: var(--ink);
   border: none;
 }
 html[data-theme="dark"] .rc-sel:hover {
-  background: rgba(31, 95, 168, 0.18);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ─── RECEBIMENTOS DE HOJE (janela no Resumo) ─── */
@@ -1880,23 +1879,23 @@ details[open] summary::before { transform: rotate(90deg); }
     width: 100%;
     padding: 12px 0;
     margin-bottom: 10px;
-    background: rgba(31,95,168,.14);
+    background: rgba(120,120,128,.14);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     backdrop-filter: blur(20px) saturate(180%);
-    color: var(--blue);
+    color: var(--ink2);
     border: none;
     border-radius: 999px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(31,95,168,.07), inset 0 1px 0 rgba(255,255,255,.25);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.25);
     transition: background .15s ease, transform .12s cubic-bezier(.34,1.4,.64,1);
   }
 
-  .filt-toggle-btn:hover { background: rgba(31,95,168,.2); }
+  .filt-toggle-btn:hover { background: rgba(120,120,128,.22); }
   .filt-toggle-btn:active { transform: scale(.98); }
 
-  .filt-toggle-btn.expanded { background: rgba(31,95,168,.24); }
+  .filt-toggle-btn.expanded { background: rgba(120,120,128,.28); }
 
   #filtPanel,
   #lfFiltPanel {
@@ -2203,7 +2202,7 @@ details[open] summary::before { transform: rotate(90deg); }
   backdrop-filter: blur(18px) saturate(180%);
   border: none;
   box-shadow: 0 1px 6px rgba(60,70,120,.05);
-  color: var(--blue2);
+  color: var(--ink2);
 }
 .fbar-baixas .btn:hover,
 .fbar-baixas .btn-green:hover { background: rgba(255,255,255,.45); }
@@ -2338,9 +2337,9 @@ html[data-theme="dark"] .btn-blue { background: rgba(91,155,213,.6); color: #0e1
 html[data-theme="dark"] .btn-green { background: rgba(52,199,89,.16); color: #6fdb8f; }
 html[data-theme="dark"] .btn-amber { background: rgba(240,180,41,.16); color: #f7c948; }
 html[data-theme="dark"] .btn-red { background: rgba(255,107,107,.13); color: #ff8a8a; }
-html[data-theme="dark"] .filt-toggle-btn { background: rgba(91,155,213,.14); border: none; color: #7ab8e8; }
-html[data-theme="dark"] .filt-toggle-btn:hover { background: rgba(91,155,213,.22); }
-html[data-theme="dark"] .filt-toggle-btn.expanded { background: rgba(91,155,213,.26); }
+html[data-theme="dark"] .filt-toggle-btn { background: rgba(120,140,170,.14); border: none; color: var(--ink); }
+html[data-theme="dark"] .filt-toggle-btn:hover { background: rgba(120,140,170,.22); }
+html[data-theme="dark"] .filt-toggle-btn.expanded { background: rgba(120,140,170,.28); }
 html[data-theme="dark"] .metrics-toggle-btn { background: rgba(120,140,170,.1); border: none; color: var(--ink); }
 html[data-theme="dark"] .metrics-toggle-btn:hover { background: rgba(120,140,170,.18); }
 html[data-theme="dark"] .fp input, html[data-theme="dark"] .fp select,
