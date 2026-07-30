@@ -481,7 +481,11 @@ body::before {
 }
 .bf-status-destaque:focus { outline: none; box-shadow: 0 0 0 3px rgba(31,95,168,.15); }
 /* Barra de ações dos Recebimentos: botões espaçados lateral e verticalmente */
-.fbar-baixas { gap: 16px; margin: 6px 0 18px; align-items: center; }
+.fbar-baixas { gap: 10px; margin: 6px 0 18px; align-items: center; }
+/* Afasta o grupo dos botões redondos (Selecionar/Baixar) do botão
+   Filtros — ficam próximos um do outro (gap normal da linha) mas
+   separados do Filtros por um respiro maior. */
+.fbar-baixas .filt-toggle-btn + .icon-btn { margin-left: 16px; }
 .fbar-baixas .btn { flex: 1; justify-content: center; padding: 11px 12px; border-radius: 999px; font-weight: 600; }
 
 /* Seletor segmentado (Resumo / Lançamentos / Premissas) — estilo iOS */
