@@ -732,8 +732,13 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  align-self: flex-start;
-  margin-top: 50px;
+  /* Ancorado embaixo (perto da linha de datas/vencimento) em vez de um
+     margin-top fixo do topo — um valor fixo só "acertava" a obs quando o
+     card tinha exatamente as mesmas linhas acima; com a tag "pago" ou
+     "parcial" empurrando tudo pra baixo, o valor ficava alto demais e
+     colava na obs, esticando o card. Ancorar embaixo acompanha qualquer
+     quantidade de conteúdo acima, sem precisar adivinhar um número fixo. */
+  align-self: flex-end;
   gap: 8px;
   flex-shrink: 0;
 }
