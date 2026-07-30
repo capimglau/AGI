@@ -56,6 +56,15 @@ body {
      puxar-pra-atualizar do navegador — que recarrega a página e parece que
      o app fechou, perdendo o que estava sendo editado. */
   overscroll-behavior-y: contain;
+  /* Site inteiro não-selecionável por padrão (evita seleção acidental ao
+     tocar/arrastar em cards, botões, textos etc.) — reabilitado abaixo só
+     nos campos onde dá pra digitar. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+input, textarea, select, [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 body::before {
   content: '';
