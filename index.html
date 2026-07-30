@@ -1822,12 +1822,16 @@ details[open] summary::before { transform: rotate(90deg); }
   .nt-short { display: block; font-size: 10px; font-weight: 600; letter-spacing: -.01em; }
 
   /* Conteúdo */
-  .page { padding: 14px 12px; }
-  .mrow, #res-m { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .mrow .mc { padding: 10px 11px; border-radius: 14px; }
-  .mrow .mc-label { font-size: 8.5px; letter-spacing: .04em; margin-bottom: 3px; }
+  .page { padding: 16px 14px; }
+  .mrow, #res-m { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mrow .mc { padding: 16px 14px; border-radius: 16px; }
+  .mrow .mc-label { font-size: 8.5px; letter-spacing: .04em; margin-bottom: 5px; }
   .mrow .mc-value { font-size: 16px; letter-spacing: -.03em; }
-  .mrow .mc-sub { font-size: 9.5px; margin-top: 2px; }
+  .mrow .mc-sub { font-size: 9.5px; margin-top: 4px; }
+
+  /* Espaçamento padrão entre os blocos do Resumo (vencidos/hoje/boletos/
+     gráficos) — 16px ficava apertado empilhado no mobile. */
+  .card, .receb-hoje, .rh-dupla { margin-bottom: 20px; }
 
   /* Filtros compactos: 3 seletores numa linha, ações na linha de baixo */
   .fbar { flex-wrap: wrap; gap: 7px; }
