@@ -1933,6 +1933,16 @@ details[open] summary::before { transform: rotate(90deg); }
 
   .filt-toggle-btn.expanded { background: rgba(255,255,255,.54); }
 
+  /* Em Recebimentos o botão é movido por JS pra dentro da fileira dos
+     botões redondos — some da largura total, vira mais um item flex. */
+  .fbar-baixas .filt-toggle-btn {
+    width: auto;
+    flex: 1;
+    margin-bottom: 0;
+    padding: 12px 10px;
+    font-size: 13px;
+  }
+
   #filtPanel,
   #lfFiltPanel {
     max-height: 500px;
@@ -2464,12 +2474,18 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <input type="text" id="bx-q" class="search-input" style="flex:1;min-width:0;margin-bottom:0" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
     <button class="btn btn-sm" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, cliente, período (saída/retorno), tipo, vencimento e valor">🔁 Duplicados</button>
   </div>
-  <!-- Proprietário fica de fora (já tem o painel dedicado ao lado) — status
-       entra como o primeiro da linha, seguido dos outros 4 filtros, todos
-       sempre visíveis, sem botão "Filtros" (tudo montado por buildBaixasFilters). -->
+  <!-- No mobile o botão "Filtros" e este painel são movidos por JS
+       (initMobileFilters) pra ficarem ao lado dos botões redondos
+       Selecionar/Baixar — no desktop ficam aqui, sempre visíveis, sem
+       toggle (tudo montado por buildBaixasFilters). -->
   <button class="filt-toggle-btn" id="filtToggleBtnBaixas" onclick="toggleFilterPanel('filtPanel')" style="display:none">▼ Filtros</button>
   <div class="filt-panel filt-panel-baixas" id="filtPanel">
     <div id="baixasFilters" class="rf-bar rf-flat"></div>
+    <div class="owner-select-wrap" id="ownerSelectWrap">
+      <select class="owner-select-mobile" id="ownerSelectMobile" onchange="setDono(this.value)">
+        <option value="">Proprietário</option>
+      </select>
+    </div>
   </div>
 
   <div class="baixas-layout">
@@ -2482,9 +2498,9 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
     <!-- RIGHT: side panel -->
     <div class="side-panel">
-      <!-- Botões de ações — no mobile o seletor de proprietário entra na
-           mesma linha, ao lado dos botões (o filtro rápido de pills vira
-           dropdown compacto só aí, junto com Selec.Todos/Baixar). -->
+      <!-- Botões de ações — no mobile o botão "Filtros" (e o painel, com o
+           seletor de Proprietário dentro) são movidos por JS pra esta
+           linha, ao lado dos botões redondos Selecionar/Baixar. -->
       <div class="fbar fbar-baixas">
         <button class="icon-btn round-action" onclick="selTodos()" title="Selecionar todos" aria-label="Selecionar todos">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12l2.5 2.5 5-5"/></svg>
@@ -2492,11 +2508,6 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <button class="icon-btn round-action round-action-green" onclick="baixarSelecionados()" title="Baixar selecionados" aria-label="Baixar selecionados">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </button>
-        <div class="owner-select-wrap">
-          <select class="owner-select-mobile" id="ownerSelectMobile" onchange="setDono(this.value)">
-            <option value="">Proprietário</option>
-          </select>
-        </div>
       </div>
       <!-- Filtro rápido por proprietário — lista de pills, só no desktop
            (no mobile some, vira o seletor acima). -->
@@ -3547,6 +3558,20 @@ function initMobileFilters(){
     }
     if(filtToggleBtnLanc){
       filtToggleBtnLanc.style.display='block';
+    }
+
+    // Recebimentos: move o botão "Filtros" (e o painel logo depois dele,
+    // com o Proprietário dentro) pra dentro da fileira dos botões redondos
+    // Selecionar/Baixar — só no mobile; no desktop tudo fica onde já
+    // estava (o botão nunca aparece lá, então mover não muda nada).
+    const fbarBaixas=document.querySelector('.fbar-baixas');
+    if(fbarBaixas&&filtToggleBtnBaixas&&filtPanel){
+      if(fbarBaixas.firstElementChild!==filtToggleBtnBaixas){
+        fbarBaixas.insertBefore(filtToggleBtnBaixas,fbarBaixas.firstElementChild);
+      }
+      if(filtToggleBtnBaixas.nextElementSibling!==filtPanel){
+        fbarBaixas.parentNode.insertBefore(filtPanel,fbarBaixas.nextSibling);
+      }
     }
 
     const metrics=document.getElementById('baixa-metrics');
