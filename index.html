@@ -3494,8 +3494,11 @@ async function renderAuditoria(){
 // ID/digital do aparelho. O banco continua liberado pra chave anônima (ver
 // aviso no topo de supabase/auth_setup.sql) — ninguém fica de fora do app
 // por não ter conta.
-let CURRENT_USER = null;    // {id,email} logado, ou null
-let CURRENT_PERFIL = null;  // linha da tabela perfis (nome, foto_url), ou null
+let CURRENT_USER = null;    // {id,email} logado, ou null — vestígio do login por Supabase Auth (não usado mais: login hoje é por senha local).
+// Perfil (nome/foto) agora é local ao aparelho — sem Supabase Auth não há
+// mais um usuário/UID pra vincular a linha da tabela "perfis".
+const PERFIL_LS_KEY='agi-perfil';
+let CURRENT_PERFIL=(()=>{ try{ return JSON.parse(localStorage.getItem(PERFIL_LS_KEY)||'null'); }catch(e){ return null; } })();
 
 async function authInit(){
   if(!SB) return;
@@ -3516,21 +3519,25 @@ async function onAuthChange(session){
   }
   renderPerfilBtn();
 }
+// Botão de perfil: já se está vendo o app, já passou pela tela de senha
+// (iniciarApp trava tudo atrás dela) — não existe mais um estado "não
+// logado" aqui dentro pra abrir a tela de login de novo. O clique sempre
+// abre o perfil; o ícone é a foto (se tiver), as iniciais do nome (se
+// tiver só nome) ou a logo da AGI como padrão.
 function renderPerfilBtn(){
   const btn=document.getElementById('perfilBtn'); if(!btn) return;
-  if(CURRENT_USER){
-    const nome=CURRENT_PERFIL?.nome||CURRENT_USER.email.split('@')[0];
-    const foto=CURRENT_PERFIL?.foto_url;
-    btn.innerHTML=foto
-      ? `<img src="${foto}" alt="${escHtml(nome)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-      : `<span style="font-weight:700;font-size:14px">${escHtml(nome.slice(0,2).toUpperCase())}</span>`;
-    btn.title=nome;
+  const nome=CURRENT_PERFIL?.nome;
+  const foto=CURRENT_PERFIL?.foto_url;
+  if(foto){
+    btn.innerHTML=`<img src="${foto}" alt="${escHtml(nome||'Perfil')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else if(nome){
+    btn.innerHTML=`<span style="font-weight:700;font-size:14px">${escHtml(nome.slice(0,2).toUpperCase())}</span>`;
   } else {
-    btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-    btn.title='Entrar';
+    btn.innerHTML=`<img src="logo-agi.png" alt="Perfil" style="width:62%;height:62%;object-fit:contain">`;
   }
+  btn.title=nome||'Perfil';
 }
-function perfilBtnClick(){ CURRENT_USER ? openPerfilModal() : openLoginModal(); }
+function perfilBtnClick(){ openPerfilModal(); }
 
 function openLoginModal(){
   document.getElementById('loginMsg').textContent='';
@@ -3749,13 +3756,20 @@ async function sairDaConta(){
   if(!confirm('Sair da conta?')) return;
   desativarBiometria();
   if(SB) await SB.auth.signOut();
+  // O que realmente controla o acesso hoje é essa flag local (login por
+  // senha), não o Supabase Auth — sem limpar ela, "Sair da conta" não
+  // desconectava de verdade, só fechava o modal.
+  localStorage.removeItem('agi-autenticado');
   closePerfilModal();
+  openLoginModal();
 }
 
-// ─── PERFIL (nome + foto) ───
+// ─── PERFIL (nome + foto) — salvo em localStorage, local a este aparelho.
+// Sem Supabase Auth não há mais um usuário/UID pra vincular a um perfil
+// na nuvem; cada aparelho guarda o seu (igual a senha de acesso). ───
 function openPerfilModal(){
   document.getElementById('pf-nome').value=CURRENT_PERFIL?.nome||'';
-  document.getElementById('pf-email').textContent=CURRENT_USER?.email||'';
+  document.getElementById('pf-email').textContent='';
   document.getElementById('pf-foto-input').removeAttribute('data-pending-foto');
   atualizarFotoPreview(CURRENT_PERFIL?.foto_url);
   document.getElementById('pf-bio-toggle').checked=localStorage.getItem(BIO_LS_KEY)==='1';
@@ -3765,7 +3779,7 @@ function openPerfilModal(){
 function closePerfilModal(){ document.getElementById('mPerfil').classList.remove('on'); }
 function atualizarFotoPreview(url){
   const el=document.getElementById('pf-foto-preview'); if(!el) return;
-  const iniciais=(CURRENT_PERFIL?.nome||CURRENT_USER?.email||'?').slice(0,2).toUpperCase();
+  const iniciais=(CURRENT_PERFIL?.nome||'?').slice(0,2).toUpperCase();
   el.innerHTML = url
     ? `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
     : `<span style="font-size:20px;font-weight:700">${escHtml(iniciais)}</span>`;
@@ -3791,15 +3805,12 @@ function pfFotoChange(inp){
   reader.readAsDataURL(file);
 }
 async function salvarPerfil(){
-  if(!SB||!CURRENT_USER) return;
   const nome=document.getElementById('pf-nome').value.trim();
   const fotoInp=document.getElementById('pf-foto-input');
   const foto=fotoInp.getAttribute('data-pending-foto')||CURRENT_PERFIL?.foto_url||null;
   const msg=document.getElementById('pfMsg');
-  msg.textContent='Salvando…';
-  const {data,error}=await SB.from('perfis').upsert({id:CURRENT_USER.id,nome:nome||null,foto_url:foto,atualizado_em:new Date().toISOString()}).select().single();
-  if(error){ msg.innerHTML=`<span style="color:var(--red)">${escHtml(error.message)}</span>`; return; }
-  CURRENT_PERFIL=data;
+  CURRENT_PERFIL={nome:nome||null,foto_url:foto};
+  try{localStorage.setItem(PERFIL_LS_KEY,JSON.stringify(CURRENT_PERFIL));}catch(e){}
   renderPerfilBtn();
   msg.innerHTML='<span style="color:var(--green)">✓ Salvo!</span>';
 }
