@@ -194,35 +194,43 @@ body::before {
 .stat-pill .val.g { color: var(--green); }
 
 /* ─── BTN ─── */
+/* ─── LIQUID GLASS (iOS 26) — material padrão de todos os botões/filtros:
+   fundo translúcido com blur, borda clara que capta luz no topo, pílula
+   arredondada e um leve destaque interno (inset) simulando refração. ─── */
 .btn {
   padding: 7px 16px;
-  border-radius: 9px;
-  border: 1px solid var(--line);
-  background: var(--card);
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.7);
+  background: rgba(255,255,255,.55);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: all .03s;
+  transition: background .15s ease, transform .12s cubic-bezier(.34,1.4,.64,1), box-shadow .15s ease;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 18px rgba(0,0,0,.07), inset 0 1px 0 rgba(255,255,255,.6);
 }
-.btn:hover { background: var(--surface); }
+.btn:hover { background: rgba(255,255,255,.78); }
+.btn:active { transform: scale(.96); box-shadow: 0 1px 2px rgba(0,0,0,.08), inset 0 1px 2px rgba(0,0,0,.06); }
 .btn-block { width: 100%; justify-content: center; }
-.btn-ink { background: var(--ink); color: #fff; border-color: var(--ink); }
-.btn-ink:hover { background: var(--ink2); }
-.btn-blue { background: var(--blue); color: #fff; border-color: var(--blue); }
-.btn-blue:hover { background: #1239d4; }
-.btn-green { background: var(--green-soft); color: var(--green); border-color: transparent; }
-.btn-green:hover { background: #d0eddc; }
-.btn-amber { background: var(--amber-soft); color: var(--amber); border-color: transparent; }
-.btn-amber:hover { background: #fde8bc; }
-.btn-red { background: var(--red-soft); color: var(--red); border-color: transparent; }
-.btn-sm { padding: 4px 10px; font-size: 12.5px; border-radius: 7px; }
-.btn-xs { padding: 3px 8px; font-size: 11.5px; border-radius: 6px; }
+.btn-ink { background: rgba(20,20,22,.82); color: #fff; border-color: rgba(255,255,255,.22); }
+.btn-ink:hover { background: rgba(20,20,22,.92); }
+.btn-blue { background: rgba(31,95,168,.78); color: #fff; border-color: rgba(255,255,255,.35); }
+.btn-blue:hover { background: rgba(31,95,168,.9); }
+.btn-green { background: rgba(52,199,89,.16); color: var(--green); border-color: rgba(52,199,89,.35); }
+.btn-green:hover { background: rgba(52,199,89,.26); }
+.btn-amber { background: rgba(240,180,41,.18); color: var(--amber); border-color: rgba(240,180,41,.35); }
+.btn-amber:hover { background: rgba(240,180,41,.28); }
+.btn-red { background: rgba(191,37,24,.14); color: var(--red); border-color: rgba(191,37,24,.3); }
+.btn-red:hover { background: rgba(191,37,24,.22); }
+.btn-sm { padding: 4px 10px; font-size: 12.5px; }
+.btn-xs { padding: 3px 8px; font-size: 11.5px; }
 /* Botão de ícone circular preenchido — "liquid glass" iOS */
 .icon-btn {
   width: 40px; height: 40px; padding: 0;
@@ -488,15 +496,20 @@ body::before {
 
 .filt-panel select {
   width: 100%;
-  padding: 9px 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--card);
+  padding: 9px 14px;
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 999px;
+  background: rgba(255,255,255,.55);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.6);
   font-family: inherit;
   font-size: 13px;
   color: var(--ink);
   cursor: pointer;
+  transition: background .15s ease;
 }
+.filt-panel select:hover { background: rgba(255,255,255,.75); }
 .filt-panel select:focus { outline: none; border-color: var(--blue); }
 
 /* Banners de métrica compactos (Recebimentos) */
@@ -839,7 +852,7 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   background: rgba(255,255,255,.6) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231f5fa8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px;
   -webkit-backdrop-filter: blur(18px) saturate(180%);
   backdrop-filter: blur(18px) saturate(180%);
-  box-shadow: 0 1px 6px rgba(60,70,120,.06);
+  box-shadow: 0 1px 6px rgba(60,70,120,.06), inset 0 1px 0 rgba(255,255,255,.6);
   color: var(--blue2);
   font-size: 13px;
   font-weight: 600;
@@ -849,7 +862,9 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   overflow: hidden;
   appearance: none;
   -webkit-appearance: none;
+  transition: background .15s ease;
 }
+.owner-select-mobile:hover { background: rgba(255,255,255,.8) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231f5fa8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px; }
 @media (max-width: 1100px) {
   /* Sem o grid de 2 colunas, "sticky" prende o painel no topo por cima da
      lista rolando por baixo (o "primeiro plano/fundo" reportado) — no
@@ -1379,9 +1394,11 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .res-ctrls .rf-single > summary { width: 100%; justify-content: center; gap: 4px; padding: 8px 6px; font-size: 11.5px; font-weight: 600; }
 .rc-sel {
   width: 100%;
-  background: #ffffff;
-  border: 1.5px solid var(--blue-mid);
-  border-radius: 12px;
+  background: rgba(255,255,255,.6);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 999px;
   padding: 8px 10px;
   font-family: inherit;
   font-size: 12px;
@@ -1389,11 +1406,11 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
   color: var(--blue);
   cursor: pointer;
   text-align: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.6);
   transition: all 0.2s;
 }
 .rc-sel:hover {
-  border-color: var(--blue);
-  background: var(--blue-soft);
+  background: rgba(255,255,255,.85);
   box-shadow: 0 2px 8px rgba(31, 95, 168, 0.15);
 }
 .rc-sel:focus {
@@ -1857,30 +1874,30 @@ details[open] summary::before { transform: rotate(90deg); }
   .btn-sm { padding: 7px 12px; font-size: 13px; }
   .mn-btn { width: 32px; height: 32px; font-size: 16px; }
 
-  /* Filtros recolhidos no mobile */
+  /* Filtros recolhidos no mobile — vidro azulado (liquid glass) em vez do
+     gradiente chapado, seguindo o mesmo material dos outros botões. */
   .filt-toggle-btn {
     display: block !important;
     width: 100%;
     padding: 12px 0;
     margin-bottom: 10px;
-    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-    color: white;
-    border: none;
-    border-radius: 4px;
+    background: rgba(31,95,168,.22);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    color: var(--blue);
+    border: 1px solid rgba(31,95,168,.3);
+    border-radius: 999px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 18px rgba(31,95,168,.1), inset 0 1px 0 rgba(255,255,255,.35);
+    transition: background .15s ease, transform .12s cubic-bezier(.34,1.4,.64,1);
   }
 
-  .filt-toggle-btn:hover {
-    background: linear-gradient(135deg, #357abd 0%, #2a5a9d 100%);
-    transform: translateY(-2px);
-  }
+  .filt-toggle-btn:hover { background: rgba(31,95,168,.3); }
+  .filt-toggle-btn:active { transform: scale(.98); }
 
-  .filt-toggle-btn.expanded {
-    background: linear-gradient(135deg, #2a5a9d 0%, #1f3d6b 100%);
-  }
+  .filt-toggle-btn.expanded { background: rgba(31,95,168,.34); }
 
   #filtPanel,
   #lfFiltPanel {
@@ -1908,16 +1925,21 @@ details[open] summary::before { transform: rotate(90deg); }
     width: 100%;
     padding: 12px 16px;
     margin-bottom: 10px;
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: var(--rl);
+    background: rgba(255,255,255,.55);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 999px;
     font-size: 13.5px;
     font-weight: 600;
     color: var(--ink);
     text-align: left;
     cursor: pointer;
-    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 18px rgba(0,0,0,.07), inset 0 1px 0 rgba(255,255,255,.6);
+    transition: background .15s ease, transform .12s cubic-bezier(.34,1.4,.64,1);
   }
+  .metrics-toggle-btn:hover { background: rgba(255,255,255,.78); }
+  .metrics-toggle-btn:active { transform: scale(.98); }
   .metrics-toggle-btn #metricsMiniText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mtb-arrow { flex-shrink: 0; transition: transform 0.2s ease; }
   .metrics-toggle-btn.expanded .mtb-arrow { transform: rotate(180deg); }
@@ -2303,10 +2325,25 @@ html[data-theme="dark"] .placa { background: var(--surface2); color: var(--ink2)
 html[data-theme="dark"] .tag-forma { background: var(--surface2); color: var(--ink2); }
 html[data-theme="dark"] .tag-out { background: var(--surface2); color: var(--ink3); }
 html[data-theme="dark"] .icon-btn { background: rgba(120,140,170,.22); border-color: rgba(255,255,255,.10); color: var(--ink); }
-html[data-theme="dark"] .btn { background: var(--surface2); border-color: var(--line); color: var(--ink); }
-html[data-theme="dark"] .btn:hover { background: #34415a; }
-html[data-theme="dark"] .btn-ink { background: #eef2f8; color: #131c2c; border-color: #eef2f8; }
-html[data-theme="dark"] .btn-blue { background: var(--blue); color: #0e1726; border-color: var(--blue); }
+html[data-theme="dark"] .btn {
+  background: rgba(120,140,170,.16);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-color: rgba(255,255,255,.12);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,.2), 0 6px 18px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08);
+}
+html[data-theme="dark"] .btn:hover { background: rgba(120,140,170,.26); }
+html[data-theme="dark"] .btn-ink { background: rgba(238,242,248,.9); color: #131c2c; border-color: rgba(238,242,248,.9); }
+html[data-theme="dark"] .btn-blue { background: rgba(91,155,213,.85); color: #0e1726; border-color: rgba(91,155,213,.85); }
+html[data-theme="dark"] .btn-green { background: rgba(52,199,89,.20); color: #6fdb8f; border-color: rgba(52,199,89,.4); }
+html[data-theme="dark"] .btn-amber { background: rgba(240,180,41,.20); color: #f7c948; border-color: rgba(240,180,41,.4); }
+html[data-theme="dark"] .btn-red { background: rgba(255,107,107,.16); color: #ff8a8a; border-color: rgba(255,107,107,.35); }
+html[data-theme="dark"] .filt-toggle-btn { background: rgba(91,155,213,.22); border-color: rgba(91,155,213,.35); color: #7ab8e8; }
+html[data-theme="dark"] .filt-toggle-btn:hover { background: rgba(91,155,213,.3); }
+html[data-theme="dark"] .filt-toggle-btn.expanded { background: rgba(91,155,213,.34); }
+html[data-theme="dark"] .metrics-toggle-btn { background: rgba(120,140,170,.16); border-color: rgba(255,255,255,.12); color: var(--ink); }
+html[data-theme="dark"] .metrics-toggle-btn:hover { background: rgba(120,140,170,.26); }
 html[data-theme="dark"] .fp input, html[data-theme="dark"] .fp select,
 html[data-theme="dark"] .filt-panel select, html[data-theme="dark"] .search-input,
 html[data-theme="dark"] .prem-input,
