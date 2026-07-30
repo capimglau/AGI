@@ -1450,6 +1450,15 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .res-ctrls .rf-bar { margin-bottom: 0; display: flex; gap: 8px; }
 .res-ctrls .rf-single { flex: 1; }
 .res-ctrls .rf-single > summary { width: 100%; justify-content: center; gap: 4px; padding: 8px 6px; font-size: 11.5px; font-weight: 600; }
+.res-ctrls .rf-single > summary,
+.res-ctrls .rc-sel {
+  background: rgba(255,255,255,.85);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.6);
+}
+.res-ctrls .rf-single > summary:hover,
+.res-ctrls .rc-sel:hover {
+  background: rgba(255,255,255,.96);
+}
 .rc-sel {
   width: 100%;
   background: rgba(255,255,255,.38);
@@ -1487,6 +1496,14 @@ html[data-theme="dark"] .rc-sel {
 }
 html[data-theme="dark"] .rc-sel:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+html[data-theme="dark"] .res-ctrls .rf-single > summary,
+html[data-theme="dark"] .res-ctrls .rc-sel {
+  background: rgba(255,255,255,.14);
+}
+html[data-theme="dark"] .res-ctrls .rf-single > summary:hover,
+html[data-theme="dark"] .res-ctrls .rc-sel:hover {
+  background: rgba(255,255,255,.2);
 }
 
 /* ─── RECEBIMENTOS DE HOJE (janela no Resumo) ─── */
