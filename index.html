@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AGI Locadora</title>
 <meta name="theme-color" content="#dfe7f2" id="metaTheme">
-<script>try{var t=localStorage.getItem('agi-theme');var sd=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t==null&&sd)){document.documentElement.setAttribute('data-theme','dark');}else if(t==='white'){document.documentElement.setAttribute('data-theme','white');}}catch(e){}</script>
+<script>try{var t=localStorage.getItem('agi-theme');var sd=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t==null&&sd)){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}</script>
 <link rel="icon" type="image/png" href="logo-agi.png">
 <link rel="apple-touch-icon" href="logo-agi.png">
 <meta name="apple-mobile-web-app-title" content="AGI Locadora">
@@ -201,9 +201,9 @@ body::before {
   padding: 7px 16px;
   border-radius: 999px;
   border: none;
-  background: rgba(255,255,255,.28);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(255,255,255,.38);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   font-size: 13.5px;
@@ -214,9 +214,9 @@ body::before {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.35);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.5);
 }
-.btn:hover { background: rgba(255,255,255,.42); }
+.btn:hover { background: rgba(255,255,255,.52); }
 .btn:active { transform: scale(.96); box-shadow: 0 1px 2px rgba(0,0,0,.06), inset 0 1px 2px rgba(0,0,0,.05); }
 .btn-block { width: 100%; justify-content: center; }
 .btn-ink { background: rgba(20,20,22,.55); color: #fff; }
@@ -499,17 +499,17 @@ body::before {
   padding: 9px 14px;
   border: none;
   border-radius: 999px;
-  background: rgba(255,255,255,.28);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  backdrop-filter: blur(18px) saturate(180%);
-  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.35);
+  background: rgba(255,255,255,.38);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.5);
   font-family: inherit;
   font-size: 13px;
   color: var(--ink);
   cursor: pointer;
   transition: background .15s ease;
 }
-.filt-panel select:hover { background: rgba(255,255,255,.42); }
+.filt-panel select:hover { background: rgba(255,255,255,.52); }
 .filt-panel select:focus { outline: none; border-color: var(--blue); }
 
 /* Banners de métrica compactos (Recebimentos) */
@@ -842,17 +842,28 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   border-radius: var(--rl);
   padding: 14px;
 }
-.owner-select-mobile {
+/* Alguns navegadores ignoram backdrop-filter num <select> nativo (a UA
+   pinta o próprio controle por baixo, opaco, mesmo com background
+   translúcido no CSS) — o vidro real fica no wrapper (div comum, sem essa
+   limitação); o <select> em si vira totalmente transparente por cima. */
+.owner-select-wrap {
   display: none;
   flex: 1;
   min-width: 0;
-  padding: 11px 26px 11px 14px;
   border-radius: 999px;
+  background: rgba(255,255,255,.38) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%232e2e38" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px;
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 1px 6px rgba(60,70,120,.05), inset 0 1px 0 rgba(255,255,255,.5);
+  transition: background .15s ease;
+}
+.owner-select-wrap:hover { background-color: rgba(255,255,255,.52); }
+.owner-select-mobile {
+  width: 100%;
+  padding: 11px 26px 11px 14px;
   border: none;
-  background: rgba(255,255,255,.3) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%232e2e38" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px;
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  backdrop-filter: blur(18px) saturate(180%);
-  box-shadow: 0 1px 6px rgba(60,70,120,.05), inset 0 1px 0 rgba(255,255,255,.35);
+  border-radius: 999px;
+  background: transparent;
   color: var(--ink2);
   font-size: 13px;
   font-weight: 600;
@@ -862,9 +873,7 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   overflow: hidden;
   appearance: none;
   -webkit-appearance: none;
-  transition: background .15s ease;
 }
-.owner-select-mobile:hover { background: rgba(255,255,255,.45) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%232e2e38" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px; }
 @media (max-width: 1100px) {
   /* Sem o grid de 2 colunas, "sticky" prende o painel no topo por cima da
      lista rolando por baixo (o "primeiro plano/fundo" reportado) — no
@@ -875,7 +884,7 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
      DEPOIS das declarações base acima (mesma especificidade — a ordem no
      arquivo decide, e a media query só ganha se vier por último). */
   .owner-pills { display: none; }
-  .owner-select-mobile { display: block; }
+  .owner-select-wrap { display: flex; align-items: center; }
   /* Resumo do mês (pendente/recebido/vencem hoje/próximos 7 dias/vencidos)
      já aparece nos cartões de métricas no topo da página — some daqui só
      no mobile pra não duplicar informação e economizar espaço. */
@@ -1327,9 +1336,18 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 /* ─── FILTROS DOS GRÁFICOS (Resumo) — multi-seleção ─── */
 .rf-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
 .rf { position: relative; }
-.rf > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--card); font-size: 13px; font-weight: 600; color: var(--ink2); user-select: none; white-space: nowrap; transition: border-color .12s, box-shadow .12s; }
+.rf > summary {
+  list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 13px; border: none; border-radius: 999px;
+  background: rgba(255,255,255,.38);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.5);
+  font-size: 13px; font-weight: 600; color: var(--ink2); user-select: none; white-space: nowrap;
+  transition: background .15s ease, box-shadow .12s;
+}
 .rf > summary::-webkit-details-marker { display: none; }
-.rf > summary:hover { border-color: var(--blue-mid); }
+.rf > summary:hover { background: rgba(255,255,255,.52); }
 .rf[open] > summary { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31,95,168,.08); color: var(--blue); }
 .rf-badge { min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; background: var(--blue); color: #fff; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .rf-badge:empty { display: none; }
@@ -1394,9 +1412,9 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .res-ctrls .rf-single > summary { width: 100%; justify-content: center; gap: 4px; padding: 8px 6px; font-size: 11.5px; font-weight: 600; }
 .rc-sel {
   width: 100%;
-  background: rgba(255,255,255,.32);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  backdrop-filter: blur(18px) saturate(180%);
+  background: rgba(255,255,255,.38);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
   border: none;
   border-radius: 999px;
   padding: 8px 10px;
@@ -1406,7 +1424,7 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
   color: var(--ink2);
   cursor: pointer;
   text-align: center;
-  box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 1px 0 rgba(255,255,255,.35);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 1px 0 rgba(255,255,255,.5);
   transition: all 0.2s;
 }
 .rc-sel:hover {
@@ -1879,23 +1897,23 @@ details[open] summary::before { transform: rotate(90deg); }
     width: 100%;
     padding: 12px 0;
     margin-bottom: 10px;
-    background: rgba(255,255,255,.28);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(255,255,255,.38);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
     color: var(--ink2);
     border: none;
     border-radius: 999px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.35);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.5);
     transition: background .15s ease, transform .12s cubic-bezier(.34,1.4,.64,1);
   }
 
-  .filt-toggle-btn:hover { background: rgba(255,255,255,.4); }
+  .filt-toggle-btn:hover { background: rgba(255,255,255,.5); }
   .filt-toggle-btn:active { transform: scale(.98); }
 
-  .filt-toggle-btn.expanded { background: rgba(255,255,255,.42); }
+  .filt-toggle-btn.expanded { background: rgba(255,255,255,.54); }
 
   #filtPanel,
   #lfFiltPanel {
@@ -1923,9 +1941,9 @@ details[open] summary::before { transform: rotate(90deg); }
     width: 100%;
     padding: 12px 16px;
     margin-bottom: 10px;
-    background: rgba(255,255,255,.28);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(255,255,255,.38);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
     border: none;
     border-radius: 999px;
     font-size: 13.5px;
@@ -1933,10 +1951,10 @@ details[open] summary::before { transform: rotate(90deg); }
     color: var(--ink);
     text-align: left;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.35);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.5);
     transition: background .15s ease, transform .12s cubic-bezier(.34,1.4,.64,1);
   }
-  .metrics-toggle-btn:hover { background: rgba(255,255,255,.42); }
+  .metrics-toggle-btn:hover { background: rgba(255,255,255,.52); }
   .metrics-toggle-btn:active { transform: scale(.98); }
   .metrics-toggle-btn #metricsMiniText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mtb-arrow { flex-shrink: 0; transition: transform 0.2s ease; }
@@ -2197,19 +2215,19 @@ details[open] summary::before { transform: rotate(90deg); }
 }
 .fbar-baixas .btn,
 .fbar-baixas .btn-green {
-  background: rgba(255,255,255,.3);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  backdrop-filter: blur(18px) saturate(180%);
+  background: rgba(255,255,255,.38);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
   border: none;
-  box-shadow: 0 1px 6px rgba(60,70,120,.05);
+  box-shadow: 0 1px 6px rgba(60,70,120,.06), inset 0 1px 0 rgba(255,255,255,.5);
   color: var(--ink2);
 }
 .fbar-baixas .btn:hover,
-.fbar-baixas .btn-green:hover { background: rgba(255,255,255,.45); }
+.fbar-baixas .btn-green:hover { background: rgba(255,255,255,.52); }
 .filt-panel select {
-  background: rgba(255,255,255,.3);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  backdrop-filter: blur(18px) saturate(180%);
+  background: rgba(255,255,255,.38);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
   border: none;
 }
 .day-count { background: rgba(120,120,128,.1); }
@@ -2280,36 +2298,6 @@ html[data-theme="dark"] {
 }
 html[data-theme="dark"] body { background: #131c2c; color: var(--ink); }
 html[data-theme="dark"] body::before { display: none; }
-/* ─── TEMA "BRANCO" — fundo 100% branco; botões/filtros viram vidro
-   CINZA (o inverso do tema claro, onde o fundo é acinzentado e por isso
-   os botões precisam ser brancos pra aparecer). ─── */
-html[data-theme="white"] body { background: #ffffff; }
-html[data-theme="white"] body::before { display: none; }
-html[data-theme="white"] .btn,
-html[data-theme="white"] .filt-panel select,
-html[data-theme="white"] .rc-sel,
-html[data-theme="white"] .filt-toggle-btn,
-html[data-theme="white"] .metrics-toggle-btn,
-html[data-theme="white"] .fbar-baixas .btn,
-html[data-theme="white"] .fbar-baixas .btn-green {
-  background: rgba(120,120,128,.14);
-}
-html[data-theme="white"] .btn:hover,
-html[data-theme="white"] .filt-panel select:hover,
-html[data-theme="white"] .rc-sel:hover,
-html[data-theme="white"] .filt-toggle-btn:hover,
-html[data-theme="white"] .metrics-toggle-btn:hover,
-html[data-theme="white"] .fbar-baixas .btn:hover,
-html[data-theme="white"] .fbar-baixas .btn-green:hover {
-  background: rgba(120,120,128,.24);
-}
-html[data-theme="white"] .filt-toggle-btn.expanded { background: rgba(120,120,128,.3); }
-html[data-theme="white"] .owner-select-mobile {
-  background: rgba(120,120,128,.16) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%232e2e38" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px;
-}
-html[data-theme="white"] .owner-select-mobile:hover {
-  background: rgba(120,120,128,.26) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%232e2e38" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/14px;
-}
 html[data-theme="dark"] .logo-img { mix-blend-mode: screen; }
 html[data-theme="dark"] .header { background: rgba(20,28,44,.86); border-bottom-color: rgba(255,255,255,.07); }
 html[data-theme="dark"] .month-nav { background: var(--surface2); box-shadow: none; }
@@ -2367,6 +2355,8 @@ html[data-theme="dark"] .btn-blue { background: rgba(91,155,213,.6); color: #0e1
 html[data-theme="dark"] .btn-green { background: rgba(52,199,89,.16); color: #6fdb8f; }
 html[data-theme="dark"] .btn-amber { background: rgba(240,180,41,.16); color: #f7c948; }
 html[data-theme="dark"] .btn-red { background: rgba(255,107,107,.13); color: #ff8a8a; }
+html[data-theme="dark"] .rf > summary { background: rgba(120,140,170,.16); color: var(--ink); }
+html[data-theme="dark"] .rf > summary:hover { background: rgba(120,140,170,.26); }
 html[data-theme="dark"] .filt-toggle-btn { background: rgba(120,140,170,.14); border: none; color: var(--ink); }
 html[data-theme="dark"] .filt-toggle-btn:hover { background: rgba(120,140,170,.22); }
 html[data-theme="dark"] .filt-toggle-btn.expanded { background: rgba(120,140,170,.28); }
@@ -2475,9 +2465,11 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       <div class="fbar fbar-baixas">
         <button class="btn" onclick="selTodos()">Selec. Todos</button>
         <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
-        <select class="owner-select-mobile" id="ownerSelectMobile" onchange="setDono(this.value)">
-          <option value="">Proprietário</option>
-        </select>
+        <div class="owner-select-wrap">
+          <select class="owner-select-mobile" id="ownerSelectMobile" onchange="setDono(this.value)">
+            <option value="">Proprietário</option>
+          </select>
+        </div>
       </div>
       <!-- Filtro rápido por proprietário — lista de pills, só no desktop
            (no mobile some, vira o seletor acima). -->
@@ -5844,24 +5836,20 @@ function gridCol(){return isDark()?'rgba(255,255,255,.08)':'#eeece8';}
 // 100% branco, botões/filtros em vidro cinza — o inverso do claro, onde
 // o fundo é acinzentado e os botões são brancos).
 function applyThemeChrome(){
-  const theme=document.documentElement.getAttribute('data-theme')||'light';
-  const dark=theme==='dark';
-  const m=document.getElementById('metaTheme'); if(m)m.content=dark?'#131c2c':(theme==='white'?'#ffffff':'#dfe7f2');
-  const icoMoon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5 6.6 6.6 0 0 0 20.5 13.2Z"/></svg>';
-  const icoSun='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>';
-  const icoWhite='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4.5" y="4.5" width="15" height="15" rx="5"/></svg>';
-  // O ícone mostra o PRÓXIMO tema (pra onde o toque leva), não o atual.
-  const ico=theme==='light'?icoMoon:(theme==='dark'?icoWhite:icoSun);
+  const dark=isDark();
+  const m=document.getElementById('metaTheme'); if(m)m.content=dark?'#131c2c':'#ffffff';
+  const ico=dark
+    ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>'
+    :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5 6.6 6.6 0 0 0 20.5 13.2Z"/></svg>';
   const b=document.getElementById('themeBtn'); if(b)b.innerHTML=ico;
   const bh=document.getElementById('themeBtnHdr'); if(bh)bh.innerHTML=ico;
   if(window.Chart)Chart.defaults.color=dark?'#aeaeb2':'#6b6b7a';
 }
 function toggleTheme(){
   const d=document.documentElement;
-  const cur=d.getAttribute('data-theme')||'light';
-  const next=cur==='light'?'dark':(cur==='dark'?'white':'light');
-  d.setAttribute('data-theme',next);
-  try{localStorage.setItem('agi-theme',next);}catch(e){}
+  const dark=d.getAttribute('data-theme')!=='dark';
+  d.setAttribute('data-theme',dark?'dark':'light');
+  try{localStorage.setItem('agi-theme',dark?'dark':'light');}catch(e){}
   applyThemeChrome();
   renderAll();
 }
