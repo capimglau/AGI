@@ -3131,6 +3131,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     </div>
     <div id="loginMsg" class="login-msg"></div>
     <button class="btn btn-blue" style="width:100%;justify-content:center;padding:10px" onclick="fazerLogin()">Entrar</button>
+    <button class="btn" id="loginBioBtn" style="width:100%;justify-content:center;padding:10px;margin-top:8px;display:none" onclick="tentarBiometriaLogin()">🔐 Usar Face ID / digital</button>
   </div>
 </div>
 
@@ -3539,14 +3540,36 @@ function renderPerfilBtn(){
 }
 function perfilBtnClick(){ openPerfilModal(); }
 
-function openLoginModal(){
+async function openLoginModal(){
   document.getElementById('loginMsg').textContent='';
   document.getElementById('loginFields').style.display='';
   document.getElementById('li-senha').value='';
   document.getElementById('mLogin').classList.add('on');
   setTimeout(()=>document.getElementById('li-senha').focus(),100);
+  const bioBtn=document.getElementById('loginBioBtn');
+  if(bioBtn){
+    const podeBio=localStorage.getItem(BIO_LS_KEY)==='1' && await bioDisponivel();
+    bioBtn.style.display=podeBio?'flex':'none';
+  }
 }
 function closeLoginModal(){ document.getElementById('mLogin').classList.remove('on'); }
+// Tentativa manual de Face ID/digital a partir da própria tela de senha
+// (a automática já roda sozinha em iniciarApp; esse botão é só pra
+// quem cancelou o prompt do sistema sem querer e quer tentar de novo,
+// sem precisar digitar a senha).
+async function tentarBiometriaLogin(){
+  const msg=document.getElementById('loginMsg');
+  msg.textContent='Verificando…';
+  const ok=await verificarBiometria();
+  if(ok){
+    msg.textContent='';
+    localStorage.setItem('agi-autenticado','1');
+    closeLoginModal();
+    setupInactivityTimeout();
+  } else {
+    msg.innerHTML='<span style="color:var(--red)">Não foi possível confirmar. Tente de novo ou use a senha.</span>';
+  }
+}
 function toggleFilterPanel(panelId){
   const panel=document.getElementById(panelId);
   const btn=panelId==='filtPanel'?document.getElementById('filtToggleBtnBaixas'):document.getElementById('filtToggleBtnLanc');
@@ -3839,14 +3862,16 @@ async function bioDisponivel(){
   return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(()=>false));
 }
 async function ativarBiometria(){
-  if(!CURRENT_USER){ alert('Entre com e-mail e senha primeiro.'); return false; }
   if(!(await bioDisponivel())){ alert('Este aparelho/navegador não tem Face ID, digital ou PIN do sistema disponível.'); return false; }
   try{
-    const userIdBuf=new TextEncoder().encode(CURRENT_USER.id).slice(0,64);
+    // Trava só LOCAL do aparelho (sem servidor/conta por trás — ver nota
+    // acima) — não depende mais de um usuário logado via Supabase Auth,
+    // que não existe mais desde que o login virou senha local.
+    const userIdBuf=new TextEncoder().encode('agi-locadora-local').slice(0,64);
     const cred=await navigator.credentials.create({publicKey:{
       challenge: crypto.getRandomValues(new Uint8Array(32)),
       rp: {name:'AGI Locadora'},
-      user: {id:userIdBuf, name:CURRENT_USER.email, displayName:CURRENT_PERFIL?.nome||CURRENT_USER.email},
+      user: {id:userIdBuf, name:'AGI Locadora', displayName:CURRENT_PERFIL?.nome||'AGI Locadora'},
       pubKeyCredParams: [{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
       authenticatorSelection: {authenticatorAttachment:'platform',userVerification:'required'},
       timeout: 60000,
@@ -3890,11 +3915,22 @@ async function pfBioToggle(el){
   }
 }
 
-// ─── TRAVA DE ABERTURA (só aparece se a biometria estiver ativada) ───
+// ─── TRAVA DE ABERTURA ───
+// Se a biometria estiver ativada neste aparelho, tenta confirmar Face
+// ID/digital automaticamente ANTES de mostrar a tela de senha — só cai
+// na senha se a biometria não estiver ativa, não estiver disponível, ou
+// o usuário cancelar/falhar na confirmação.
 async function iniciarApp(){
   const autenticado=localStorage.getItem('agi-autenticado');
   if(!autenticado){
-    openLoginModal();
+    const bioAtiva=localStorage.getItem(BIO_LS_KEY)==='1';
+    const bioOk=bioAtiva && await bioDisponivel() && await verificarBiometria();
+    if(bioOk){
+      localStorage.setItem('agi-autenticado','1');
+      setupInactivityTimeout();
+    } else {
+      openLoginModal();
+    }
   } else {
     setupInactivityTimeout();
   }
