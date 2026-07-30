@@ -3547,26 +3547,28 @@ async function openLoginModal(){
   document.getElementById('mLogin').classList.add('on');
   setTimeout(()=>document.getElementById('li-senha').focus(),100);
   const bioBtn=document.getElementById('loginBioBtn');
-  if(bioBtn){
-    const podeBio=localStorage.getItem(BIO_LS_KEY)==='1' && await bioDisponivel();
-    bioBtn.style.display=podeBio?'flex':'none';
-  }
+  const podeBio=localStorage.getItem(BIO_LS_KEY)==='1' && await bioDisponivel();
+  if(bioBtn) bioBtn.style.display=podeBio?'flex':'none';
+  // Dispara o Face ID/digital automaticamente por cima da tela de senha,
+  // já visível. Se o usuário cancelar ou o sistema não confirmar, a tela
+  // de senha continua ali, intacta — nunca trava o app.
+  if(podeBio) setTimeout(()=>tentarBiometriaLogin(true),400);
 }
 function closeLoginModal(){ document.getElementById('mLogin').classList.remove('on'); }
-// Tentativa manual de Face ID/digital a partir da própria tela de senha
-// (a automática já roda sozinha em iniciarApp; esse botão é só pra
-// quem cancelou o prompt do sistema sem querer e quer tentar de novo,
-// sem precisar digitar a senha).
-async function tentarBiometriaLogin(){
+// silencioso=true na tentativa automática (não mostra erro se cancelar/falhar,
+// já que a tela de senha continua disponível normalmente).
+async function tentarBiometriaLogin(silencioso){
   const msg=document.getElementById('loginMsg');
-  msg.textContent='Verificando…';
+  if(!document.getElementById('mLogin').classList.contains('on')) return;
+  if(!silencioso) msg.textContent='Verificando…';
   const ok=await verificarBiometria();
+  if(!document.getElementById('mLogin').classList.contains('on')) return;
   if(ok){
     msg.textContent='';
     localStorage.setItem('agi-autenticado','1');
     closeLoginModal();
     setupInactivityTimeout();
-  } else {
+  } else if(!silencioso){
     msg.innerHTML='<span style="color:var(--red)">Não foi possível confirmar. Tente de novo ou use a senha.</span>';
   }
 }
@@ -3916,21 +3918,15 @@ async function pfBioToggle(el){
 }
 
 // ─── TRAVA DE ABERTURA ───
-// Se a biometria estiver ativada neste aparelho, tenta confirmar Face
-// ID/digital automaticamente ANTES de mostrar a tela de senha — só cai
-// na senha se a biometria não estiver ativa, não estiver disponível, ou
-// o usuário cancelar/falhar na confirmação.
+// A tela de senha (logo + campo) sempre aparece primeiro, sem depender de
+// nada assíncrono. Se a biometria estiver ativada, o Face ID/digital
+// dispara automaticamente por cima dela logo em seguida (ver
+// openLoginModal) — sem esconder a tela nem travar o app se o usuário
+// cancelar ou o aparelho não confirmar.
 async function iniciarApp(){
   const autenticado=localStorage.getItem('agi-autenticado');
   if(!autenticado){
-    const bioAtiva=localStorage.getItem(BIO_LS_KEY)==='1';
-    const bioOk=bioAtiva && await bioDisponivel() && await verificarBiometria();
-    if(bioOk){
-      localStorage.setItem('agi-autenticado','1');
-      setupInactivityTimeout();
-    } else {
-      openLoginModal();
-    }
+    openLoginModal();
   } else {
     setupInactivityTimeout();
   }
