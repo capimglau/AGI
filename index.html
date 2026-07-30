@@ -1830,8 +1830,11 @@ details[open] summary::before { transform: rotate(90deg); }
   .mrow .mc-sub { font-size: 9.5px; margin-top: 4px; }
 
   /* Espaçamento padrão entre os blocos do Resumo (vencidos/hoje/boletos/
-     gráficos) — 16px ficava apertado empilhado no mobile. */
-  .card, .receb-hoje, .rh-dupla { margin-bottom: 20px; }
+     gráficos) — ainda ficava apertado empilhado no mobile mesmo em 20px. */
+  .card, .receb-hoje, .rh-dupla { margin-bottom: 28px; }
+  /* Vencidos e Hoje empilham (.g2 vira 1 coluna ≤960px) — o gap entre eles
+     herdava os 14px do desktop lado a lado, curto demais empilhado. */
+  .g2.rh-dupla { gap: 18px; }
 
   /* Filtros compactos: 3 seletores numa linha, ações na linha de baixo */
   .fbar { flex-wrap: wrap; gap: 7px; }
