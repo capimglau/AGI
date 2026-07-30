@@ -251,6 +251,24 @@ body::before {
 .theme-toggle { width: 32px; height: 32px; margin-left: 12px; }
 .theme-toggle svg { width: 16px; height: 16px; }
 
+/* Selec.Todos/Baixar viram botões redondos (mesmo vidro branco do resto
+   da fileira, ao lado do seletor de proprietário). */
+.icon-btn.round-action {
+  width: 44px; height: 44px;
+  background: rgba(255,255,255,.38);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 18px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.5);
+  color: var(--ink2);
+  transition: background .15s ease, transform .12s cubic-bezier(.34,1.4,.64,1);
+}
+.icon-btn.round-action:hover, .icon-btn.round-action:active { background: rgba(255,255,255,.52); }
+.icon-btn.round-action:active { transform: scale(.94); }
+.icon-btn.round-action.active { background: rgba(52,199,89,.3); color: var(--green); }
+.icon-btn.round-action-green { background: rgba(52,199,89,.16); color: var(--green); }
+.icon-btn.round-action-green:hover, .icon-btn.round-action-green:active { background: rgba(52,199,89,.26); }
+
 /* ─── LOGIN / PERFIL / BIOMETRIA ─── */
 .perfil-btn { margin-left: 6px; overflow: hidden; background: var(--blue-soft, rgba(31,95,168,.08)); color: var(--blue); }
 .perfil-btn svg { width: 20px; height: 20px; }
@@ -2341,6 +2359,11 @@ html[data-theme="dark"] .placa { background: var(--surface2); color: var(--ink2)
 html[data-theme="dark"] .tag-forma { background: var(--surface2); color: var(--ink2); }
 html[data-theme="dark"] .tag-out { background: var(--surface2); color: var(--ink3); }
 html[data-theme="dark"] .icon-btn { background: rgba(120,140,170,.22); border-color: rgba(255,255,255,.10); color: var(--ink); }
+html[data-theme="dark"] .icon-btn.round-action { background: rgba(120,140,170,.18); border: none; color: var(--ink); }
+html[data-theme="dark"] .icon-btn.round-action:hover, html[data-theme="dark"] .icon-btn.round-action:active { background: rgba(120,140,170,.28); }
+html[data-theme="dark"] .icon-btn.round-action.active { background: rgba(52,199,89,.22); color: #6fdb8f; }
+html[data-theme="dark"] .icon-btn.round-action-green { background: rgba(52,199,89,.18); color: #6fdb8f; }
+html[data-theme="dark"] .icon-btn.round-action-green:hover, html[data-theme="dark"] .icon-btn.round-action-green:active { background: rgba(52,199,89,.28); }
 html[data-theme="dark"] .btn {
   background: rgba(120,140,170,.12);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -2463,8 +2486,12 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
            mesma linha, ao lado dos botões (o filtro rápido de pills vira
            dropdown compacto só aí, junto com Selec.Todos/Baixar). -->
       <div class="fbar fbar-baixas">
-        <button class="btn" onclick="selTodos()">Selec. Todos</button>
-        <button class="btn btn-green" onclick="baixarSelecionados()">Baixar</button>
+        <button class="icon-btn round-action" onclick="selTodos()" title="Selecionar todos" aria-label="Selecionar todos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12l2.5 2.5 5-5"/></svg>
+        </button>
+        <button class="icon-btn round-action round-action-green" onclick="baixarSelecionados()" title="Baixar selecionados" aria-label="Baixar selecionados">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
         <div class="owner-select-wrap">
           <select class="owner-select-mobile" id="ownerSelectMobile" onchange="setDono(this.value)">
             <option value="">Proprietário</option>
@@ -5907,7 +5934,7 @@ function selTodos(){
   _todosOn=!_todosOn;
   document.querySelectorAll('.chk-b').forEach(c=>c.checked=_todosOn);
   const btn=document.querySelector('[onclick="selTodos()"]');
-  if(btn)btn.style.background=_todosOn?'var(--green-soft)':'';
+  if(btn)btn.classList.toggle('active',_todosOn);
 }
 function baixarSelecionados(){
   const sels=[...document.querySelectorAll('.chk-b:checked')];
