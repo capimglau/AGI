@@ -4637,7 +4637,6 @@ function renderLanc(){
   const status=document.getElementById('lf-status').value;
   const rows=filtGeral({q,tipo:tipo||undefined,forma:forma||undefined,dono:dono||undefined,status:status||undefined,usePrev:true});
   rows.sort((a,b)=>(b.prev_pgto||'').localeCompare(a.prev_pgto||''));
-  document.getElementById('lf-cnt').textContent=rows.length+' registros';
 
   const totP=rows.reduce((a,r)=>a+fN(r.valor_pago),0);
   const totS=rows.reduce((a,r)=>a+fN(r.saldo),0);
