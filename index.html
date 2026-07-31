@@ -5145,6 +5145,14 @@ const FRT=newFilterState();
 let frBasis='comp'; // 'comp' previsto | 'caixa' recebido
 
 function frPct(v){return v.toFixed(1).replace('.',',')+'%';}
+// Valor abreviado (5,4k / 1,2M) pro texto curvo dos anéis — sem isso, o
+// texto "Nome · R$ 106.792,26" fica poluído nos anéis grandes.
+function frAbbrevR(v){
+  const av=Math.abs(v);
+  if(av>=1000000)return 'R$ '+(av/1000000).toFixed(1).replace('.',',')+'M';
+  if(av>=1000)return 'R$ '+(av/1000).toFixed(1).replace('.',',')+'k';
+  return 'R$ '+Math.round(av);
+}
 
 // "Indefinido" (dono vazio na planilha) não é um proprietário de verdade —
 // fica de fora só deste componente (cálculos e filtro), sem mexer no
@@ -5235,7 +5243,7 @@ function frdBuildSpecs(){
   const outros=segs.find(s=>s.key==='Outros');
   const real=segs.filter(s=>s.key!=='Outros').sort((a,b)=>b.pct-a.pct);
   const ordered=outros?[...real,outros]:real;
-  let r=FRD_HUB_R+10+FRD_THICK/2+Math.max(0,ordered.length-1)*(FRD_THICK+FRD_GAP);
+  let r=FRD_HUB_R+22+FRD_THICK/2+Math.max(0,ordered.length-1)*(FRD_THICK+FRD_GAP);
   return ordered.map(seg=>{
     const spec=Object.assign({},seg,{R:r});
     r-=(FRD_THICK+FRD_GAP);
@@ -5302,10 +5310,12 @@ function frdDrawRings(){
     }
     if(!isOutros){
       const aMid=(a0+a1)/2;
-      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+fR(seg.value),Math.round(FRD_THICK*0.5));
-      // Percentual no vão (parte sem preenchimento) de cada anel, na
-      // própria cor do anel — em cima do rótulo curvo com nome+valor.
-      const px=cx+R*Math.cos(-Math.PI/2), py=cy+R*Math.sin(-Math.PI/2);
+      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+frAbbrevR(seg.value),Math.round(FRD_THICK*0.5));
+      // Percentual bem no cantinho final da barra (na parte sem
+      // preenchimento, coladinho na ponta do anel) — não centralizado
+      // no vão inteiro.
+      const pctAngle=a0-FRD_GAP_ANGLE*0.4;
+      const px=cx+R*Math.cos(pctAngle), py=cy+R*Math.sin(pctAngle);
       frdCtx.save();
       frdCtx.font='800 14px "DM Sans", system-ui, -apple-system, sans-serif';
       frdCtx.textAlign='center'; frdCtx.textBaseline='middle';
