@@ -2480,6 +2480,20 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .frd-hub:hover, .frd-hub:active { background: #c53c32; }
 .frd-hub-label { font-size: 15px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: #fff; white-space: nowrap; }
 
+/* Previsto/Recebido e os dropdowns Proprietário/Tipo sempre na mesma
+   linha — Proprietário/Tipo viram só ícone (sem o nome) pra sempre
+   caber, mesmo em telas estreitas; toggle na ponta esquerda, filtros na
+   ponta direita (sem os dois grupos ficarem grudados no meio). */
+.fr-filterrow { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 6px; margin: 4px 0 16px; }
+.fr-filterrow .fr-basistoggle { margin: 0; flex: 0 0 auto; }
+.fr-filterrow .fr-basistoggle button { padding: 5px 8px; font-size: 10.5px; }
+.fr-filterrow #fatRingFilters { margin: 0; flex: 0 0 auto; gap: 5px; }
+.fr-filterrow #fatRingFilters .rf-sec-tt { padding: 6px 7px; gap: 3px; }
+.fr-filterrow #fatRingFilters .rf-sec-label { display: none; }
+.fr-filterrow #fatRingFilters .rf-sec-tt::before { font-size: 13px; line-height: 1; }
+.fr-filterrow #fatRingFilters .rf-caret { font-size: 10px; }
+.fr-filterrow #fatRingFilters .rf-sec:nth-of-type(1) .rf-sec-tt::before { content: '👤'; }
+.fr-filterrow #fatRingFilters .rf-sec:nth-of-type(2) .rf-sec-tt::before { content: '🏷️'; }
 .fr-basistoggle { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin: 4px 0 16px; }
 .fr-basistoggle button { border: none; background: none; padding: 6px 14px; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink3); cursor: pointer; transition: background .15s, color .15s; }
 .fr-basistoggle button.on { background: var(--blue); color: #fff; }
@@ -2644,8 +2658,10 @@ html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--in
   </div>
   <div class="card">
     <div class="card-hd">Faturamento por categoria<span class="sub">filtros próprios</span></div>
-    <div class="fr-basistoggle" id="frBasisToggle"></div>
-    <div class="rf-bar rf-flat" id="fatRingFilters"></div>
+    <div class="fr-filterrow">
+      <div class="fr-basistoggle" id="frBasisToggle"></div>
+      <div class="rf-bar rf-flat" id="fatRingFilters"></div>
+    </div>
     <div class="fr-total" id="frTotal">
       <div class="fr-total-label" id="frTotalLabel">Total previsto</div>
       <div class="fr-total-value mono" id="frTotalValue">R$ 0,00</div>
@@ -5271,10 +5287,16 @@ function frdSizeCanvas(box){
     hub.style.left=(box/2-FRD_HUB_R)+'px'; hub.style.top=(box/2-FRD_HUB_R)+'px';
   }
 }
+// Em telas grandes (PC), o container fica bem mais largo que o gráfico
+// precisa — sem um teto, o anel virava gigante, desproporcional aos
+// outros cards da página. Trava o tamanho exibido num máximo fixo,
+// igual ao usado no mobile, e só encolhe além disso se a tela for
+// menor que esse teto.
+const FRD_MAX_DISPLAY=380;
 function frdApplyResponsiveScale(){
   const outer=document.getElementById('frdScaleOuter'), wrap=document.getElementById('frdRingWrap');
   if(!outer||!wrap||!frdBoxCur)return;
-  const available=outer.parentElement.clientWidth;
+  const available=Math.min(outer.parentElement.clientWidth, FRD_MAX_DISPLAY);
   const scale=Math.min(1, available/frdBoxCur);
   wrap.style.transform='scale('+scale+')';
   outer.style.width=(frdBoxCur*scale)+'px';
@@ -5311,7 +5333,11 @@ function frdDrawRings(){
     }
     if(!isOutros){
       const aMid=(a0+a1)/2;
-      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+frAbbrevR(seg.value),Math.round(FRD_THICK*0.5));
+      // No PC (tela larga) tem espaço de sobra pra mostrar o valor
+      // completo em vez de abreviado — só nas telas estreitas (mobile,
+      // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
+      const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
+      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+valTxt,Math.round(FRD_THICK*0.5));
       // Percentual bem no cantinho final da barra (na parte sem
       // preenchimento, coladinho na ponta do anel) — não centralizado
       // no vão inteiro.
