@@ -5274,24 +5274,40 @@ function frRenderData(){
   frUpdateHub();
 }
 
+function frHitFromEvent(canvas,e){
+  const rect=canvas.getBoundingClientRect();
+  const k=FR_BOX/rect.width;
+  return frAngleToHit((e.clientX-rect.left)*k, (e.clientY-rect.top)*k);
+}
+function frTooltipHtml(hit){
+  return '<span class="tt-val">'+fR(hit.seg.value)+' ('+frPct(hit.seg.pct)+')</span>'+
+    '<span class="tt-name">'+RF_LABELS[hit.dim]+' · '+escHtml(hit.seg.key)+'</span>';
+}
+
 let frBound=false;
+let frTapHideTimer=null;
 function frBindEvents(){
   if(frBound)return; frBound=true;
   const canvas=document.getElementById('frCanvas');
   canvas.addEventListener('pointermove', e=>{
-    const rect=canvas.getBoundingClientRect();
-    const k=FR_BOX/rect.width;
-    const hit=frAngleToHit((e.clientX-rect.left)*k, (e.clientY-rect.top)*k);
+    const hit=frHitFromEvent(canvas,e);
     if(!hit){frHideTooltip();return;}
-    frPositionTooltip(e.clientX, e.clientY,
-      '<span class="tt-val">'+fR(hit.seg.value)+' ('+frPct(hit.seg.pct)+')</span>'+
-      '<span class="tt-name">'+RF_LABELS[hit.dim]+' · '+escHtml(hit.seg.key)+'</span>');
+    frPositionTooltip(e.clientX, e.clientY, frTooltipHtml(hit));
   });
-  canvas.addEventListener('pointerleave', frHideTooltip);
+  canvas.addEventListener('pointerleave', e=>{ if(e.pointerType!=='touch')frHideTooltip(); });
+  // Touch não dispara pointermove num toque parado — sem isso, tocar
+  // numa fatia só selecionava o filtro, sem mostrar nome nem valor.
+  // No toque, mostra o balão na hora do toque e mantém por um tempo.
+  canvas.addEventListener('pointerdown', e=>{
+    if(e.pointerType!=='touch')return;
+    const hit=frHitFromEvent(canvas,e);
+    if(!hit){frHideTooltip();return;}
+    frPositionTooltip(e.clientX, e.clientY, frTooltipHtml(hit));
+    clearTimeout(frTapHideTimer);
+    frTapHideTimer=setTimeout(frHideTooltip, 2200);
+  });
   canvas.addEventListener('click', e=>{
-    const rect=canvas.getBoundingClientRect();
-    const k=FR_BOX/rect.width;
-    const hit=frAngleToHit((e.clientX-rect.left)*k, (e.clientY-rect.top)*k);
+    const hit=frHitFromEvent(canvas,e);
     if(!hit||hit.seg.key==='Outros')return;
     const set=FRT[hit.dim];
     if(set.has(hit.seg.key))set.delete(hit.seg.key); else set.add(hit.seg.key);
