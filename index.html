@@ -2478,8 +2478,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
    referência — dá pra ver de longe que é um botão, não só um rótulo. */
 .frd-hub { position: absolute; border-radius: 50%; background: #e3453a; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: var(--shadow-sm); padding: 4px 8px; cursor: pointer; transition: background .12s; }
 .frd-hub:hover, .frd-hub:active { background: #c53c32; }
-.frd-hub-label { font-size: 8.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.8); white-space: nowrap; }
-.frd-hub-value { font-size: 13px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; color: #fff; white-space: nowrap; }
+.frd-hub-label { font-size: 15px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: #fff; white-space: nowrap; }
 
 .fr-basistoggle { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin: 4px 0 16px; }
 .fr-basistoggle button { border: none; background: none; padding: 6px 14px; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink3); cursor: pointer; transition: background .15s, color .15s; }
@@ -2658,8 +2657,7 @@ html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--in
         <div class="frd-ring-wrap" id="frdRingWrap">
           <canvas id="frdCanvas"></canvas>
           <div class="frd-hub" id="frdHub">
-            <div class="frd-hub-label" id="frdHubLabel">Total previsto</div>
-            <div class="frd-hub-value mono" id="frdHubValue">R$ 0,00</div>
+            <div class="frd-hub-label" id="frdHubLabel">Total</div>
           </div>
         </div>
       </div>
@@ -5330,12 +5328,9 @@ function frdDrawRings(){
   });
 }
 function frdUpdateHub(){
-  const rows=frFilteredRows();
-  const grand=frSum(rows);
-  const lbl=document.getElementById('frdHubLabel'), val=document.getElementById('frdHubValue');
+  const lbl=document.getElementById('frdHubLabel');
   const isLocOnly=FRT.tipo.size===1&&FRT.tipo.has('Locação');
   if(lbl)lbl.textContent=isLocOnly?'Locações':'Total';
-  if(val)val.textContent=fR(grand);
 }
 function frdHitTest(mx,my){
   const cx=frdBoxCur/2, cy=frdBoxCur/2, dx=mx-cx, dy=my-cy, dist=Math.hypot(dx,dy);
