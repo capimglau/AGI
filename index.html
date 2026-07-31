@@ -2495,7 +2495,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   .fr-splitcol-bars .fr-bar-name { font-size: 13px; }
   .fr-splitcol-bars .fr-bar-val { font-size: 12px; }
 }
-.frd-chartrow { display: flex; flex-direction: column; align-items: center; margin: 4px 0 8px; }
+.frd-chartrow { display: flex; flex-direction: column; align-items: center; margin: 4px 0 8px; width: 100%; }
 .frd-scale-outer { position: relative; flex: 0 0 auto; max-width: 100%; }
 .frd-ring-wrap { position: relative; flex: 0 0 auto; transform-origin: top left; }
 .frd-ring-wrap canvas { display: block; cursor: pointer; }
@@ -7396,6 +7396,102 @@ document.addEventListener('click',e=>{
   if(abrir)linha.classList.toggle('tip-on');
   document.body.classList.toggle('tip-pinned',!!document.querySelector('.rb.tip-on'));
 });
+
+// ─── Popovers de filtro (.rf e .rf-sec soltos em barra flat) — ao abrir,
+// o conteúdo é levado pro final do <body> e posicionado via position:fixed
+// calculado em JS. Necessário porque .card usa backdrop-filter ("vidro"),
+// e isso cria um novo containing block pra qualquer descendente
+// position:fixed — sem "teleportar" pro body, o popover fica preso e
+// cortado dentro dos limites do card mesmo com position:fixed. Ao fechar
+// (clique de novo no filtro, ou em qualquer lugar fora dele), o conteúdo
+// volta pro lugar original no DOM.
+const rfPanelOf=new WeakMap();   // <details> → painel flutuante
+const rfHomeOf=new WeakMap();    // painel → {parent,next} (posição original)
+function rfIsFloating(det){
+  // O menu único ".rf" (botão "Filtros") sempre flutua. Já um ".rf-sec"
+  // só tem popover próprio quando é um chip solto numa barra flat
+  // (#fatRingFilters, #baixasFilters) — aninhado dentro do ".rf-menu-wide"
+  // ele só expande inline (acordeão), sem popover, então fica de fora.
+  return det.matches('details.rf')||(det.matches('details.rf-sec')&&!!det.closest('.rf-flat'));
+}
+function rfGetPanel(det){
+  if(rfPanelOf.has(det))return rfPanelOf.get(det);
+  const panel=det.querySelector(':scope > .rf-menu, :scope > .rf-sec-opts');
+  if(panel)rfPanelOf.set(det,panel);
+  return panel;
+}
+function rfOpenFloating(det){
+  const panel=rfGetPanel(det), trigger=det.querySelector(':scope > summary');
+  if(!panel||!trigger)return;
+  if(!rfHomeOf.has(panel))rfHomeOf.set(panel,{parent:panel.parentElement,next:panel.nextSibling});
+  if(panel.parentElement!==document.body)document.body.appendChild(panel);
+  const r=trigger.getBoundingClientRect();
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const isWide=panel.classList.contains('rf-menu-wide');
+  const naturalW=isWide?Math.min(360,vw-32):Math.max(r.width,190);
+  const w=Math.min(naturalW,vw-16);
+  let left=r.left;
+  if(left+w>vw-8)left=vw-8-w;
+  if(left<8)left=8;
+  const spaceBelow=vh-r.bottom-10, spaceAbove=r.top-10;
+  const openUp=spaceBelow<180&&spaceAbove>spaceBelow;
+  panel.style.position='fixed';
+  panel.style.margin='0';
+  panel.style.minWidth='0';
+  panel.style.maxWidth='none';
+  panel.style.boxSizing='border-box';
+  panel.style.left=left+'px';
+  panel.style.right='auto';
+  panel.style.width=w+'px';
+  panel.style.maxHeight=Math.max(120,Math.min(isWide?vh*0.72:300,openUp?spaceAbove:spaceBelow))+'px';
+  if(openUp){panel.style.top='auto';panel.style.bottom=(vh-r.top+6)+'px';}
+  else{panel.style.bottom='auto';panel.style.top=(r.bottom+6)+'px';}
+  panel.style.zIndex='700';
+}
+function rfCloseFloating(det){
+  const panel=rfPanelOf.get(det);
+  if(!panel)return;
+  const home=rfHomeOf.get(panel);
+  if(home&&panel.parentElement===document.body){
+    if(home.next&&home.next.parentElement===home.parent)home.parent.insertBefore(panel,home.next);
+    else home.parent.appendChild(panel);
+  }
+  ['position','left','right','top','bottom','width','maxHeight','zIndex','margin','minWidth','maxWidth','boxSizing']
+    .forEach(p=>{panel.style[p]='';});
+}
+function rfCloseAllOpen(){
+  document.querySelectorAll('details.rf[open], details.rf-sec[open]').forEach(d=>{d.open=false;});
+}
+document.addEventListener('toggle',e=>{
+  const det=e.target;
+  if(!det.matches||!(det.matches('details.rf')||det.matches('details.rf-sec')))return;
+  const floating=rfIsFloating(det);
+  if(det.open){
+    if(floating){
+      // Fecha outros popovers de filtro abertos (não mexe em seções de
+      // acordeão aninhadas, que podem ficar abertas junto sem problema).
+      document.querySelectorAll('details.rf[open], details.rf-sec[open]').forEach(d=>{
+        if(d!==det&&rfIsFloating(d)&&!d.contains(det)&&!det.contains(d))d.open=false;
+      });
+      rfOpenFloating(det);
+    }
+  } else if(floating){
+    rfCloseFloating(det);
+  }
+},true);
+window.addEventListener('resize',()=>{
+  document.querySelectorAll('details.rf[open], details.rf-sec[open]').forEach(d=>{if(rfIsFloating(d))rfOpenFloating(d);});
+});
+document.addEventListener('click',e=>{
+  const open=[...document.querySelectorAll('details.rf[open], details.rf-sec[open]')];
+  if(!open.length)return;
+  const insideAny=open.some(d=>{
+    if(d.contains(e.target))return true;
+    const panel=rfPanelOf.get(d);
+    return panel?panel.contains(e.target):false;
+  });
+  if(!insideAny)rfCloseAllOpen();
+},true);
 
 // Dock mobile: some deslizando pra baixo enquanto o usuário rola a página
 // para baixo (lendo o conteúdo), e volta ao rolar para cima — evita ficar
