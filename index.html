@@ -5151,13 +5151,63 @@ function frBreakdown(dim,rows,grand){
 
 // ---- geometria — só 2 anéis, construídos de dentro pra fora a partir do
 // hub (que precisa de espaço de sobra pra "Total previsto / R$ x / N
-// lançamentos" em 3 linhas sem estourar o círculo). ----
-const FR_BOX=290, FR_THICK=22, FR_GAP=6, FR_HUB_R=72;
+// lançamentos" em 3 linhas sem estourar o círculo). O FR_GAP entre os
+// anéis (e a margem além do anel externo) ficou bem maior que o mínimo
+// visual pra caber o número flutuante de cada anel sem encostar no
+// vizinho — mesmo espírito do infográfico de referência do usuário.
+const FR_HUB_R=78, FR_THICK=26, FR_GAP=30;
 const FR_RADII={};
 (function(){
-  let r=FR_HUB_R+8+FR_THICK/2;
+  let r=FR_HUB_R+10+FR_THICK/2;
   FR_ORDER.slice().reverse().forEach(dim=>{FR_RADII[dim]=r; r+=FR_THICK+FR_GAP;});
 })();
+const FR_MAX_R=Math.max(FR_RADII.dono,FR_RADII.tipo)+FR_THICK/2;
+const FR_BOX=Math.round((FR_MAX_R+FR_GAP+16)*2);
+// Raio onde flutua o valor (%) de cada anel: no meio do corredor até o
+// próximo anel pra fora; pro anel mais externo, logo além da borda dele.
+const FR_PCT_R={};
+FR_ORDER.forEach(dim=>{
+  const outerEdge=FR_RADII[dim]+FR_THICK/2;
+  const outerNeighbor=FR_ORDER.filter(d=>d!==dim&&FR_RADII[d]>FR_RADII[dim]).sort((a,b)=>FR_RADII[a]-FR_RADII[b])[0];
+  FR_PCT_R[dim]=outerNeighbor?(outerEdge+(FR_RADII[outerNeighbor]-FR_THICK/2))/2:outerEdge+FR_GAP*0.8;
+});
+
+// Escreve texto seguindo a curva do anel, sempre em pé (nunca de cabeça
+// pra baixo): se o meio do texto cai na metade de baixo do círculo,
+// percorre os caracteres ao contrário e espelha a rotação. Cada letra
+// ganha um contorno escuro sutil por trás pra garantir leitura em
+// qualquer cor de fundo do anel. Retorna false (sem desenhar nada) se o
+// texto não couber no arco disponível — quem chamou decide o que fazer.
+function frDrawArcLabel(cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
+  frCtx.font='700 '+fontPx+'px "DM Sans", system-ui, -apple-system, sans-serif';
+  const chars=text.split('');
+  const widths=chars.map(c=>frCtx.measureText(c).width);
+  const totalWidth=widths.reduce((a,b)=>a+b,0);
+  const totalAngle=totalWidth/radius;
+  if(totalAngle>maxAngleSpan)return false;
+
+  const flip=Math.sin(aMid)>0.001;
+  const dir=flip?-1:1;
+  const rotOffset=flip?-Math.PI/2:Math.PI/2;
+  frCtx.save();
+  frCtx.textBaseline='middle'; frCtx.textAlign='center';
+  frCtx.lineJoin='round'; frCtx.miterLimit=2;
+  let angle=aMid-dir*(totalAngle/2);
+  for(let i=0;i<chars.length;i++){
+    const w=widths[i];
+    const charAngle=angle+dir*(w/2/radius);
+    const x=cx+radius*Math.cos(charAngle), y=cy+radius*Math.sin(charAngle);
+    frCtx.save();
+    frCtx.translate(x,y);
+    frCtx.rotate(charAngle+rotOffset);
+    frCtx.lineWidth=3; frCtx.strokeStyle='rgba(0,0,0,.45)'; frCtx.strokeText(chars[i],0,0);
+    frCtx.fillStyle='#fff'; frCtx.fillText(chars[i],0,0);
+    frCtx.restore();
+    angle+=dir*(w/radius);
+  }
+  frCtx.restore();
+  return true;
+}
 
 let frLastBreakdowns={};
 let frCanvas=null, frCtx=null;
@@ -5225,6 +5275,24 @@ function frDrawRings(){
         frCtx.lineWidth=2.5; frCtx.lineCap='round'; frCtx.strokeStyle=haloCol;
         frCtx.beginPath(); frCtx.arc(cx,cy,R-FR_THICK/2-3,a0,a1,false); frCtx.stroke();
         frCtx.beginPath(); frCtx.arc(cx,cy,R+FR_THICK/2+3,a0,a1,false); frCtx.stroke();
+      }
+      // Nome direto na própria fatia (só quando cabe) + valor flutuando
+      // do lado de fora, na cor da fatia — sem precisar tocar/passar o
+      // mouse pra ver quem é quem, do jeito que o usuário pediu.
+      if(seg.key!=='Outros'){
+        const aMid=(a0+a1)/2;
+        const fits=frDrawArcLabel(cx,cy,R,aMid,(a1-a0)*0.86,seg.key,Math.round(FR_THICK*0.42));
+        if(fits){
+          const pr=FR_PCT_R[dim];
+          const px=cx+pr*Math.cos(aMid), py=cy+pr*Math.sin(aMid);
+          frCtx.save();
+          frCtx.font='800 13px "DM Sans", system-ui, -apple-system, sans-serif';
+          frCtx.textAlign='center'; frCtx.textBaseline='middle';
+          frCtx.shadowColor=isDark()?'rgba(0,0,0,.5)':'rgba(0,0,0,.18)'; frCtx.shadowBlur=3;
+          frCtx.fillStyle=col;
+          frCtx.fillText(Math.round(seg.pct)+'%', px, py);
+          frCtx.restore();
+        }
       }
       seg._a0=start; seg._a1=start+sweep;
       start+=sweep;
