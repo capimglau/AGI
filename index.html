@@ -2567,8 +2567,6 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 <div class="page" id="page-lancamentos">
   <div class="lf-searchbar">
     <input type="text" id="lf-q" class="search-input" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderLanc()">
-    <button class="btn btn-sm" onclick="openXls()">📊 Excel</button>
-    <button class="btn btn-sm" onclick="exportCSV()">⬇ CSV</button>
   </div>
   <div class="fcnt" id="lf-cnt" style="text-align:right;margin-bottom:6px"></div>
   <button class="filt-toggle-btn" id="filtToggleBtnLanc" onclick="toggleFilterPanel('lfFiltPanel')" style="display:none">▼ Filtros</button>
@@ -2736,7 +2734,11 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
 <!-- PREMISSAS -->
 <div class="page" id="page-premissas">
-  <div style="max-width:900px">
+  <div style="display:flex;gap:12px;margin-bottom:20px;padding:0 24px">
+    <button class="btn btn-sm" onclick="openXls()">📊 Excel</button>
+    <button class="btn btn-sm" onclick="exportCSV()">⬇ CSV</button>
+  </div>
+  <div style="max-width:900px;margin:0 auto">
 
 
     <div class="prem-grid">
