@@ -5222,7 +5222,7 @@ function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
 // flutuante perto do topo de cada anel. Reage ao filtro de Tipo
 // (cross-filter): selecionar Locação recalcula a fatia de cada
 // proprietário só daquele tipo.
-const FRD_HUB_R=50, FRD_THICK=32, FRD_GAP=7;
+const FRD_HUB_R=54, FRD_THICK=38, FRD_GAP=8;
 const FRD_GAP_ANGLE=75*Math.PI/180;
 const FRD_SWEEP=Math.PI*2-FRD_GAP_ANGLE;
 const FRD_START=-Math.PI/2+FRD_GAP_ANGLE/2;
@@ -5302,7 +5302,17 @@ function frdDrawRings(){
     }
     if(!isOutros){
       const aMid=(a0+a1)/2;
-      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.75,seg.key+' · '+frPct(seg.pct),Math.round(FRD_THICK*0.44));
+      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+fR(seg.value),Math.round(FRD_THICK*0.5));
+      // Percentual no vão (parte sem preenchimento) de cada anel, na
+      // própria cor do anel — em cima do rótulo curvo com nome+valor.
+      const px=cx+R*Math.cos(-Math.PI/2), py=cy+R*Math.sin(-Math.PI/2);
+      frdCtx.save();
+      frdCtx.font='800 14px "DM Sans", system-ui, -apple-system, sans-serif';
+      frdCtx.textAlign='center'; frdCtx.textBaseline='middle';
+      frdCtx.shadowColor=isDark()?'rgba(0,0,0,.6)':'rgba(0,0,0,.2)'; frdCtx.shadowBlur=3;
+      frdCtx.fillStyle=col;
+      frdCtx.fillText(frPct(seg.pct), px, py);
+      frdCtx.restore();
     }
   });
 }
