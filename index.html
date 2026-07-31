@@ -2471,21 +2471,25 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .fr-basistoggle button.on { background: var(--blue); color: #fff; }
 .fr-basistoggle button.on.rec { background: var(--green); }
 
-.fr-chartrow { display: flex; flex-direction: column; align-items: center; margin-top: 6px; }
+.fr-total { text-align: center; margin: 4px 0 20px; }
+.fr-total-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink3); }
+.fr-total-value { font-size: 22px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); margin-top: 3px; }
+.fr-total-sub { font-size: 12px; color: var(--ink3); margin-top: 3px; }
 
-.fr-ring-scale-outer { position: relative; flex: 0 0 auto; max-width: 100%; }
-.fr-ring-wrap { position: relative; flex: 0 0 auto; transform-origin: top left; }
-.fr-ring-wrap canvas { display: block; cursor: pointer; }
-
-.fr-hub { position: absolute; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 0 0 1px var(--line), var(--shadow-sm); padding: 6px 10px; }
-.fr-hub-label { font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ink3); white-space: nowrap; }
-.fr-hub-value { font-size: 16px; font-weight: 700; letter-spacing: -.02em; margin-top: 3px; color: var(--ink); white-space: nowrap; }
-.fr-hub-sub { font-size: 9px; color: var(--ink3); margin-top: 4px; line-height: 1.3; max-width: 100%; }
-
-.fr-tooltip { position: fixed; z-index: 200; pointer-events: none; background: var(--ink); color: var(--surface); border-radius: 9px; padding: 7px 10px; font-size: 12px; box-shadow: var(--shadow-lg); transform: translate(-50%, calc(-100% - 10px)); white-space: nowrap; opacity: 0; transition: opacity .1s; }
-.fr-tooltip.show { opacity: 1; }
-.fr-tooltip .tt-val { font-weight: 700; font-family: 'DM Mono', monospace; }
-.fr-tooltip .tt-name { opacity: .75; margin-left: 6px; }
+.fr-bargroups { display: flex; flex-direction: column; gap: 24px; }
+.fr-bargroup-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 10px; }
+.fr-bar-row { padding: 6px 8px; margin: 0 -8px; border-radius: 10px; cursor: pointer; transition: background .12s; }
+.fr-bar-row:not(.nosel):hover { background: var(--surface); }
+.fr-bar-row.nosel { cursor: default; }
+.fr-bar-row.sel { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--ink); }
+html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.fr-bar-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.fr-bar-name { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fr-bar-val { font-size: 12px; color: var(--ink3); font-family: 'DM Mono', monospace; white-space: nowrap; flex: 0 0 auto; }
+.fr-bar-val b { color: var(--ink); font-weight: 700; margin-left: 5px; }
+.fr-bar-track { height: 8px; border-radius: 99px; background: var(--surface); overflow: hidden; }
+.fr-bar-row.sel .fr-bar-track { background: var(--card); }
+.fr-bar-fill { height: 100%; border-radius: 99px; }
 
 </style>
 <script id="ds" type="application/json">
@@ -2640,18 +2644,12 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <div class="card-hd">Faturamento por categoria<span class="sub">filtros próprios</span></div>
     <div class="rf-bar rf-flat" id="fatRingFilters"></div>
     <div class="fr-basistoggle" id="frBasisToggle"></div>
-    <div class="fr-chartrow">
-      <div class="fr-ring-scale-outer" id="frScaleOuter">
-        <div class="fr-ring-wrap" id="frRingWrap">
-          <canvas id="frCanvas"></canvas>
-          <div class="fr-hub" id="frHub">
-            <div class="fr-hub-label" id="frHubLabel">Total previsto</div>
-            <div class="fr-hub-value mono" id="frHubValue">R$ 0,00</div>
-            <div class="fr-hub-sub" id="frHubSub"></div>
-          </div>
-        </div>
-      </div>
+    <div class="fr-total" id="frTotal">
+      <div class="fr-total-label" id="frTotalLabel">Total previsto</div>
+      <div class="fr-total-value mono" id="frTotalValue">R$ 0,00</div>
+      <div class="fr-total-sub" id="frTotalSub"></div>
     </div>
+    <div class="fr-bargroups" id="frBarGroups"></div>
   </div>
   <div class="card">
     <div class="card-hd" id="hdMes">Faturamento mensal</div>
@@ -5149,245 +5147,65 @@ function frBreakdown(dim,rows,grand){
   return top.map((it,idx)=>({key:it.key,value:it.value,pct:grand?it.value/grand*100:0,rank:it.key==='Outros'?-1:idx,sel:FRT[dim].has(it.key)}));
 }
 
-// ---- geometria — só 2 anéis, construídos de dentro pra fora a partir do
-// hub (que precisa de espaço de sobra pra "Total previsto / R$ x / N
-// lançamentos" em 3 linhas sem estourar o círculo). O FR_GAP entre os
-// anéis (e a margem além do anel externo) ficou bem maior que o mínimo
-// visual pra caber o número flutuante de cada anel sem encostar no
-// vizinho — mesmo espírito do infográfico de referência do usuário.
-const FR_HUB_R=78, FR_THICK=26, FR_GAP=30;
-const FR_RADII={};
-(function(){
-  let r=FR_HUB_R+10+FR_THICK/2;
-  FR_ORDER.slice().reverse().forEach(dim=>{FR_RADII[dim]=r; r+=FR_THICK+FR_GAP;});
-})();
-const FR_MAX_R=Math.max(FR_RADII.dono,FR_RADII.tipo)+FR_THICK/2;
-const FR_BOX=Math.round((FR_MAX_R+FR_GAP+16)*2);
-// Raio onde flutua o valor (%) de cada anel: no meio do corredor até o
-// próximo anel pra fora; pro anel mais externo, logo além da borda dele.
-const FR_PCT_R={};
-FR_ORDER.forEach(dim=>{
-  const outerEdge=FR_RADII[dim]+FR_THICK/2;
-  const outerNeighbor=FR_ORDER.filter(d=>d!==dim&&FR_RADII[d]>FR_RADII[dim]).sort((a,b)=>FR_RADII[a]-FR_RADII[b])[0];
-  FR_PCT_R[dim]=outerNeighbor?(outerEdge+(FR_RADII[outerNeighbor]-FR_THICK/2))/2:outerEdge+FR_GAP*0.8;
-});
-
-// Escreve texto seguindo a curva do anel, sempre em pé (nunca de cabeça
-// pra baixo): se o meio do texto cai na metade de baixo do círculo,
-// percorre os caracteres ao contrário e espelha a rotação. Cada letra
-// ganha um contorno escuro sutil por trás pra garantir leitura em
-// qualquer cor de fundo do anel. Retorna false (sem desenhar nada) se o
-// texto não couber no arco disponível — quem chamou decide o que fazer.
-function frDrawArcLabel(cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
-  frCtx.font='700 '+fontPx+'px "DM Sans", system-ui, -apple-system, sans-serif';
-  const chars=text.split('');
-  const widths=chars.map(c=>frCtx.measureText(c).width);
-  const totalWidth=widths.reduce((a,b)=>a+b,0);
-  const totalAngle=totalWidth/radius;
-  if(totalAngle>maxAngleSpan)return false;
-
-  const flip=Math.sin(aMid)>0.001;
-  const dir=flip?-1:1;
-  const rotOffset=flip?-Math.PI/2:Math.PI/2;
-  frCtx.save();
-  frCtx.textBaseline='middle'; frCtx.textAlign='center';
-  frCtx.lineJoin='round'; frCtx.miterLimit=2;
-  let angle=aMid-dir*(totalAngle/2);
-  for(let i=0;i<chars.length;i++){
-    const w=widths[i];
-    const charAngle=angle+dir*(w/2/radius);
-    const x=cx+radius*Math.cos(charAngle), y=cy+radius*Math.sin(charAngle);
-    frCtx.save();
-    frCtx.translate(x,y);
-    frCtx.rotate(charAngle+rotOffset);
-    frCtx.lineWidth=3; frCtx.strokeStyle='rgba(0,0,0,.45)'; frCtx.strokeText(chars[i],0,0);
-    frCtx.fillStyle='#fff'; frCtx.fillText(chars[i],0,0);
-    frCtx.restore();
-    angle+=dir*(w/radius);
-  }
-  frCtx.restore();
-  return true;
+// Barra reta EXCLUSIVA por categoria real (cada proprietário, cada
+// tipo), em vez de anel — a pedido do usuário: como os valores são bem
+// desiguais (um dono/tipo dominante e vários pequenos), colocar cada um
+// no seu próprio anel circular desperdiçava quase todo o espaço em
+// círculo vazio e deixava as categorias pequenas ilegíveis. Barra reta
+// mostra nome e valor sempre visíveis pras 15 categorias, do maior pro
+// menor, sem esse desperdício.
+function frBarGroupHtml(dim){
+  const ringRows=frRowsForRing(dim);
+  const ringGrand=frSum(ringRows);
+  const segs=ringGrand>0?frBreakdown(dim,ringRows,ringGrand):[];
+  const outros=segs.find(s=>s.key==='Outros');
+  const real=segs.filter(s=>s.key!=='Outros').sort((a,b)=>b.pct-a.pct);
+  const ordered=outros?[...real,outros]:real;
+  const maxPct=Math.max(1,...real.map(s=>s.pct));
+  const rows=ordered.map(seg=>{
+    const isOutros=seg.key==='Outros';
+    const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
+    const widthPct=Math.max(2,Math.min(100,seg.pct/maxPct*100));
+    return '<div class="fr-bar-row'+(seg.sel?' sel':'')+(isOutros?' nosel':'')+'" data-dim="'+dim+'" data-key="'+escHtml(seg.key)+'">'+
+      '<div class="fr-bar-top"><span class="fr-bar-name">'+escHtml(seg.key)+'</span>'+
+      '<span class="fr-bar-val">'+fR(seg.value)+'<b>'+frPct(seg.pct)+'</b></span></div>'+
+      '<div class="fr-bar-track"><div class="fr-bar-fill" style="width:'+widthPct+'%;background:'+col+'"></div></div>'+
+      '</div>';
+  }).join('');
+  return '<div class="fr-bargroup"><div class="fr-bargroup-title">'+RF_LABELS[dim]+'</div>'+
+    (rows||'<div class="rf-empty">Sem dados</div>')+'</div>';
 }
 
-let frLastBreakdowns={};
-let frCanvas=null, frCtx=null;
-
-function frSizeCanvas(){
-  frCanvas=document.getElementById('frCanvas');
-  if(!frCanvas)return;
-  frCtx=frCanvas.getContext('2d');
-  const dpr=Math.max(2,window.devicePixelRatio||1);
-  frCanvas.width=FR_BOX*dpr; frCanvas.height=FR_BOX*dpr;
-  frCanvas.style.width=FR_BOX+'px'; frCanvas.style.height=FR_BOX+'px';
-  frCtx.setTransform(dpr,0,0,dpr,0,0);
-  const hub=document.getElementById('frHub');
-  if(hub){
-    hub.style.width=(FR_HUB_R*2)+'px'; hub.style.height=(FR_HUB_R*2)+'px';
-    hub.style.left=(FR_BOX/2-FR_HUB_R)+'px'; hub.style.top=(FR_BOX/2-FR_HUB_R)+'px';
-  }
-}
-function frApplyResponsiveScale(){
-  const outer=document.getElementById('frScaleOuter'), wrap=document.getElementById('frRingWrap');
-  if(!outer||!wrap)return;
-  const available=outer.parentElement.clientWidth;
-  const scale=Math.min(1, available/FR_BOX);
-  wrap.style.transform='scale('+scale+')';
-  outer.style.width=(FR_BOX*scale)+'px';
-  outer.style.height=(FR_BOX*scale)+'px';
-}
-
-// Sem texto nenhum dentro do gráfico (nem curvo no anel, nem balão por
-// fora): só as cores. A informação de cada fatia aparece exclusivamente
-// no popup ao passar o mouse / tocar (ver frBindEvents/frPositionTooltip).
-function frDrawRings(){
-  if(!frCtx)frSizeCanvas();
-  if(!frCtx)return;
-  const cx=FR_BOX/2, cy=FR_BOX/2;
-  frCtx.clearRect(0,0,FR_BOX,FR_BOX);
-  const trackCol=isDark()?'rgba(255,255,255,.14)':'rgba(10,12,20,.09)';
-  const haloCol=isDark()?'#ffffff':'#0c0c0f';
-
-  FR_ORDER.forEach(dim=>{
-    const R=FR_RADII[dim];
-    frCtx.beginPath();
-    frCtx.lineWidth=FR_THICK; frCtx.strokeStyle=trackCol;
-    frCtx.arc(cx,cy,R,0,Math.PI*2);
-    frCtx.stroke();
-
-    const ringRows=frRowsForRing(dim);
-    const ringGrand=frSum(ringRows);
-    const segs=ringGrand>0?frBreakdown(dim,ringRows,ringGrand):[];
-    frLastBreakdowns[dim]=segs;
-    let start=-Math.PI/2;
-    segs.forEach(seg=>{
-      const sweep=(seg.pct/100)*Math.PI*2;
-      const pad=Math.min(0.022, sweep*0.18);
-      const a0=start+pad/2, a1=start+Math.max(sweep-pad,0.001);
-      const col=seg.key==='Outros'?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
-      frCtx.beginPath();
-      frCtx.lineWidth=FR_THICK; frCtx.lineCap='round'; frCtx.strokeStyle=col;
-      frCtx.arc(cx,cy,R,a0,a1,false);
-      frCtx.stroke();
-      if(seg.sel){
-        // Categoria(s) do filtro ativo: em vez de encher a fatia toda de
-        // preto/branco, contorna só as bordas interna e externa dela —
-        // dá pra ver de longe qual fatia é a selecionada sem esconder a cor.
-        frCtx.lineWidth=2.5; frCtx.lineCap='round'; frCtx.strokeStyle=haloCol;
-        frCtx.beginPath(); frCtx.arc(cx,cy,R-FR_THICK/2-3,a0,a1,false); frCtx.stroke();
-        frCtx.beginPath(); frCtx.arc(cx,cy,R+FR_THICK/2+3,a0,a1,false); frCtx.stroke();
-      }
-      // Nome direto na própria fatia (só quando cabe) + valor flutuando
-      // do lado de fora, na cor da fatia — sem precisar tocar/passar o
-      // mouse pra ver quem é quem, do jeito que o usuário pediu.
-      if(seg.key!=='Outros'){
-        const aMid=(a0+a1)/2;
-        const fits=frDrawArcLabel(cx,cy,R,aMid,(a1-a0)*0.86,seg.key,Math.round(FR_THICK*0.42));
-        if(fits){
-          const pr=FR_PCT_R[dim];
-          const px=cx+pr*Math.cos(aMid), py=cy+pr*Math.sin(aMid);
-          frCtx.save();
-          frCtx.font='800 13px "DM Sans", system-ui, -apple-system, sans-serif';
-          frCtx.textAlign='center'; frCtx.textBaseline='middle';
-          frCtx.shadowColor=isDark()?'rgba(0,0,0,.5)':'rgba(0,0,0,.18)'; frCtx.shadowBlur=3;
-          frCtx.fillStyle=col;
-          frCtx.fillText(Math.round(seg.pct)+'%', px, py);
-          frCtx.restore();
-        }
-      }
-      seg._a0=start; seg._a1=start+sweep;
-      start+=sweep;
-    });
-  });
-}
-
-function frUpdateHub(){
+function frUpdateTotal(){
   const rows=frFilteredRows();
   const grand=frSum(rows);
   const activeCount=FR_ORDER.reduce((s,d)=>s+(FRT[d].size?1:0),0);
-  const lbl=document.getElementById('frHubLabel'), val=document.getElementById('frHubValue'), sub=document.getElementById('frHubSub');
+  const lbl=document.getElementById('frTotalLabel'), val=document.getElementById('frTotalValue'), sub=document.getElementById('frTotalSub');
   if(lbl)lbl.textContent=frBasis==='comp'?'Total previsto':'Total recebido';
   if(val)val.textContent=fR(grand);
   if(sub)sub.textContent=rows.length+' lançamento'+(rows.length===1?'':'s')+
     (activeCount?' · '+activeCount+' filtro'+(activeCount===1?'':'s')+' ativo'+(activeCount===1?'':'s'):'');
 }
 
-function frAngleToHit(mx,my){
-  const cx=FR_BOX/2, cy=FR_BOX/2, dx=mx-cx, dy=my-cy, dist=Math.hypot(dx,dy);
-  let dim=null;
-  FR_ORDER.forEach(d=>{const R=FR_RADII[d]; if(dist>=R-FR_THICK/2-6 && dist<=R+FR_THICK/2+6)dim=d;});
-  if(!dim)return null;
-  const ang=Math.atan2(dy,dx);
-  let norm=ang+Math.PI/2; if(norm<0)norm+=Math.PI*2;
-  const segs=frLastBreakdowns[dim]||[];
-  for(let i=0;i<segs.length;i++){
-    let a0=segs[i]._a0+Math.PI/2, a1=segs[i]._a1+Math.PI/2;
-    if(a0<0)a0+=Math.PI*2; if(a1<0)a1+=Math.PI*2; if(a1<a0)a1+=Math.PI*2;
-    let n2=norm; if(n2<a0)n2+=Math.PI*2;
-    if(n2>=a0&&n2<=a1)return{dim:dim,seg:segs[i]};
-  }
-  return null;
-}
-function frPositionTooltip(x,y,html){
-  const tt=document.getElementById('frTooltip'); if(!tt)return;
-  tt.innerHTML=html; tt.classList.add('show');
-  const margin=8, half=tt.offsetWidth/2;
-  const cx=Math.min(Math.max(x,margin+half), window.innerWidth-margin-half);
-  const cy=Math.max(y, tt.offsetHeight+margin);
-  tt.style.left=cx+'px'; tt.style.top=cy+'px';
-}
-function frHideTooltip(){const tt=document.getElementById('frTooltip'); if(tt)tt.classList.remove('show');}
-
 function frRenderData(){
-  frDrawRings();
-  frUpdateHub();
-}
-
-function frHitFromEvent(canvas,e){
-  const rect=canvas.getBoundingClientRect();
-  const k=FR_BOX/rect.width;
-  return frAngleToHit((e.clientX-rect.left)*k, (e.clientY-rect.top)*k);
-}
-function frTooltipHtml(hit){
-  return '<span class="tt-val">'+fR(hit.seg.value)+' ('+frPct(hit.seg.pct)+')</span>'+
-    '<span class="tt-name">'+RF_LABELS[hit.dim]+' · '+escHtml(hit.seg.key)+'</span>';
+  const container=document.getElementById('frBarGroups');
+  if(container)container.innerHTML=FR_ORDER.map(frBarGroupHtml).join('');
+  frUpdateTotal();
 }
 
 let frBound=false;
-let frTapHideTimer=null;
 function frBindEvents(){
   if(frBound)return; frBound=true;
-  const canvas=document.getElementById('frCanvas');
-  canvas.addEventListener('pointermove', e=>{
-    const hit=frHitFromEvent(canvas,e);
-    if(!hit){frHideTooltip();return;}
-    frPositionTooltip(e.clientX, e.clientY, frTooltipHtml(hit));
-  });
-  canvas.addEventListener('pointerleave', e=>{ if(e.pointerType!=='touch')frHideTooltip(); });
-  // Touch não dispara pointermove num toque parado — sem isso, tocar
-  // numa fatia só selecionava o filtro, sem mostrar nome nem valor.
-  // No toque, mostra o balão na hora do toque e mantém por um tempo.
-  canvas.addEventListener('pointerdown', e=>{
-    if(e.pointerType!=='touch')return;
-    const hit=frHitFromEvent(canvas,e);
-    if(!hit){frHideTooltip();return;}
-    frPositionTooltip(e.clientX, e.clientY, frTooltipHtml(hit));
-    clearTimeout(frTapHideTimer);
-    frTapHideTimer=setTimeout(frHideTooltip, 2200);
-  });
-  canvas.addEventListener('click', e=>{
-    const hit=frHitFromEvent(canvas,e);
-    if(!hit||hit.seg.key==='Outros')return;
-    const set=FRT[hit.dim];
-    if(set.has(hit.seg.key))set.delete(hit.seg.key); else set.add(hit.seg.key);
+  const container=document.getElementById('frBarGroups');
+  container.addEventListener('click', e=>{
+    const row=e.target.closest('.fr-bar-row');
+    if(!row||row.classList.contains('nosel'))return;
+    const dim=row.dataset.dim, key=row.dataset.key;
+    const set=FRT[dim];
+    if(set.has(key))set.delete(key); else set.add(key);
     buildFatRingFilters();
     frRenderData();
   });
-  const tt=document.createElement('div');
-  tt.className='fr-tooltip'; tt.id='frTooltip';
-  tt.innerHTML='<span class="tt-val"></span><span class="tt-name"></span>';
-  document.body.appendChild(tt);
-
-  window.addEventListener('resize', ()=>{frSizeCanvas(); frApplyResponsiveScale(); frDrawRings();});
 }
 
 // A UI de filtro (checkboxes) e o toggle previsto/recebido só são
@@ -5422,14 +5240,9 @@ function buildFatRingFilters(){
 }
 
 function renderFatRings(){
-  if(!document.getElementById('frCanvas'))return;
+  if(!document.getElementById('frBarGroups'))return;
   if(!frFiltersBuilt){buildFatRingFilters(); frBindEvents(); frFiltersBuilt=true;}
-  frSizeCanvas();
-  frApplyResponsiveScale();
   frRenderData();
-  if(document.fonts && document.fonts.ready){
-    document.fonts.ready.then(()=>frDrawRings()).catch(()=>{});
-  }
 }
 
 function renderResumo(){
