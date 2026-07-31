@@ -2458,6 +2458,30 @@ html[data-theme="dark"] .swipe.dragging .pcard,
 html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 
 /* ─── FATURAMENTO POR CATEGORIA (anéis multi-filtro, Resumo) ─── */
+/* Sem o rótulo "Filtrar por" (só os chips). Em telas estreitas os 4 chips
+   viram só o ícone (o nome completo continua dentro do próprio chip,
+   como title, e por extenso lá em cima assim que a tela permitir) — assim
+   os quatro cabem numa linha só sem precisar de rolagem, o que cortaria o
+   dropdown de opções (overflow-x:auto corta o overflow-y do popover junto). */
+#fatRingFilters .rf-menu-hd > span:first-child { display: none; }
+#fatRingFilters .rf-menu-hd { order: 99; border-bottom: none; padding: 0; margin: 0 0 0 4px; flex: 0 0 auto; }
+#fatRingFilters .fr-label-icon { margin-right: 5px; }
+@media (max-width: 480px) {
+  #fatRingFilters.rf-flat { flex-wrap: nowrap; gap: 6px; }
+  #fatRingFilters.rf-flat .rf-sec { flex: 0 0 auto; }
+  #fatRingFilters .fr-label-text { display: none; }
+  #fatRingFilters .fr-label-icon { margin-right: 0; font-size: 15px; }
+  #fatRingFilters .rf-sec-tt { padding: 8px 10px; gap: 4px; }
+  /* O chip virou só ícone (estreito) — sem isso a lista de opções herdava
+     a mesma largura mínima do chip (right:0) e o texto quebrava feio. */
+  #fatRingFilters .rf-sec-opts { right: auto; min-width: 210px; max-width: 80vw; }
+  /* nth-of-type (não nth-child): o <div class="rf-menu-hd"> escondido é o
+     1º filho no DOM (mesmo reordenado por CSS), então nth-child contaria
+     errado — nth-of-type ignora ele por ser de outra tag e conta certo
+     entre os 4 <details class="rf-sec">. */
+  #fatRingFilters .rf-sec:nth-of-type(3) .rf-sec-opts,
+  #fatRingFilters .rf-sec:nth-of-type(4) .rf-sec-opts { left: auto; right: 0; }
+}
 .fr-basistoggle { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin: 4px 0 16px; }
 .fr-basistoggle button { border: none; background: none; padding: 6px 14px; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink3); cursor: pointer; transition: background .15s, color .15s; }
 .fr-basistoggle button.on { background: var(--blue); color: #fff; }
@@ -5198,11 +5222,11 @@ function frApplyResponsiveScale(){
 // (nunca na cor do anel), pra garantir contraste em qualquer tom de fundo.
 // Se não couber legível no arco, não desenha. Inverte o sentido quando o
 // arco cai na metade de baixo do círculo, pra nunca ficar de cabeça pra baixo.
-function frDrawArcText(cx,cy,text,radius,a0,a1){
+function frDrawArcText(cx,cy,text,radius,a0,a1,fontSize){
   const full=a1-a0;
   if(full<0.12)return;
   frCtx.save();
-  frCtx.font='700 11px "DM Sans", sans-serif';
+  frCtx.font='700 '+(fontSize||11)+'px "DM Sans", sans-serif';
   frCtx.textBaseline='middle'; frCtx.textAlign='center';
   frCtx.fillStyle='#ffffff';
   frCtx.shadowColor='rgba(0,0,0,.38)'; frCtx.shadowBlur=3;
@@ -5264,9 +5288,14 @@ function frDrawRings(){
       seg._a0=start; seg._a1=start+sweep;
       start+=sweep;
     });
-    if(segs.length && segs[0].pct>=8){
-      frDrawArcText(cx,cy,segs[0].key,R,segs[0]._a0,segs[0]._a1);
-    }
+    // Nome de cada fatia (não só a maior) escrito em curva sobre o próprio
+    // anel — a função já não desenha sozinha se não couber legível no arco,
+    // então fatias pequenas (ex.: Multas, Lavagem) simplesmente ficam de
+    // fora sem precisar calcular limiar nenhum aqui.
+    segs.forEach(seg=>{
+      if(seg.pct<4||seg.key==='Outros')return;
+      frDrawArcText(cx,cy,seg.key,R,seg._a0,seg._a1, seg.rank===0?11:8.5);
+    });
   });
 
   FR_ORDER.forEach(dim=>{
@@ -5458,6 +5487,16 @@ function frBindEvents(){
 let frFiltersBuilt=false;
 function buildFatRingFilters(){
   makeFilterSelector('fatRingFilters', FRT, frRenderData, true, FR_ORDER);
+  // makeFilterSelector não tem ícone — separa texto e ícone aqui pra poder
+  // esconder só o texto em telas estreitas (ver CSS) e ainda assim caber
+  // os 4 filtros numa linha só.
+  document.querySelectorAll('#fatRingFilters .rf-sec').forEach((sec,i)=>{
+    const dim=FR_ORDER[i];
+    const lbl=sec.querySelector('.rf-sec-label');
+    if(lbl && dim && !lbl.querySelector('.fr-label-icon')){
+      lbl.innerHTML='<span class="fr-label-icon">'+FR_ICONS[dim]+'</span><span class="fr-label-text">'+escHtml(lbl.textContent)+'</span>';
+    }
+  });
   const bt=document.getElementById('frBasisToggle');
   if(bt){
     bt.innerHTML=
