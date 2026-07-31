@@ -1434,6 +1434,16 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
   background: var(--card); border: 1px solid var(--line); border-radius: 10px;
   box-shadow: var(--shadow-lg); padding: 4px;
 }
+/* Quando o popover "teleporta" pro final do <body> (rfOpenFloating, pra
+   escapar do containing block do backdrop-filter do card), ele deixa de
+   ter ".rf-flat" como ancestral — a regra acima perde efeito e o fundo
+   some, ficando só o texto flutuando por cima do conteúdo. A classe
+   .rf-floating (adicionada/removida em JS) garante o mesmo visual
+   independente de onde o painel esteja no DOM. */
+.rf-sec-opts.rf-floating {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: var(--shadow-lg); padding: 4px;
+}
 
 /* ─── CONTROLES DO RESUMO (período · base · acumulado) ─── */
 .res-ctrls {
@@ -5416,14 +5426,14 @@ function frdDrawRings(){
       // completo em vez de abreviado — só nas telas estreitas (mobile,
       // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
       const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
-      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+valTxt,Math.round(FRD_THICK*0.5));
+      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+valTxt,Math.round(FRD_THICK*0.625));
       // Percentual bem no cantinho final da barra (na parte sem
       // preenchimento, coladinho na ponta do anel) — não centralizado
       // no vão inteiro.
       const pctAngle=a0-FRD_GAP_ANGLE*0.4;
       const px=cx+R*Math.cos(pctAngle), py=cy+R*Math.sin(pctAngle);
       frdCtx.save();
-      frdCtx.font='800 17px "DM Sans", system-ui, -apple-system, sans-serif';
+      frdCtx.font='800 21px "DM Sans", system-ui, -apple-system, sans-serif';
       frdCtx.textAlign='center'; frdCtx.textBaseline='middle';
       frdCtx.shadowColor=isDark()?'rgba(0,0,0,.6)':'rgba(0,0,0,.2)'; frdCtx.shadowBlur=3;
       frdCtx.fillStyle=col;
@@ -7426,6 +7436,7 @@ function rfOpenFloating(det){
   if(!panel||!trigger)return;
   if(!rfHomeOf.has(panel))rfHomeOf.set(panel,{parent:panel.parentElement,next:panel.nextSibling});
   if(panel.parentElement!==document.body)document.body.appendChild(panel);
+  panel.classList.add('rf-floating');
   const r=trigger.getBoundingClientRect();
   const vw=window.innerWidth, vh=window.innerHeight;
   const isWide=panel.classList.contains('rf-menu-wide');
@@ -7459,6 +7470,7 @@ function rfCloseFloating(det){
   }
   ['position','left','right','top','bottom','width','maxHeight','zIndex','margin','minWidth','maxWidth','boxSizing']
     .forEach(p=>{panel.style[p]='';});
+  panel.classList.remove('rf-floating');
 }
 function rfCloseAllOpen(){
   document.querySelectorAll('details.rf[open], details.rf-sec[open]').forEach(d=>{d.open=false;});
