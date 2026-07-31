@@ -5231,7 +5231,7 @@ function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
 // flutuante perto do topo de cada anel. Reage ao filtro de Tipo
 // (cross-filter): selecionar Locação recalcula a fatia de cada
 // proprietário só daquele tipo.
-const FRD_HUB_R=54, FRD_THICK=38, FRD_GAP=8;
+const FRD_HUB_R=58, FRD_THICK=46, FRD_GAP=9;
 const FRD_GAP_ANGLE=75*Math.PI/180;
 const FRD_SWEEP=Math.PI*2-FRD_GAP_ANGLE;
 const FRD_START=-Math.PI/2+FRD_GAP_ANGLE/2;
@@ -5318,7 +5318,7 @@ function frdDrawRings(){
       const pctAngle=a0-FRD_GAP_ANGLE*0.4;
       const px=cx+R*Math.cos(pctAngle), py=cy+R*Math.sin(pctAngle);
       frdCtx.save();
-      frdCtx.font='800 14px "DM Sans", system-ui, -apple-system, sans-serif';
+      frdCtx.font='800 17px "DM Sans", system-ui, -apple-system, sans-serif';
       frdCtx.textAlign='center'; frdCtx.textBaseline='middle';
       frdCtx.shadowColor=isDark()?'rgba(0,0,0,.6)':'rgba(0,0,0,.2)'; frdCtx.shadowBlur=3;
       frdCtx.fillStyle=col;
