@@ -2477,6 +2477,18 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .frd-hub-value { font-size: 15px; font-weight: 700; letter-spacing: -.02em; margin-top: 3px; color: var(--ink); white-space: nowrap; }
 .frd-hub-sub { font-size: 9px; color: var(--ink3); margin-top: 4px; }
 
+/* Lista compacta com o valor de CADA proprietário — o anel só cabe
+   nome+valor na fatia do maior; sem isso, os demais ficavam sem nenhum
+   valor visível em lugar nenhum. */
+.frd-legend { display: flex; flex-direction: column; margin: 16px auto 0; max-width: 360px; }
+.frd-legend-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 2px; }
+.frd-legend-row + .frd-legend-row { border-top: 1px solid var(--line); }
+.frd-legend-name { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink); min-width: 0; }
+.frd-legend-name span.txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frd-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.frd-legend-val { font-size: 12px; color: var(--ink3); font-family: 'DM Mono', monospace; white-space: nowrap; flex: 0 0 auto; }
+.frd-legend-val b { color: var(--ink); font-weight: 700; margin-left: 5px; }
+
 .fr-basistoggle { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin: 4px 0 16px; }
 .fr-basistoggle button { border: none; background: none; padding: 6px 14px; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink3); cursor: pointer; transition: background .15s, color .15s; }
 .fr-basistoggle button.on { background: var(--blue); color: #fff; }
@@ -2665,6 +2677,7 @@ html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--in
         </div>
       </div>
     </div>
+    <div class="frd-legend" id="frdLegend"></div>
     <div class="fr-basistoggle" id="frBasisToggle"></div>
     <div class="rf-bar rf-flat" id="fatRingFilters"></div>
     <div class="fr-total" id="frTotal">
@@ -5290,6 +5303,20 @@ function frUpdateDonutHub(){
   if(val)val.textContent=fR(grand);
   if(sub)sub.textContent=rows.length+' lançamento'+(rows.length===1?'':'s');
 }
+// Lista com o valor de TODOS os proprietários (não só quem cabe com
+// nome+valor na fatia do anel) — mesmos dados do anel (sempre todos,
+// nunca filtrado), só que em formato de lista pra garantir que dá pra
+// ver o valor de cada um, do maior pro menor.
+function frRenderDonutLegend(){
+  const el=document.getElementById('frdLegend');
+  if(!el)return;
+  const {segs}=frDonutBreakdown();
+  el.innerHTML=segs.map(seg=>{
+    const col=seg.key==='Outros'?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
+    return '<div class="frd-legend-row"><span class="frd-legend-name"><span class="frd-legend-dot" style="background:'+col+'"></span><span class="txt">'+escHtml(seg.key)+'</span></span>'+
+      '<span class="frd-legend-val">'+fR(seg.value)+'<b>'+frPct(seg.pct)+'</b></span></div>';
+  }).join('');
+}
 
 // Barra reta EXCLUSIVA por categoria real (cada proprietário, cada
 // tipo), em vez de anel — a pedido do usuário: como os valores são bem
@@ -5334,6 +5361,7 @@ function frUpdateTotal(){
 function frRenderData(){
   frDrawDonut();
   frUpdateDonutHub();
+  frRenderDonutLegend();
   const container=document.getElementById('frBarGroups');
   if(container)container.innerHTML=FR_BAR_DIMS.map(frBarGroupHtml).join('');
   frUpdateTotal();
