@@ -2466,6 +2466,17 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 @media (max-width: 380px) {
   #fatRingFilters .rf-sec-opts { min-width: 210px; max-width: 80vw; }
 }
+/* Anel "sempre todo mundo" (não filtra) — visão geral por proprietário,
+   fixa, acima dos filtros/barras que sim reagem à seleção. */
+.frd-chartrow { display: flex; flex-direction: column; align-items: center; margin: 6px 0 18px; }
+.frd-scale-outer { position: relative; flex: 0 0 auto; max-width: 100%; }
+.frd-ring-wrap { position: relative; flex: 0 0 auto; transform-origin: top left; }
+.frd-ring-wrap canvas { display: block; }
+.frd-hub { position: absolute; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 0 0 1px var(--line), var(--shadow-sm); padding: 6px 10px; }
+.frd-hub-label { font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ink3); white-space: nowrap; }
+.frd-hub-value { font-size: 15px; font-weight: 700; letter-spacing: -.02em; margin-top: 3px; color: var(--ink); white-space: nowrap; }
+.frd-hub-sub { font-size: 9px; color: var(--ink3); margin-top: 4px; }
+
 .fr-basistoggle { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin: 4px 0 16px; }
 .fr-basistoggle button { border: none; background: none; padding: 6px 14px; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink3); cursor: pointer; transition: background .15s, color .15s; }
 .fr-basistoggle button.on { background: var(--blue); color: #fff; }
@@ -2642,8 +2653,20 @@ html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--in
   </div>
   <div class="card">
     <div class="card-hd">Faturamento por categoria<span class="sub">filtros próprios</span></div>
-    <div class="rf-bar rf-flat" id="fatRingFilters"></div>
+    <div class="frd-chartrow">
+      <div class="frd-scale-outer" id="frdScaleOuter">
+        <div class="frd-ring-wrap" id="frdRingWrap">
+          <canvas id="frdCanvas"></canvas>
+          <div class="frd-hub" id="frdHub">
+            <div class="frd-hub-label" id="frdHubLabel">Total previsto</div>
+            <div class="frd-hub-value mono" id="frdHubValue">R$ 0,00</div>
+            <div class="frd-hub-sub" id="frdHubSub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="fr-basistoggle" id="frBasisToggle"></div>
+    <div class="rf-bar rf-flat" id="fatRingFilters"></div>
     <div class="fr-total" id="frTotal">
       <div class="fr-total-label" id="frTotalLabel">Total previsto</div>
       <div class="fr-total-value mono" id="frTotalValue">R$ 0,00</div>
@@ -5147,6 +5170,122 @@ function frBreakdown(dim,rows,grand){
   return top.map((it,idx)=>({key:it.key,value:it.value,pct:grand?it.value/grand*100:0,rank:it.key==='Outros'?-1:idx,sel:FRT[dim].has(it.key)}));
 }
 
+// Escreve texto seguindo a curva do anel, sempre em pé (nunca de cabeça
+// pra baixo): se o meio do texto cai na metade de baixo do círculo,
+// percorre os caracteres ao contrário e espelha a rotação. Cada letra
+// ganha um contorno escuro sutil por trás pra garantir leitura em
+// qualquer cor de fundo do anel. Retorna false (sem desenhar nada) se o
+// texto não couber no arco disponível — quem chamou decide o que fazer.
+function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
+  ctx.font='700 '+fontPx+'px "DM Sans", system-ui, -apple-system, sans-serif';
+  const chars=text.split('');
+  const widths=chars.map(c=>ctx.measureText(c).width);
+  const totalWidth=widths.reduce((a,b)=>a+b,0);
+  const totalAngle=totalWidth/radius;
+  if(totalAngle>maxAngleSpan)return false;
+
+  const flip=Math.sin(aMid)>0.001;
+  const dir=flip?-1:1;
+  const rotOffset=flip?-Math.PI/2:Math.PI/2;
+  ctx.save();
+  ctx.textBaseline='middle'; ctx.textAlign='center';
+  ctx.lineJoin='round'; ctx.miterLimit=2;
+  let angle=aMid-dir*(totalAngle/2);
+  for(let i=0;i<chars.length;i++){
+    const w=widths[i];
+    const charAngle=angle+dir*(w/2/radius);
+    const x=cx+radius*Math.cos(charAngle), y=cy+radius*Math.sin(charAngle);
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(charAngle+rotOffset);
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.strokeText(chars[i],0,0);
+    ctx.fillStyle='#fff'; ctx.fillText(chars[i],0,0);
+    ctx.restore();
+    angle+=dir*(w/radius);
+  }
+  ctx.restore();
+  return true;
+}
+
+// Anel único "sempre todo mundo" — visão geral por proprietário, sobre
+// TODAS as linhas do mês (frBaseRows), nunca afetada pelos filtros FRT
+// de baixo (que só alimentam as barras). Mostra nome+valor direto no
+// anel, igual à versão anterior, só que restrito a Proprietário e sem
+// reagir a seleção nenhuma — é o "todos, sempre" pedido pelo usuário.
+const FRD_BOX=252, FRD_THICK=30, FRD_HUB_R=70;
+let frdCanvas=null, frdCtx=null;
+
+function frDonutBreakdown(){
+  const rows=frBaseRows();
+  const grand=frSum(rows);
+  const sums={};
+  rows.forEach(r=>{const k=(r.dono||'').trim()||'—';sums[k]=(sums[k]||0)+frValBase(r);});
+  let list=Object.keys(sums).map(k=>({key:k,value:sums[k]})).sort((a,b)=>b.value-a.value);
+  const top=list.slice(0,10);
+  const restSum=list.slice(10).reduce((s,it)=>s+it.value,0);
+  if(restSum>0.005)top.push({key:'Outros',value:restSum});
+  return {rows,grand,segs:top.map((it,idx)=>({key:it.key,value:it.value,pct:grand?it.value/grand*100:0,rank:it.key==='Outros'?-1:idx}))};
+}
+function frSizeDonutCanvas(){
+  frdCanvas=document.getElementById('frdCanvas');
+  if(!frdCanvas)return;
+  frdCtx=frdCanvas.getContext('2d');
+  const dpr=Math.max(2,window.devicePixelRatio||1);
+  frdCanvas.width=FRD_BOX*dpr; frdCanvas.height=FRD_BOX*dpr;
+  frdCanvas.style.width=FRD_BOX+'px'; frdCanvas.style.height=FRD_BOX+'px';
+  frdCtx.setTransform(dpr,0,0,dpr,0,0);
+  const hub=document.getElementById('frdHub');
+  if(hub){
+    hub.style.width=(FRD_HUB_R*2)+'px'; hub.style.height=(FRD_HUB_R*2)+'px';
+    hub.style.left=(FRD_BOX/2-FRD_HUB_R)+'px'; hub.style.top=(FRD_BOX/2-FRD_HUB_R)+'px';
+  }
+}
+function frApplyDonutResponsiveScale(){
+  const outer=document.getElementById('frdScaleOuter'), wrap=document.getElementById('frdRingWrap');
+  if(!outer||!wrap)return;
+  const available=outer.parentElement.clientWidth;
+  const scale=Math.min(1, available/FRD_BOX);
+  wrap.style.transform='scale('+scale+')';
+  outer.style.width=(FRD_BOX*scale)+'px';
+  outer.style.height=(FRD_BOX*scale)+'px';
+}
+function frDrawDonut(){
+  if(!frdCtx)frSizeDonutCanvas();
+  if(!frdCtx)return;
+  const cx=FRD_BOX/2, cy=FRD_BOX/2, R=FRD_HUB_R+10+FRD_THICK/2;
+  frdCtx.clearRect(0,0,FRD_BOX,FRD_BOX);
+  const trackCol=isDark()?'rgba(255,255,255,.14)':'rgba(10,12,20,.09)';
+  frdCtx.beginPath();
+  frdCtx.lineWidth=FRD_THICK; frdCtx.strokeStyle=trackCol;
+  frdCtx.arc(cx,cy,R,0,Math.PI*2);
+  frdCtx.stroke();
+
+  const {segs}=frDonutBreakdown();
+  let start=-Math.PI/2;
+  segs.forEach(seg=>{
+    const sweep=(seg.pct/100)*Math.PI*2;
+    const pad=Math.min(0.022, sweep*0.18);
+    const a0=start+pad/2, a1=start+Math.max(sweep-pad,0.001);
+    const col=seg.key==='Outros'?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
+    frdCtx.beginPath();
+    frdCtx.lineWidth=FRD_THICK; frdCtx.lineCap='round'; frdCtx.strokeStyle=col;
+    frdCtx.arc(cx,cy,R,a0,a1,false);
+    frdCtx.stroke();
+    if(seg.key!=='Outros'){
+      const aMid=(a0+a1)/2;
+      frDrawArcLabel(frdCtx,cx,cy,R,aMid,(a1-a0)*0.86,seg.key+' '+Math.round(seg.pct)+'%',Math.round(FRD_THICK*0.42));
+    }
+    start+=sweep;
+  });
+}
+function frUpdateDonutHub(){
+  const {rows,grand}=frDonutBreakdown();
+  const lbl=document.getElementById('frdHubLabel'), val=document.getElementById('frdHubValue'), sub=document.getElementById('frdHubSub');
+  if(lbl)lbl.textContent=frBasis==='comp'?'Total previsto':'Total recebido';
+  if(val)val.textContent=fR(grand);
+  if(sub)sub.textContent=rows.length+' lançamento'+(rows.length===1?'':'s');
+}
+
 // Barra reta EXCLUSIVA por categoria real (cada proprietário, cada
 // tipo), em vez de anel — a pedido do usuário: como os valores são bem
 // desiguais (um dono/tipo dominante e vários pequenos), colocar cada um
@@ -5188,6 +5327,8 @@ function frUpdateTotal(){
 }
 
 function frRenderData(){
+  frDrawDonut();
+  frUpdateDonutHub();
   const container=document.getElementById('frBarGroups');
   if(container)container.innerHTML=FR_ORDER.map(frBarGroupHtml).join('');
   frUpdateTotal();
@@ -5206,6 +5347,7 @@ function frBindEvents(){
     buildFatRingFilters();
     frRenderData();
   });
+  window.addEventListener('resize', ()=>{frSizeDonutCanvas(); frApplyDonutResponsiveScale(); frDrawDonut();});
 }
 
 // A UI de filtro (checkboxes) e o toggle previsto/recebido só são
@@ -5242,7 +5384,12 @@ function buildFatRingFilters(){
 function renderFatRings(){
   if(!document.getElementById('frBarGroups'))return;
   if(!frFiltersBuilt){buildFatRingFilters(); frBindEvents(); frFiltersBuilt=true;}
+  frSizeDonutCanvas();
+  frApplyDonutResponsiveScale();
   frRenderData();
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{frDrawDonut(); frApplyDonutResponsiveScale();}).catch(()=>{});
+  }
 }
 
 function renderResumo(){
