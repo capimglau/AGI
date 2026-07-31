@@ -1440,6 +1440,7 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
   display: flex;
   align-items: stretch;
   gap: 10px;
+  margin-top: 10px;
   margin-bottom: 20px;
   background: linear-gradient(135deg, #e6e8ee 0%, #d6d8e1 100%);
   border: 1px solid rgba(255,255,255,.7);
@@ -2470,6 +2471,30 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
    (Silvio, quem mais fatura) pro menor, igual ao infográfico de
    referência do usuário. Recalcula com o filtro de Tipo (cross-filter):
    selecionar Locação mostra a fatia de Locação de cada proprietário. */
+.fr-filterrow .fr-total { margin: 0; flex: 1 1 auto; min-width: 0; text-align: center; }
+.fr-filterrow .fr-total-label { font-size: 9px; }
+.fr-filterrow .fr-total-value { font-size: 15px; margin-top: 1px; }
+.fr-filterrow .fr-total-sub { display: none; }
+@media (max-width: 640px) {
+  .fr-filterrow { flex-wrap: wrap; }
+  .fr-filterrow .fr-total { order: 3; flex: 0 0 100%; margin-top: 6px; }
+}
+.fr-splitrow { display: flex; align-items: flex-start; gap: 32px; }
+.fr-splitcol { flex: 1 1 0; min-width: 0; }
+.fr-splitcol-ring { flex: 1.12 1 0; display: flex; flex-direction: column; align-items: center; }
+.fr-splitcol-ring .fr-bargroup-title { align-self: flex-start; }
+.fr-splitcol-bars { flex: 1 1 0; padding-top: 2px; }
+.fr-splitcol-bars .fr-bargroups { gap: 20px; }
+.fr-splitcol-bars .fr-bar-name { font-size: 12.5px; }
+.fr-splitcol-bars .fr-bar-val { font-size: 11.5px; }
+.fr-splitcol-bars .fr-bar-top { margin-bottom: 5px; }
+.fr-splitcol-bars .fr-bar-track { height: 7.5px; }
+@media (max-width: 760px) {
+  .fr-splitrow { flex-direction: column; gap: 8px; }
+  .fr-splitcol-ring { width: 100%; }
+  .fr-splitcol-bars .fr-bar-name { font-size: 13px; }
+  .fr-splitcol-bars .fr-bar-val { font-size: 12px; }
+}
 .frd-chartrow { display: flex; flex-direction: column; align-items: center; margin: 4px 0 8px; }
 .frd-scale-outer { position: relative; flex: 0 0 auto; max-width: 100%; }
 .frd-ring-wrap { position: relative; flex: 0 0 auto; transform-origin: top left; }
@@ -2494,6 +2519,15 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .fr-filterrow #fatRingFilters .rf-caret { font-size: 10px; }
 .fr-filterrow #fatRingFilters .rf-sec:nth-of-type(1) .rf-sec-tt::before { content: '👤'; }
 .fr-filterrow #fatRingFilters .rf-sec:nth-of-type(2) .rf-sec-tt::before { content: '🏷️'; }
+/* No PC (tela grande) tem espaço de sobra: mostra o nome do filtro
+   (Proprietário / Tipo) em vez de só o ícone, e o popover abre alinhado
+   à direita do botão pra nunca vazar pra fora da tela. */
+@media (min-width: 761px) {
+  .fr-filterrow #fatRingFilters .rf-sec-tt::before { display: none; }
+  .fr-filterrow #fatRingFilters .rf-sec-label { display: inline; }
+  .fr-filterrow #fatRingFilters .rf-sec-tt { padding: 7px 12px; gap: 6px; }
+  .fr-filterrow #fatRingFilters .rf-sec-opts { left: auto; right: 0; }
+}
 .fr-basistoggle { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin: 4px 0 16px; }
 .fr-basistoggle button { border: none; background: none; padding: 6px 14px; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink3); cursor: pointer; transition: background .15s, color .15s; }
 .fr-basistoggle button.on { background: var(--blue); color: #fff; }
@@ -2660,25 +2694,31 @@ html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--in
     <div class="card-hd">Faturamento por categoria<span class="sub">filtros próprios</span></div>
     <div class="fr-filterrow">
       <div class="fr-basistoggle" id="frBasisToggle"></div>
+      <div class="fr-total" id="frTotal">
+        <div class="fr-total-label" id="frTotalLabel">Total previsto</div>
+        <div class="fr-total-value mono" id="frTotalValue">R$ 0,00</div>
+        <div class="fr-total-sub" id="frTotalSub"></div>
+      </div>
       <div class="rf-bar rf-flat" id="fatRingFilters"></div>
     </div>
-    <div class="fr-total" id="frTotal">
-      <div class="fr-total-label" id="frTotalLabel">Total previsto</div>
-      <div class="fr-total-value mono" id="frTotalValue">R$ 0,00</div>
-      <div class="fr-total-sub" id="frTotalSub"></div>
-    </div>
-    <div class="fr-bargroup-title">Proprietário</div>
-    <div class="frd-chartrow">
-      <div class="frd-scale-outer" id="frdScaleOuter">
-        <div class="frd-ring-wrap" id="frdRingWrap">
-          <canvas id="frdCanvas"></canvas>
-          <div class="frd-hub" id="frdHub">
-            <div class="frd-hub-label" id="frdHubLabel">Total</div>
+    <div class="fr-splitrow">
+      <div class="fr-splitcol fr-splitcol-ring">
+        <div class="fr-bargroup-title">Proprietário</div>
+        <div class="frd-chartrow">
+          <div class="frd-scale-outer" id="frdScaleOuter">
+            <div class="frd-ring-wrap" id="frdRingWrap">
+              <canvas id="frdCanvas"></canvas>
+              <div class="frd-hub" id="frdHub">
+                <div class="frd-hub-label" id="frdHubLabel">Total</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+      <div class="fr-splitcol fr-splitcol-bars">
+        <div class="fr-bargroups" id="frBarGroups"></div>
+      </div>
     </div>
-    <div class="fr-bargroups" id="frBarGroups"></div>
   </div>
   <div class="res-ctrls" id="resCtrls">
     <div class="rf-bar" id="resumoFilters"></div>
@@ -5292,7 +5332,7 @@ function frdSizeCanvas(box){
 // outros cards da página. Trava o tamanho exibido num máximo fixo,
 // igual ao usado no mobile, e só encolhe além disso se a tela for
 // menor que esse teto.
-const FRD_MAX_DISPLAY=380;
+const FRD_MAX_DISPLAY=420;
 function frdApplyResponsiveScale(){
   const outer=document.getElementById('frdScaleOuter'), wrap=document.getElementById('frdRingWrap');
   if(!outer||!wrap||!frdBoxCur)return;
@@ -5301,6 +5341,44 @@ function frdApplyResponsiveScale(){
   wrap.style.transform='scale('+scale+')';
   outer.style.width=(frdBoxCur*scale)+'px';
   outer.style.height=(frdBoxCur*scale)+'px';
+}
+function frdHexToRgb(hex){
+  hex=String(hex).replace('#','');
+  if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  const num=parseInt(hex,16);
+  return {r:(num>>16)&255,g:(num>>8)&255,b:num&255};
+}
+function frdLighten(hex,amt){
+  const c=frdHexToRgb(hex);
+  return 'rgb('+Math.round(c.r+(255-c.r)*amt)+','+Math.round(c.g+(255-c.g)*amt)+','+Math.round(c.b+(255-c.b)*amt)+')';
+}
+function frdDarken(hex,amt){
+  const c=frdHexToRgb(hex);
+  return 'rgb('+Math.round(c.r*(1-amt))+','+Math.round(c.g*(1-amt))+','+Math.round(c.b*(1-amt))+')';
+}
+function frdMix(hexA,hexB,t){
+  const a=frdHexToRgb(hexA),b=frdHexToRgb(hexB);
+  return 'rgb('+Math.round(a.r+(b.r-a.r)*t)+','+Math.round(a.g+(b.g-a.g)*t)+','+Math.round(a.b+(b.b-a.b)*t)+')';
+}
+// Segunda cor de cada dupla duotone — deslocada 4 posições na paleta (metade
+// do array), pra formar pares complementares fixos e consistentes por rank.
+const FR_PALETTE2=FR_PALETTE.map((_,i)=>FR_PALETTE[(i+Math.floor(FR_PALETTE.length/2))%FR_PALETTE.length]);
+// Desenha um arco com gradiente "duotone" girando ao redor do anel — em
+// pequenos segmentos, já que createConicGradient não é suportado em todo
+// navegador/webview.
+function frdDrawDuoArc(ctx,cx,cy,R,thick,a0,a1,colA,colB){
+  const steps=48;
+  ctx.lineCap='butt'; ctx.lineWidth=thick;
+  for(let i=0;i<steps;i++){
+    const t0=i/steps, t1=(i+1)/steps;
+    ctx.beginPath();
+    ctx.strokeStyle=frdMix(colA,colB,t0);
+    ctx.arc(cx,cy,R,a0+(a1-a0)*t0,a0+(a1-a0)*t1+0.012,false);
+    ctx.stroke();
+  }
+  ctx.lineCap='round';
+  ctx.strokeStyle=colA; ctx.beginPath(); ctx.arc(cx,cy,R,a0,a0+0.001,false); ctx.stroke();
+  ctx.strokeStyle=colB; ctx.beginPath(); ctx.arc(cx,cy,R,a1-0.001,a1,false); ctx.stroke();
 }
 function frdDrawRings(){
   const specs=frdBuildSpecs();
@@ -5393,7 +5471,7 @@ function frBarGroupHtml(dim){
     const widthPct=Math.max(2,Math.min(100,seg.pct/maxPct*100));
     return '<div class="fr-bar-row'+(seg.sel?' sel':'')+(isOutros?' nosel':'')+'" data-dim="'+dim+'" data-key="'+escHtml(seg.key)+'">'+
       '<div class="fr-bar-top"><span class="fr-bar-name">'+escHtml(seg.key)+'</span>'+
-      '<span class="fr-bar-val">'+fR(seg.value)+'<b>'+frPct(seg.pct)+'</b></span></div>'+
+      '<span class="fr-bar-val">'+fR(seg.value)+'</span></div>'+
       '<div class="fr-bar-track"><div class="fr-bar-fill" style="width:'+widthPct+'%;background:'+col+'"></div></div>'+
       '</div>';
   }).join('');
