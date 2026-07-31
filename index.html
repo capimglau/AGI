@@ -2474,10 +2474,12 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .frd-scale-outer { position: relative; flex: 0 0 auto; max-width: 100%; }
 .frd-ring-wrap { position: relative; flex: 0 0 auto; transform-origin: top left; }
 .frd-ring-wrap canvas { display: block; cursor: pointer; }
-.frd-hub { position: absolute; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 0 0 1px var(--line), var(--shadow-sm); padding: 4px 8px; cursor: pointer; transition: background .12s; }
-.frd-hub:hover, .frd-hub:active { background: var(--surface); }
-.frd-hub-label { font-size: 8.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink3); white-space: nowrap; }
-.frd-hub-value { font-size: 13px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; color: var(--ink); white-space: nowrap; }
+/* Miolo vermelho fixo (não segue o tema), igual ao infográfico de
+   referência — dá pra ver de longe que é um botão, não só um rótulo. */
+.frd-hub { position: absolute; border-radius: 50%; background: #e3453a; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: var(--shadow-sm); padding: 4px 8px; cursor: pointer; transition: background .12s; }
+.frd-hub:hover, .frd-hub:active { background: #c53c32; }
+.frd-hub-label { font-size: 8.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.8); white-space: nowrap; }
+.frd-hub-value { font-size: 13px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; color: #fff; white-space: nowrap; }
 
 .fr-basistoggle { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin: 4px 0 16px; }
 .fr-basistoggle button { border: none; background: none; padding: 6px 14px; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink3); cursor: pointer; transition: background .15s, color .15s; }
@@ -5416,11 +5418,14 @@ function frBindEvents(){
   });
   window.addEventListener('resize', ()=>{frdDrawRings(); frdApplyResponsiveScale();});
   // O total no centro do anel já aparece fora, acima do gráfico — em
-  // vez de repetir a mesma informação, o miolo vira um atalho pra
-  // limpar todos os filtros (Proprietário e Tipo) de uma vez.
+  // vez de só repetir a informação, o miolo alterna entre o total geral
+  // (padrão) e só o valor de Locação: clica uma vez pra filtrar por
+  // Locação, clica de novo pra voltar ao total.
   const hub=document.getElementById('frdHub');
   hub.addEventListener('click', ()=>{
-    FRT.dono.clear(); FRT.tipo.clear();
+    const isLocOnly=FRT.tipo.size===1&&FRT.tipo.has('Locação');
+    FRT.tipo.clear();
+    if(!isLocOnly)FRT.tipo.add('Locação');
     buildFatRingFilters();
     frRenderData();
   });
