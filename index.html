@@ -5124,6 +5124,15 @@ function frPct(v){return v.toFixed(1).replace('.',',')+'%';}
 // restante do app que ainda usa allD()/RF normalmente.
 function frBaseRows(){return allD().filter(r=>r.dono!=='Indefinido'&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'').startsWith(curMes));}
 function frFilteredRows(){return frBaseRows().filter(r=>filterMatch(FRT,r));}
+// Linhas pra desenhar o anel de "dim": aplica os filtros das OUTRAS
+// dimensões, mas NUNCA o filtro da própria dimensão — assim, selecionar
+// Silvio não faz o anel de Proprietário virar uma única cor (ele some
+// no meio dos outros donos); o próprio Silvio fica destacado (halo) e
+// o valor exato aparece no popup. Isso deixa sempre visível "quanto é
+// de Silvio" e "quanto é de Locação" em comparação com o resto.
+function frRowsForRing(dim){
+  return frBaseRows().filter(r=>FR_ORDER.every(d=>d===dim||!FRT[d].size||FRT[d].has(r[d])));
+}
 function frValBase(r){return frBasis==='caixa'?(isPago(r)?fN(r.valor_pago):0):liq(r);}
 function frSum(rows){return rows.reduce((s,r)=>s+frValBase(r),0);}
 
@@ -5137,7 +5146,7 @@ function frBreakdown(dim,rows,grand){
   const top=list.slice(0,10);
   const restSum=list.slice(10).reduce((s,it)=>s+it.value,0);
   if(restSum>0.005)top.push({key:'Outros',value:restSum});
-  return top.map((it,idx)=>({key:it.key,value:it.value,pct:grand?it.value/grand*100:0,rank:it.key==='Outros'?-1:idx}));
+  return top.map((it,idx)=>({key:it.key,value:it.value,pct:grand?it.value/grand*100:0,rank:it.key==='Outros'?-1:idx,sel:FRT[dim].has(it.key)}));
 }
 
 // ---- geometria — só 2 anéis, construídos de dentro pra fora a partir do
@@ -5185,9 +5194,8 @@ function frDrawRings(){
   if(!frCtx)return;
   const cx=FR_BOX/2, cy=FR_BOX/2;
   frCtx.clearRect(0,0,FR_BOX,FR_BOX);
-  const rows=frFilteredRows();
-  const grand=frSum(rows);
   const trackCol=isDark()?'rgba(255,255,255,.14)':'rgba(10,12,20,.09)';
+  const haloCol=isDark()?'#ffffff':'#0c0c0f';
 
   FR_ORDER.forEach(dim=>{
     const R=FR_RADII[dim];
@@ -5196,7 +5204,9 @@ function frDrawRings(){
     frCtx.arc(cx,cy,R,0,Math.PI*2);
     frCtx.stroke();
 
-    const segs=grand>0?frBreakdown(dim,rows,grand):[];
+    const ringRows=frRowsForRing(dim);
+    const ringGrand=frSum(ringRows);
+    const segs=ringGrand>0?frBreakdown(dim,ringRows,ringGrand):[];
     frLastBreakdowns[dim]=segs;
     let start=-Math.PI/2;
     segs.forEach(seg=>{
@@ -5208,6 +5218,14 @@ function frDrawRings(){
       frCtx.lineWidth=FR_THICK; frCtx.lineCap='round'; frCtx.strokeStyle=col;
       frCtx.arc(cx,cy,R,a0,a1,false);
       frCtx.stroke();
+      if(seg.sel){
+        // Categoria(s) do filtro ativo: em vez de encher a fatia toda de
+        // preto/branco, contorna só as bordas interna e externa dela —
+        // dá pra ver de longe qual fatia é a selecionada sem esconder a cor.
+        frCtx.lineWidth=2.5; frCtx.lineCap='round'; frCtx.strokeStyle=haloCol;
+        frCtx.beginPath(); frCtx.arc(cx,cy,R-FR_THICK/2-3,a0,a1,false); frCtx.stroke();
+        frCtx.beginPath(); frCtx.arc(cx,cy,R+FR_THICK/2+3,a0,a1,false); frCtx.stroke();
+      }
       seg._a0=start; seg._a1=start+sweep;
       start+=sweep;
     });
