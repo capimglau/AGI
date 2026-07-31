@@ -2480,7 +2480,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .fr-hub { position: absolute; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 0 0 1px var(--line), var(--shadow-sm); padding: 6px 10px; }
 .fr-hub-label { font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ink3); white-space: nowrap; }
 .fr-hub-value { font-size: 16px; font-weight: 700; letter-spacing: -.02em; margin-top: 3px; color: var(--ink); white-space: nowrap; }
-.fr-hub-sub { font-size: 9.5px; color: var(--ink3); margin-top: 4px; line-height: 1.3; white-space: nowrap; }
+.fr-hub-sub { font-size: 9px; color: var(--ink3); margin-top: 4px; line-height: 1.3; max-width: 100%; }
 
 .fr-tooltip { position: fixed; z-index: 200; pointer-events: none; background: var(--ink); color: var(--surface); border-radius: 9px; padding: 7px 10px; font-size: 12px; box-shadow: var(--shadow-lg); transform: translate(-50%, calc(-100% - 10px)); white-space: nowrap; opacity: 0; transition: opacity .1s; }
 .fr-tooltip.show { opacity: 1; }
@@ -5106,18 +5106,23 @@ function renderBoletosPainel(rows){
 // mesmo tempo — percentual e valor aparecem direto no gráfico.
 // ═══════════════════════════════════════════════════════════════════════
 const FR_ORDER=['dono','tipo'];
-// Cores fixas (não seguem o tema) — são as mesmas do modo escuro nos dois
-// temas, a pedido: ficam mais vivas que os tons do modo claro do resto do
-// app, e aqui não competem com nenhum outro elemento da tela.
-const FR_COLORS={dono:'#4a89cf',tipo:'#28a06a'};
+// Paleta categórica fixa (não segue o tema) — são os mesmos 8 tons do modo
+// escuro do design system, usados também no claro a pedido (ficam mais
+// vivos que a paleta clara do resto do app). Uma cor por categoria, na
+// ordem validada por validate_palette.js: pares adjacentes E o par de
+// wraparound (última cor encostando na primeira, já que o anel é
+// circular) passam o piso de visão normal (ΔE≥15) nos dois temas.
+const FR_PALETTE=['#3987e5','#d95926','#199e70','#c98500','#d55181','#008300','#9085e9','#e66767'];
+const FR_OUTROS='#9aa2b1';
 const FRT=newFilterState();
 let frBasis='comp'; // 'comp' previsto | 'caixa' recebido
 
-function frHexToRgb(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
-function frShade(hex,t){const c=frHexToRgb(hex);return'rgb('+c.map(v=>Math.round(v+(255-v)*t)).join(',')+')';}
 function frPct(v){return v.toFixed(1).replace('.',',')+'%';}
 
-function frBaseRows(){return allD().filter(r=>(!selDono||r.dono===selDono)&&(r.prev_pgto||'').startsWith(curMes));}
+// "Indefinido" (dono vazio na planilha) não é um proprietário de verdade —
+// fica de fora só deste componente (cálculos e filtro), sem mexer no
+// restante do app que ainda usa allD()/RF normalmente.
+function frBaseRows(){return allD().filter(r=>r.dono!=='Indefinido'&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'').startsWith(curMes));}
 function frFilteredRows(){return frBaseRows().filter(r=>filterMatch(FRT,r));}
 function frValBase(r){return frBasis==='caixa'?(isPago(r)?fN(r.valor_pago):0):liq(r);}
 function frSum(rows){return rows.reduce((s,r)=>s+frValBase(r),0);}
@@ -5182,17 +5187,14 @@ function frDrawRings(){
   frCtx.clearRect(0,0,FR_BOX,FR_BOX);
   const rows=frFilteredRows();
   const grand=frSum(rows);
-  const outrosCol=isDark()?'#4c5568':'#b7bcc8';
-  const trackAlpha=isDark()?0.16:0.13;
+  const trackCol=isDark()?'rgba(255,255,255,.14)':'rgba(10,12,20,.09)';
 
   FR_ORDER.forEach(dim=>{
     const R=FR_RADII[dim];
-    const hue=FR_COLORS[dim];
     frCtx.beginPath();
-    frCtx.lineWidth=FR_THICK; frCtx.strokeStyle=frShade(hue,0.78); frCtx.globalAlpha=trackAlpha;
+    frCtx.lineWidth=FR_THICK; frCtx.strokeStyle=trackCol;
     frCtx.arc(cx,cy,R,0,Math.PI*2);
     frCtx.stroke();
-    frCtx.globalAlpha=1;
 
     const segs=grand>0?frBreakdown(dim,rows,grand):[];
     frLastBreakdowns[dim]=segs;
@@ -5201,7 +5203,7 @@ function frDrawRings(){
       const sweep=(seg.pct/100)*Math.PI*2;
       const pad=Math.min(0.022, sweep*0.18);
       const a0=start+pad/2, a1=start+Math.max(sweep-pad,0.001);
-      const col=seg.key==='Outros'?outrosCol:frShade(hue, Math.min(seg.rank*0.07, 0.7));
+      const col=seg.key==='Outros'?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
       frCtx.beginPath();
       frCtx.lineWidth=FR_THICK; frCtx.lineCap='round'; frCtx.strokeStyle=col;
       frCtx.arc(cx,cy,R,a0,a1,false);
@@ -5292,6 +5294,11 @@ function frBindEvents(){
 let frFiltersBuilt=false;
 function buildFatRingFilters(){
   makeFilterSelector('fatRingFilters', FRT, frRenderData, true, FR_ORDER);
+  const bar=document.getElementById('fatRingFilters');
+  if(bar){
+    const cb=bar.querySelector('input[data-dim="dono"][value="Indefinido"]');
+    if(cb){const lbl=cb.closest('.rf-opt'); if(lbl)lbl.remove();}
+  }
   const bt=document.getElementById('frBasisToggle');
   if(bt){
     bt.innerHTML=
