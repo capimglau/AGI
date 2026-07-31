@@ -2466,22 +2466,17 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 @media (max-width: 380px) {
   #fatRingFilters .rf-sec-opts { min-width: 210px; max-width: 80vw; }
 }
-/* Um anel individual por proprietário (grade de mini-donuts), em vez de
-   um anel só compartilhado — assim o valor de CADA um cabe (nome+valor
-   no centro, sem depender de texto curvo em fatia fina). Recalcula com
-   o filtro de Tipo (cross-filter): selecionar Locação mostra o valor de
-   Locação de cada proprietário, um por anel. */
-.frd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px 8px; margin: 4px 0 8px; }
-.frd-tile { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 8px 4px; border-radius: 14px; transition: background .12s; }
-.frd-tile:not(.nosel):hover { background: var(--surface); }
-.frd-tile.nosel { cursor: default; }
-.frd-tile.sel { background: var(--surface); }
-.frd-ring { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.frd-ring-hole { width: 88px; height: 88px; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 0 0 1px var(--line); padding: 4px; }
-.frd-tile.sel .frd-ring-hole { box-shadow: inset 0 0 0 2px var(--ink); }
-.frd-ring-name { font-size: 12px; font-weight: 700; color: var(--ink); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.frd-ring-value { font-size: 10.5px; font-family: 'DM Mono', monospace; color: var(--ink3); margin-top: 2px; }
-.frd-ring-pct { font-size: 13px; font-weight: 800; color: var(--ink); margin-top: 1px; }
+/* Anéis concêntricos por proprietário — um dentro do outro, do maior
+   (Silvio, quem mais fatura) pro menor, igual ao infográfico de
+   referência do usuário. Recalcula com o filtro de Tipo (cross-filter):
+   selecionar Locação mostra a fatia de Locação de cada proprietário. */
+.frd-chartrow { display: flex; flex-direction: column; align-items: center; margin: 4px 0 8px; }
+.frd-scale-outer { position: relative; flex: 0 0 auto; max-width: 100%; }
+.frd-ring-wrap { position: relative; flex: 0 0 auto; transform-origin: top left; }
+.frd-ring-wrap canvas { display: block; cursor: pointer; }
+.frd-hub { position: absolute; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 0 0 1px var(--line), var(--shadow-sm); padding: 4px 8px; }
+.frd-hub-label { font-size: 8.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink3); white-space: nowrap; }
+.frd-hub-value { font-size: 13px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; color: var(--ink); white-space: nowrap; }
 
 .fr-basistoggle { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin: 4px 0 16px; }
 .fr-basistoggle button { border: none; background: none; padding: 6px 14px; border-radius: 999px; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ink3); cursor: pointer; transition: background .15s, color .15s; }
@@ -2667,7 +2662,17 @@ html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--in
       <div class="fr-total-sub" id="frTotalSub"></div>
     </div>
     <div class="fr-bargroup-title">Proprietário</div>
-    <div class="frd-grid" id="frdGrid"></div>
+    <div class="frd-chartrow">
+      <div class="frd-scale-outer" id="frdScaleOuter">
+        <div class="frd-ring-wrap" id="frdRingWrap">
+          <canvas id="frdCanvas"></canvas>
+          <div class="frd-hub" id="frdHub">
+            <div class="frd-hub-label" id="frdHubLabel">Total previsto</div>
+            <div class="frd-hub-value mono" id="frdHubValue">R$ 0,00</div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="fr-bargroups" id="frBarGroups"></div>
   </div>
   <div class="card">
@@ -5171,31 +5176,155 @@ function frBreakdown(dim,rows,grand){
   return top.map((it,idx)=>({key:it.key,value:it.value,pct:grand?it.value/grand*100:0,rank:it.key==='Outros'?-1:idx,sel:FRT[dim].has(it.key)}));
 }
 
-// Um anel individual por proprietário (mini-donut em CSS puro, sem
-// canvas) — cada um mostra nome+valor+% no centro, sempre legível,
-// já que não compete por espaço com nenhuma outra fatia. Os dados vêm
-// do cross-filter de sempre (frRowsForRing/frBreakdown): selecionar um
-// Tipo recalcula o valor de cada proprietário só daquele tipo.
-function frOwnerRingsHtml(){
+// Escreve texto seguindo a curva do anel, sempre em pé (nunca de cabeça
+// pra baixo): se o meio do texto cai na metade de baixo do círculo,
+// percorre os caracteres ao contrário e espelha a rotação. Cada letra
+// ganha um contorno escuro sutil por trás pra garantir leitura em
+// qualquer cor de fundo do anel. Retorna false (sem desenhar nada) se o
+// texto não couber no arco disponível — quem chamou decide o que fazer.
+function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
+  ctx.font='700 '+fontPx+'px "DM Sans", system-ui, -apple-system, sans-serif';
+  const chars=text.split('');
+  const widths=chars.map(c=>ctx.measureText(c).width);
+  const totalWidth=widths.reduce((a,b)=>a+b,0);
+  const totalAngle=totalWidth/radius;
+  if(totalAngle>maxAngleSpan)return false;
+
+  const flip=Math.sin(aMid)>0.001;
+  const dir=flip?-1:1;
+  const rotOffset=flip?-Math.PI/2:Math.PI/2;
+  ctx.save();
+  ctx.textBaseline='middle'; ctx.textAlign='center';
+  ctx.lineJoin='round'; ctx.miterLimit=2;
+  let angle=aMid-dir*(totalAngle/2);
+  for(let i=0;i<chars.length;i++){
+    const w=widths[i];
+    const charAngle=angle+dir*(w/2/radius);
+    const x=cx+radius*Math.cos(charAngle), y=cy+radius*Math.sin(charAngle);
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(charAngle+rotOffset);
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.strokeText(chars[i],0,0);
+    ctx.fillStyle='#fff'; ctx.fillText(chars[i],0,0);
+    ctx.restore();
+    angle+=dir*(w/radius);
+  }
+  ctx.restore();
+  return true;
+}
+
+// Anéis concêntricos por proprietário — do maior (Silvio) pro menor,
+// um dentro do outro, igual ao infográfico de referência do usuário. O
+// vão (sem cor) fica sempre no topo, sweep fixo pra todos — se o sweep
+// fosse proporcional ao valor de cada um, com a receita tão desigual a
+// maioria viraria uma lasca sem espaço pro nome. O raio decrescente já
+// mostra a ordem/importância; o valor exato aparece no rótulo
+// flutuante perto do topo de cada anel. Reage ao filtro de Tipo
+// (cross-filter): selecionar Locação recalcula a fatia de cada
+// proprietário só daquele tipo.
+const FRD_HUB_R=44, FRD_THICK=20, FRD_GAP=10;
+const FRD_GAP_ANGLE=75*Math.PI/180;
+const FRD_SWEEP=Math.PI*2-FRD_GAP_ANGLE;
+const FRD_START=-Math.PI/2+FRD_GAP_ANGLE/2;
+let frdCanvas=null, frdCtx=null, frdRingSpecs=[], frdBoxCur=0;
+
+function frdBuildSpecs(){
   const ringRows=frRowsForRing('dono');
   const ringGrand=frSum(ringRows);
   const segs=ringGrand>0?frBreakdown('dono',ringRows,ringGrand):[];
   const outros=segs.find(s=>s.key==='Outros');
   const real=segs.filter(s=>s.key!=='Outros').sort((a,b)=>b.pct-a.pct);
   const ordered=outros?[...real,outros]:real;
-  if(!ordered.length)return '<div class="rf-empty">Sem dados</div>';
+  let r=FRD_HUB_R+10+FRD_THICK/2+Math.max(0,ordered.length-1)*(FRD_THICK+FRD_GAP);
   return ordered.map(seg=>{
+    const spec=Object.assign({},seg,{R:r});
+    r-=(FRD_THICK+FRD_GAP);
+    return spec;
+  });
+}
+function frdBoxFor(specs){
+  if(!specs.length)return FRD_HUB_R*2+40;
+  const outerEdge=specs[0].R+FRD_THICK/2;
+  return Math.round((outerEdge+34)*2);
+}
+function frdSizeCanvas(box){
+  frdCanvas=document.getElementById('frdCanvas');
+  if(!frdCanvas)return;
+  frdCtx=frdCanvas.getContext('2d');
+  frdBoxCur=box;
+  const dpr=Math.max(2,window.devicePixelRatio||1);
+  frdCanvas.width=box*dpr; frdCanvas.height=box*dpr;
+  frdCanvas.style.width=box+'px'; frdCanvas.style.height=box+'px';
+  frdCtx.setTransform(dpr,0,0,dpr,0,0);
+  const hub=document.getElementById('frdHub');
+  if(hub){
+    hub.style.width=(FRD_HUB_R*2)+'px'; hub.style.height=(FRD_HUB_R*2)+'px';
+    hub.style.left=(box/2-FRD_HUB_R)+'px'; hub.style.top=(box/2-FRD_HUB_R)+'px';
+  }
+}
+function frdApplyResponsiveScale(){
+  const outer=document.getElementById('frdScaleOuter'), wrap=document.getElementById('frdRingWrap');
+  if(!outer||!wrap||!frdBoxCur)return;
+  const available=outer.parentElement.clientWidth;
+  const scale=Math.min(1, available/frdBoxCur);
+  wrap.style.transform='scale('+scale+')';
+  outer.style.width=(frdBoxCur*scale)+'px';
+  outer.style.height=(frdBoxCur*scale)+'px';
+}
+function frdDrawRings(){
+  const specs=frdBuildSpecs();
+  frdRingSpecs=specs;
+  const box=frdBoxFor(specs);
+  frdSizeCanvas(box);
+  if(!frdCtx)return;
+  const cx=box/2, cy=box/2;
+  frdCtx.clearRect(0,0,box,box);
+  const trackCol=isDark()?'rgba(255,255,255,.12)':'rgba(10,12,20,.07)';
+  const haloCol=isDark()?'#ffffff':'#0c0c0f';
+  const a0=FRD_START, a1=FRD_START+FRD_SWEEP;
+  specs.forEach(seg=>{
+    const R=seg.R;
+    frdCtx.beginPath();
+    frdCtx.lineWidth=FRD_THICK; frdCtx.strokeStyle=trackCol;
+    frdCtx.arc(cx,cy,R,0,Math.PI*2);
+    frdCtx.stroke();
+
     const isOutros=seg.key==='Outros';
     const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
-    const pct=Math.max(0,Math.min(100,seg.pct));
-    return '<div class="frd-tile'+(seg.sel?' sel':'')+(isOutros?' nosel':'')+'" data-key="'+escHtml(seg.key)+'">'+
-      '<div class="frd-ring" style="background:conic-gradient('+col+' 0% '+pct+'%, var(--surface) '+pct+'% 100%)">'+
-      '<div class="frd-ring-hole">'+
-      '<div class="frd-ring-name">'+escHtml(seg.key)+'</div>'+
-      '<div class="frd-ring-value">'+fR(seg.value)+'</div>'+
-      '<div class="frd-ring-pct">'+frPct(seg.pct)+'</div>'+
-      '</div></div></div>';
-  }).join('');
+    frdCtx.beginPath();
+    frdCtx.lineWidth=FRD_THICK; frdCtx.lineCap='round'; frdCtx.strokeStyle=col;
+    frdCtx.arc(cx,cy,R,a0,a1,false);
+    frdCtx.stroke();
+    if(seg.sel){
+      frdCtx.lineWidth=2; frdCtx.lineCap='round'; frdCtx.strokeStyle=haloCol;
+      frdCtx.beginPath(); frdCtx.arc(cx,cy,R-FRD_THICK/2-2.5,a0,a1,false); frdCtx.stroke();
+      frdCtx.beginPath(); frdCtx.arc(cx,cy,R+FRD_THICK/2+2.5,a0,a1,false); frdCtx.stroke();
+    }
+    if(!isOutros){
+      const aMid=(a0+a1)/2;
+      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.75,seg.key+' · '+frPct(seg.pct),Math.round(FRD_THICK*0.44));
+    }
+  });
+}
+function frdUpdateHub(){
+  const rows=frFilteredRows();
+  const grand=frSum(rows);
+  const lbl=document.getElementById('frdHubLabel'), val=document.getElementById('frdHubValue');
+  if(lbl)lbl.textContent=frBasis==='comp'?'Total previsto':'Total recebido';
+  if(val)val.textContent=fR(grand);
+}
+function frdHitTest(mx,my){
+  const cx=frdBoxCur/2, cy=frdBoxCur/2, dx=mx-cx, dy=my-cy, dist=Math.hypot(dx,dy);
+  let ang=Math.atan2(dy,dx);
+  while(ang<FRD_START)ang+=Math.PI*2;
+  while(ang>=FRD_START+Math.PI*2)ang-=Math.PI*2;
+  if(ang>FRD_START+FRD_SWEEP)return null;
+  const tol=Math.max(1,FRD_GAP/2-1);
+  for(let i=0;i<frdRingSpecs.length;i++){
+    const seg=frdRingSpecs[i];
+    if(dist>=seg.R-FRD_THICK/2-tol&&dist<=seg.R+FRD_THICK/2+tol)return seg;
+  }
+  return null;
 }
 
 // Barra reta EXCLUSIVA por categoria real (cada proprietário, cada
@@ -5239,26 +5368,32 @@ function frUpdateTotal(){
 }
 
 function frRenderData(){
-  const grid=document.getElementById('frdGrid');
-  if(grid)grid.innerHTML=frOwnerRingsHtml();
+  frdDrawRings();
+  frdUpdateHub();
   const container=document.getElementById('frBarGroups');
   if(container)container.innerHTML=FR_BAR_DIMS.map(frBarGroupHtml).join('');
   frUpdateTotal();
 }
 
+function frdHitFromEvent(canvas,e){
+  const rect=canvas.getBoundingClientRect();
+  const k=frdBoxCur/rect.width;
+  return frdHitTest((e.clientX-rect.left)*k, (e.clientY-rect.top)*k);
+}
+
 let frBound=false;
 function frBindEvents(){
   if(frBound)return; frBound=true;
-  const grid=document.getElementById('frdGrid');
-  grid.addEventListener('click', e=>{
-    const tile=e.target.closest('.frd-tile');
-    if(!tile||tile.classList.contains('nosel'))return;
-    const key=tile.dataset.key;
+  const canvas=document.getElementById('frdCanvas');
+  canvas.addEventListener('click', e=>{
+    const seg=frdHitFromEvent(canvas,e);
+    if(!seg||seg.key==='Outros')return;
     const set=FRT.dono;
-    if(set.has(key))set.delete(key); else set.add(key);
+    if(set.has(seg.key))set.delete(seg.key); else set.add(seg.key);
     buildFatRingFilters();
     frRenderData();
   });
+  window.addEventListener('resize', ()=>{frdDrawRings(); frdApplyResponsiveScale();});
   const container=document.getElementById('frBarGroups');
   container.addEventListener('click', e=>{
     const row=e.target.closest('.fr-bar-row');
@@ -5306,6 +5441,10 @@ function renderFatRings(){
   if(!document.getElementById('frBarGroups'))return;
   if(!frFiltersBuilt){buildFatRingFilters(); frBindEvents(); frFiltersBuilt=true;}
   frRenderData();
+  frdApplyResponsiveScale();
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{frdDrawRings(); frdApplyResponsiveScale();}).catch(()=>{});
+  }
 }
 
 function renderResumo(){
