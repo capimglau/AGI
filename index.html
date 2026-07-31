@@ -2606,7 +2606,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     </select>
   </div>
   <div class="card">
-    <div class="card-hd" id="hdMes">Faturado por mês</div>
+    <div class="card-hd" id="hdMes">Faturamento mensal</div>
     <div class="cw-scroll"><div class="cw" style="height:260px"><canvas id="cMes" role="img" aria-label="mensal"></canvas></div></div>
   </div>
   <div class="card">
@@ -5098,7 +5098,7 @@ function renderResumo(){
   let recA=mShown.map(k=>recM[k]||0), pendA=mShown.map(k=>pendM[k]||0), atrsA=mShown.map(k=>atrsM[k]||0);
   if(resAcum){recA=cumArr(recA);pendA=cumArr(pendA);atrsA=cumArr(atrsA);}
   const hdMes=document.getElementById('hdMes');
-  if(hdMes) hdMes.textContent=(resBase==='caixa'?'Recebido por mês':'Previsto por mês (recebido × atrasado × a vencer)')+acumSfx;
+  if(hdMes) hdMes.textContent='Faturamento mensal'+acumSfx;
   const temAtrsMes=atrsA.some(v=>v>0);
   const dsMes = resBase==='caixa'
     ? [{label:'Recebido',data:recA,backgroundColor:'#34c759',borderRadius:6,borderSkipped:false,maxBarThickness:46}]
