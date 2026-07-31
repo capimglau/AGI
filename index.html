@@ -5418,11 +5418,10 @@ function frBindEvents(){
   container.addEventListener('click', e=>{
     const row=e.target.closest('.fr-bar-row');
     if(!row||row.classList.contains('nosel'))return;
-    const dim=row.dataset.dim, key=row.dataset.key;
-    const set=FRT[dim];
-    if(set.has(key))set.delete(key); else set.add(key);
-    buildFatRingFilters();
-    frRenderData();
+    // Clique abre o detalhamento (lista de lançamentos) em vez de
+    // alternar o filtro — pra filtrar, o usuário usa o dropdown
+    // Proprietário/Tipo, que continua funcionando normalmente.
+    mostrarLancCategoria(row.dataset.dim, row.dataset.key);
   });
 }
 
@@ -6270,6 +6269,29 @@ function mostrarLancDiaFluxo(dia){
   const input=document.getElementById('searchInput'); if(input)input.style.display='none';
   const tit=document.getElementById('searchModalTit');
   if(tit) tit.textContent=fDM(dia);
+  const box=document.getElementById('searchResults');
+  const totPago=items.reduce((a,{r})=>a+(isPago(r)?fN(r.valor_pago):0),0);
+  const totPend=items.reduce((a,{r})=>a+(isPend(r)?fN(r.saldo):0),0);
+  const totHtml=`<div class="search-total"><div class="st-blk">
+    <div class="st-main"><span>${items.length} lançamento${items.length>1?'s':''}</span><span class="st-val">${fR(totPago+totPend)}</span></div>
+    <div class="st-sub"><span class="st-pago">Pago ${fR(totPago)}</span><span class="st-pend">Saldo ${fR(totPend)}</span></div>
+  </div></div>`;
+  box.innerHTML=totHtml+lancListHtml(items,true);
+}
+// Clique numa barra do "Faturamento por categoria" (ex.: Locação, Taxa
+// Alfredo): mostra o detalhamento — todos os lançamentos daquela
+// categoria no mês, já respeitando o cross-filter de Proprietário —
+// mesmo modal/cartões da busca global usado em mostrarLancDia(Fluxo).
+function mostrarLancCategoria(dim,key){
+  const rows=frRowsForRing(dim).filter(r=>((r[dim]||'').trim()||'—')===key);
+  if(!rows.length)return;
+  const all=allD();
+  const items=rows.map(r=>({r,i:all.indexOf(r)}));
+  items.sort((a,b)=>fN(b.r.saldo)-fN(a.r.saldo));
+  document.getElementById('mSearch').classList.add('on');
+  const input=document.getElementById('searchInput'); if(input)input.style.display='none';
+  const tit=document.getElementById('searchModalTit');
+  if(tit) tit.textContent=key;
   const box=document.getElementById('searchResults');
   const totPago=items.reduce((a,{r})=>a+(isPago(r)?fN(r.valor_pago):0),0);
   const totPend=items.reduce((a,{r})=>a+(isPend(r)?fN(r.saldo):0),0);
