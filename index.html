@@ -5127,6 +5127,11 @@ function renderBoletosPainel(rows){
 // mesmo tempo — percentual e valor aparecem direto no gráfico.
 // ═══════════════════════════════════════════════════════════════════════
 const FR_ORDER=['dono','tipo'];
+// Proprietário já aparece por completo no anel fixo acima — repetir em
+// barra embaixo seria redundante. As barras mostram só Tipo; o filtro
+// de Proprietário continua disponível no dropdown, alimentando o
+// cross-filter do anel e das barras de Tipo normalmente.
+const FR_BAR_DIMS=['tipo'];
 // Paleta categórica fixa (não segue o tema) — são os mesmos 8 tons do modo
 // escuro do design system, usados também no claro a pedido (ficam mais
 // vivos que a paleta clara do resto do app). Uma cor por categoria, na
@@ -5330,7 +5335,7 @@ function frRenderData(){
   frDrawDonut();
   frUpdateDonutHub();
   const container=document.getElementById('frBarGroups');
-  if(container)container.innerHTML=FR_ORDER.map(frBarGroupHtml).join('');
+  if(container)container.innerHTML=FR_BAR_DIMS.map(frBarGroupHtml).join('');
   frUpdateTotal();
 }
 
