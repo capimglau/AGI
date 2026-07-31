@@ -2640,18 +2640,6 @@ html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--in
     <div class="card-hd" id="hdBoletos">Boletos do mês</div>
     <div id="resBoletos"></div>
   </div>
-  <div class="res-ctrls" id="resCtrls">
-    <div class="rf-bar" id="resumoFilters"></div>
-    <select class="rc-sel" id="rc-base" onchange="setResBase(this.value)" title="Previsto ou recebido">
-      <option value="comp" selected>Previsto</option>
-      <option value="caixa">Recebido</option>
-    </select>
-    <select class="rc-sel" id="rc-ano" onchange="setResAno(this.value)" title="Ano dos gráficos mensais"></select>
-    <select class="rc-sel" id="rc-acum" onchange="setResAcum(this.value)">
-      <option value="0">Mensal</option>
-      <option value="1">Acumulado</option>
-    </select>
-  </div>
   <div class="card">
     <div class="card-hd">Faturamento por categoria<span class="sub">filtros próprios</span></div>
     <div class="fr-basistoggle" id="frBasisToggle"></div>
@@ -2674,6 +2662,18 @@ html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--in
       </div>
     </div>
     <div class="fr-bargroups" id="frBarGroups"></div>
+  </div>
+  <div class="res-ctrls" id="resCtrls">
+    <div class="rf-bar" id="resumoFilters"></div>
+    <select class="rc-sel" id="rc-base" onchange="setResBase(this.value)" title="Previsto ou recebido">
+      <option value="comp" selected>Previsto</option>
+      <option value="caixa">Recebido</option>
+    </select>
+    <select class="rc-sel" id="rc-ano" onchange="setResAno(this.value)" title="Ano dos gráficos mensais"></select>
+    <select class="rc-sel" id="rc-acum" onchange="setResAcum(this.value)">
+      <option value="0">Mensal</option>
+      <option value="1">Acumulado</option>
+    </select>
   </div>
   <div class="card">
     <div class="card-hd" id="hdMes">Faturamento mensal</div>
