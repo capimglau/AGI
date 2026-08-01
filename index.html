@@ -5239,7 +5239,6 @@ const FR_OUTROS='#9aa2b1';
 const FRT=newFilterState();
 let frBasis='comp'; // 'comp' previsto | 'caixa' recebido
 
-function frPct(v){return v.toFixed(1).replace('.',',')+'%';}
 // Valor abreviado (5,4k / 1,2M) pro texto curvo dos anéis — sem isso, o
 // texto "Nome · R$ 106.792,26" fica poluído nos anéis grandes.
 function frAbbrevR(v){
@@ -5285,7 +5284,18 @@ function frBreakdown(dim,rows,grand){
 // ganha um contorno escuro sutil por trás pra garantir leitura em
 // qualquer cor de fundo do anel. Retorna false (sem desenhar nada) se o
 // texto não couber no arco disponível — quem chamou decide o que fazer.
-function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
+// Escreve um trecho de texto curvo terminando ou começando numa
+// âncora fixa (sempre em pé, nunca de cabeça pra baixo — se o meio do
+// trecho cai na metade de baixo do círculo, percorre os caracteres ao
+// contrário e espelha a rotação). dirFromAnchor=-1: o texto TERMINA na
+// âncora, crescendo pro lado do preenchimento (usado pro nome).
+// dirFromAnchor=+1: o texto COMEÇA na âncora, crescendo pro lado do
+// vão/esmaecido (usado pro valor). useStroke=true pinta branco com
+// contorno escuro (pra ler sobre a cor cheia); false pinta na cor do
+// próprio anel, sem contorno (pra ler sobre a área esmaecida clara).
+// Retorna false (sem desenhar nada) se o texto não couber no espaço
+// disponível — quem chamou decide o que fazer.
+function frDrawArcSegment(ctx,cx,cy,radius,anchorAngle,dirFromAnchor,maxAngleSpan,text,fontPx,useStroke,col){
   ctx.font='700 '+fontPx+'px "DM Sans", system-ui, -apple-system, sans-serif';
   const chars=text.split('');
   const widths=chars.map(c=>ctx.measureText(c).width);
@@ -5293,6 +5303,7 @@ function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
   const totalAngle=totalWidth/radius;
   if(totalAngle>maxAngleSpan)return false;
 
+  const aMid=anchorAngle+dirFromAnchor*(totalAngle/2);
   const flip=Math.sin(aMid)>0.001;
   const dir=flip?-1:1;
   const rotOffset=flip?-Math.PI/2:Math.PI/2;
@@ -5307,25 +5318,17 @@ function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
     ctx.save();
     ctx.translate(x,y);
     ctx.rotate(charAngle+rotOffset);
-    ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.strokeText(chars[i],0,0);
-    ctx.fillStyle='#fff'; ctx.fillText(chars[i],0,0);
+    if(useStroke){
+      ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.strokeText(chars[i],0,0);
+      ctx.fillStyle='#fff'; ctx.fillText(chars[i],0,0);
+    } else {
+      ctx.fillStyle=col; ctx.fillText(chars[i],0,0);
+    }
     ctx.restore();
     angle+=dir*(w/radius);
   }
   ctx.restore();
   return true;
-}
-
-// Ângulo ideal pro rótulo dentro do arco preenchido [a0,a1]: sempre
-// coladinho no início da barra (ponto fixo/âncora, a1), pra todos os
-// anéis por igual — inclusive o dono dominante (ex.: Silvio), que
-// antes ficava centralizado embaixo (6h) enquanto os outros ficavam
-// no início da barra, dando uma leitura inconsistente entre eles.
-function frdLabelAngle(ctx,radius,a0,a1,fontPx,text){
-  ctx.font='700 '+fontPx+'px "DM Sans", system-ui, -apple-system, sans-serif';
-  const totalWidth=text.split('').reduce((s,c)=>s+ctx.measureText(c).width,0);
-  const totalAngle=totalWidth/radius;
-  return a1-totalAngle/2;
 }
 
 // Anéis concêntricos por proprietário — do maior (Silvio) pro menor,
@@ -5360,9 +5363,8 @@ function frdBuildSpecs(){
 function frdBoxFor(specs){
   if(!specs.length)return FRD_HUB_R*2+40;
   const outerEdge=specs[0].R+FRD_THICK/2;
-  // Buffer (34): os percentuais agora ficam dentro do próprio raio de
-  // cada anel (no vão reservado no topo), não precisa de mais margem
-  // que isso.
+  // Buffer (34): folga suficiente pro halo do anel selecionado e pra
+  // ponta arredondada do arco mais externo.
   return Math.round((outerEdge+34)*2);
 }
 function frdSizeCanvas(box){
@@ -5451,12 +5453,14 @@ function frdDrawRings(){
     const R=seg.R;
     const isOutros=seg.key==='Outros';
     const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
-    // O resto do anel (sem preenchimento) não tem mais fundo cinza
-    // sólido — só uma linha fina na própria cor daquele anel, igual ao
-    // infográfico de referência do usuário. O trecho preenchido (mais
-    // à frente) desenha por cima, bem mais grosso.
+    // O resto do anel (sem preenchimento) é a própria cor do anel
+    // esmaecida (20% de opacidade, um meio-termo — nem tão claro que
+    // suma, nem tão forte que pareça preenchido) — sem contorno. O
+    // trecho preenchido (mais à frente) desenha por cima, bem mais
+    // grosso e na cor cheia.
+    const rgb=frdHexToRgb(col);
     frdCtx.beginPath();
-    frdCtx.lineWidth=1.5; frdCtx.strokeStyle=col;
+    frdCtx.lineWidth=FRD_THICK; frdCtx.strokeStyle=`rgba(${rgb.r},${rgb.g},${rgb.b},.2)`;
     frdCtx.arc(cx,cy,R,0,Math.PI*2);
     frdCtx.stroke();
 
@@ -5491,31 +5495,24 @@ function frdDrawRings(){
       // completo em vez de abreviado — só nas telas estreitas (mobile,
       // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
       const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
-      const labelTxt=seg.key+' · '+valTxt;
       // Fonte proporcional ao raio (com teto e piso) — nos anéis mais
       // internos (menor raio, arco mais curto em pixels mesmo com o
       // mesmo ângulo) uma fonte menor cabe melhor; nos de fora usa o
       // tamanho cheio de sempre.
       const fontPx=Math.max(14,Math.min(Math.round(FRD_THICK*0.7),Math.round(R*0.15)));
-      // Sempre coladinho no início da barra (ponto fixo/âncora). O vão
-      // disponível é o próprio arco preenchido (a1-a0).
-      const aMid=frdLabelAngle(frdCtx,R,a0,a1,fontPx,labelTxt);
-      frDrawArcLabel(frdCtx,cx,cy,R,aMid,(a1-a0)*0.85,labelTxt,fontPx);
-      // Percentual perto do início da própria barra (ponto fixo/
-      // âncora), dentro do vão reservado no topo — sem chip nem borda,
-      // só o número na cor do anel. Como o ângulo é quase o mesmo pra
-      // todo mundo (só o raio muda por anel), os percentuais ficam
-      // alinhados numa coluna limpa, sem nunca sobrepor as faixas
-      // coloridas (a área do vão nunca recebe preenchimento).
-      const pctAngle=anchor+FRD_GAP_ANGLE*0.4;
-      const pctR=R;
-      const px=cx+pctR*Math.cos(pctAngle), py=cy+pctR*Math.sin(pctAngle);
-      frdCtx.save();
-      frdCtx.font='800 26px "DM Sans", system-ui, -apple-system, sans-serif';
-      frdCtx.textAlign='center'; frdCtx.textBaseline='middle';
-      frdCtx.fillStyle=col;
-      frdCtx.fillText(frPct(seg.pct), px, py);
-      frdCtx.restore();
+      // Nome e valor são dois trechos separados, não um rótulo só: o
+      // nome sempre termina exatamente onde acaba o preenchimento
+      // (nunca invade nem sobra), pintado em branco por cima da cor
+      // cheia; o valor começa ali — sempre inteiro, sem cortar o "R$"
+      // ao meio — e continua na cor do anel por cima da área
+      // esmaecida.
+      frDrawArcSegment(frdCtx,cx,cy,R,anchor,-1,(a1-a0)*0.95,seg.key+' · ',fontPx,true,col);
+      // Pequena folga depois da âncora: a ponta arredondada
+      // (lineCap='round') do preenchimento se estende um pouco além
+      // do ângulo exato da âncora e escondia a primeira letra do valor
+      // atrás dela.
+      const capClearance=(FRD_THICK/2)/R*1.15;
+      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,FRD_GAP_ANGLE*0.55,valTxt,fontPx,false,col);
     }
   });
 }
