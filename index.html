@@ -5316,6 +5316,28 @@ function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
   return true;
 }
 
+// Ângulo ideal pro rótulo dentro do arco preenchido [a0,a1]: tenta
+// centralizar embaixo (6h, o ponto mais longe do vão) — o mesmo ponto
+// fixo pra todo mundo, como no infográfico de referência do usuário,
+// onde os nomes ficam todos alinhados numa faixa embaixo em vez de
+// espalhados no meio de cada fatia. Só usa esse ponto quando o arco
+// realmente passa por ali (e o texto cabe); anéis curtos demais (que
+// não chegam embaixo) colam o nome coladinho no início da barra
+// (ponto fixo/âncora, a1) em vez de ficar perdido no meiozinho do
+// pedacinho preenchido.
+function frdLabelAngle(ctx,radius,a0,a1,fontPx,text){
+  ctx.font='700 '+fontPx+'px "DM Sans", system-ui, -apple-system, sans-serif';
+  const totalWidth=text.split('').reduce((s,c)=>s+ctx.measureText(c).width,0);
+  const totalAngle=totalWidth/radius;
+  let bottom=Math.PI/2;
+  while(bottom<a0)bottom+=Math.PI*2;
+  while(bottom>a1)bottom-=Math.PI*2;
+  if(bottom>=a0&&bottom<=a1&&(a1-a0)>=totalAngle){
+    return Math.min(Math.max(bottom,a0+totalAngle/2),a1-totalAngle/2);
+  }
+  return a1-totalAngle/2;
+}
+
 // Anéis concêntricos por proprietário — do maior (Silvio) pro menor,
 // um dentro do outro, igual ao infográfico de referência do usuário. O
 // vão (sem cor) fica sempre no topo, sweep fixo pra todos — se o sweep
@@ -5325,7 +5347,7 @@ function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
 // flutuante perto do topo de cada anel. Reage ao filtro de Tipo
 // (cross-filter): selecionar Locação recalcula a fatia de cada
 // proprietário só daquele tipo.
-const FRD_HUB_R=58, FRD_THICK=46, FRD_GAP=9;
+const FRD_HUB_R=58, FRD_THICK=54, FRD_GAP=9;
 const FRD_GAP_ANGLE=75*Math.PI/180;
 const FRD_SWEEP=Math.PI*2-FRD_GAP_ANGLE;
 const FRD_START=-Math.PI/2+FRD_GAP_ANGLE/2;
@@ -5464,15 +5486,17 @@ function frdDrawRings(){
       frdCtx.beginPath(); frdCtx.arc(cx,cy,R+FRD_THICK/2+2.5,a0,a1,false); frdCtx.stroke();
     }
     if(!isOutros){
-      const aMid=(a0+a1)/2;
       // No PC (tela larga) tem espaço de sobra pra mostrar o valor
       // completo em vez de abreviado — só nas telas estreitas (mobile,
       // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
       const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
-      // O vão disponível pro rótulo agora é o próprio arco preenchido
-      // (a1-a0), não mais o sweep fixo — em anéis pequenos (% baixo) o
-      // nome some se não couber, igual já acontecia antes.
-      frDrawArcLabel(frdCtx,cx,cy,R,aMid,(a1-a0)*0.85,seg.key+' · '+valTxt,Math.round(FRD_THICK*0.7));
+      const labelTxt=seg.key+' · '+valTxt;
+      const fontPx=Math.round(FRD_THICK*0.7);
+      // Tenta centralizar o rótulo embaixo (6h), igual pra todos os
+      // anéis; se o arco preenchido não chegar lá, gruda no início da
+      // barra (ponto fixo). O vão disponível é o próprio arco (a1-a0).
+      const aMid=frdLabelAngle(frdCtx,R,a0,a1,fontPx,labelTxt);
+      frDrawArcLabel(frdCtx,cx,cy,R,aMid,(a1-a0)*0.85,labelTxt,fontPx);
       // Percentual bem no cantinho final da barra (na parte sem
       // preenchimento, coladinho na ponta do anel, do lado do ponto
       // fixo — que agora é o esquerdo).
