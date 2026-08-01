@@ -2485,10 +2485,6 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .fr-filterrow .fr-total-label { font-size: 9px; }
 .fr-filterrow .fr-total-value { font-size: 15px; margin-top: 1px; }
 .fr-filterrow .fr-total-sub { display: none; }
-@media (max-width: 640px) {
-  .fr-filterrow { flex-wrap: wrap; }
-  .fr-filterrow .fr-total { order: 3; flex: 0 0 100%; margin-top: 6px; }
-}
 .fr-splitrow { display: flex; align-items: flex-start; gap: 32px; }
 .fr-splitcol { flex: 1 1 0; min-width: 0; }
 .fr-splitcol-ring { flex: 1.12 1 0; display: flex; flex-direction: column; align-items: center; }
@@ -2530,6 +2526,17 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .fr-filterrow #fatRingFilters .rf-caret { font-size: 10px; }
 .fr-filterrow #fatRingFilters .rf-sec:nth-of-type(1) .rf-sec-tt::before { content: '👤'; }
 .fr-filterrow #fatRingFilters .rf-sec:nth-of-type(2) .rf-sec-tt::before { content: '🏷️'; }
+/* Sem espaço pra caber toggle + filtros + total numa linha só —
+   o total desce pra sua própria linha, centralizado, embaixo do
+   resto. Precisa vir DEPOIS da regra base .fr-filterrow acima: mesma
+   especificidade, então a ordem no arquivo decide, e uma versão
+   antiga desta media query ficava ANTES da base — o flex-wrap:nowrap
+   sem @media sempre vencia e a linha nunca quebrava, empurrando o
+   total pra fora da tela (scroll horizontal). */
+@media (max-width: 640px) {
+  .fr-filterrow { flex-wrap: wrap; }
+  .fr-filterrow .fr-total { order: 3; flex: 0 0 100%; margin-top: 6px; }
+}
 /* No PC (tela grande) tem espaço de sobra: mostra o nome do filtro
    (Proprietário / Tipo) em vez de só o ícone, e o popover abre alinhado
    à direita do botão pra nunca vazar pra fora da tela. */
