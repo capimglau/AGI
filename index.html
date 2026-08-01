@@ -5392,9 +5392,16 @@ function frxEnsureChart(){
 }
 
 function frxUpdateHub(){
-  const isLocOnly=FRT.tipo.size===1&&FRT.tipo.has('Locação');
+  // O valor já era o total FILTRADO (frFilteredRows aplica FRT inteiro);
+  // só o rótulo ainda dizia sempre "Total do mês", mesmo com um filtro
+  // ativo — agora ele mostra o que está selecionado (o nome, se for só
+  // um; a contagem, se for mais de um).
+  const selKeys=FR_ORDER.flatMap(d=>[...FRT[d]]);
+  const label = selKeys.length===0 ? 'Total do mês'
+    : selKeys.length===1 ? selKeys[0]
+    : selKeys.length+' filtros';
   frxChart.setHub({
-    label: isLocOnly?'Locações':'Total do mês',
+    label,
     value: frAbbrevR(frSum(frFilteredRows())),
   });
 }

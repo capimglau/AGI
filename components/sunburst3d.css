@@ -46,12 +46,17 @@
    esse custo.) */
 .sb3d-stage > svg { width: 100%; height: 100%; overflow: visible; }
 
-.sb3d-slice { cursor: pointer; transform-box: fill-box; transform-origin: center; }
-.sb3d-slice.mode-icon { transition: transform .38s cubic-bezier(.2,.85,.3,1); }
-.sb3d-slice.mode-avatar { transition: transform .32s cubic-bezier(.25,.9,.35,1); }
+.sb3d-slice { cursor: pointer; transform-box: fill-box; transform-origin: center; transition: opacity .22s ease; }
+.sb3d-slice.mode-icon { transition: transform .38s cubic-bezier(.2,.85,.3,1), opacity .22s ease; }
+.sb3d-slice.mode-avatar { transition: transform .32s cubic-bezier(.25,.9,.35,1), opacity .22s ease; }
 .sb3d-slice path.main { transition: filter .2s; stroke: rgba(6,10,20,.32); stroke-width: 1; stroke-linejoin: round; }
 .sb3d-slice path.side { transition: filter .2s; }
 .sb3d-sheen { transition: opacity .2s; }
+/* Com alguma fatia selecionada no anel, o resto esmaece — mantém a
+   cor (não vira cinza) só reduz opacidade, então a legenda embaixo
+   (que não esmaece) continua batendo com a cor de cada fatia. */
+.sb3d-slice.dimmed { opacity: .4; }
+.sb3d-slice.dimmed:hover { opacity: .65; }
 
 /* Entrada: cada fatia nasce do centro (spring simplificado, 600ms). */
 @keyframes sb3d-enter {
@@ -130,7 +135,7 @@
   border-color: color-mix(in srgb, #fff 18%, transparent);
   box-shadow: 0 1px 1px rgba(255,255,255,.08) inset, 0 -6px 14px rgba(0,0,0,.35) inset, 0 10px 30px rgba(0,0,0,.45), 0 0 24px rgba(80,120,255,.12);
 }
-.sb3d-hub-label { font-size: 10.5px; font-weight: 700; color: var(--ink3); letter-spacing: .05em; text-transform: uppercase; }
+.sb3d-hub-label { font-size: 10.5px; font-weight: 700; color: var(--ink3); letter-spacing: .05em; text-transform: uppercase; max-width: 88%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb3d-hub-value { font-size: 19px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; margin-top: 2px; }
 .sb3d-hub-sub { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #16a34a; margin-top: 3px; }
 :root[data-theme="dark"] .sb3d-hub-sub { color: #4ade80; }
