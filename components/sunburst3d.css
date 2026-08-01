@@ -1,0 +1,145 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Sunburst3D — componente de anéis concêntricos premium (SVG puro)
+   Visual apenas — nenhuma regra aqui conhece dados de negócio.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sb3d-stage { position: relative; width: 100%; max-width: 546px; aspect-ratio: 1 / 1; margin: 8px auto 4px; flex: none; }
+.sb3d-body { display: flex; flex-direction: column; }
+@media (min-width: 920px) {
+  .sb3d-body { flex-direction: row; align-items: center; gap: 32px; }
+  .sb3d-stage { margin: 8px 0; flex: 0 0 546px; }
+  .sb3d-legends { flex: 1 1 0; flex-direction: column; margin-top: 0; min-width: 0; }
+}
+@media (max-width: 760px) {
+  .sb3d-stage { max-width: none; width: calc(100% + 44px); margin-left: -22px; margin-right: -22px; }
+}
+
+/* Leve perspectiva de dashboard — só no SVG; cartões/legenda ficam de
+   fora, sempre retos e 100% legíveis. */
+.sb3d-stage > svg { width: 100%; height: 100%; overflow: visible; transform: perspective(1300px) rotateX(4deg) rotateY(-2deg); transform-origin: 50% 55%; }
+
+.sb3d-slice { cursor: pointer; transform-box: fill-box; transform-origin: center; }
+.sb3d-slice.mode-icon { transition: transform .38s cubic-bezier(.2,.85,.3,1); }
+.sb3d-slice.mode-avatar { transition: transform .32s cubic-bezier(.25,.9,.35,1); }
+.sb3d-slice path.main { transition: filter .2s; stroke: rgba(6,10,20,.32); stroke-width: 1; stroke-linejoin: round; }
+.sb3d-slice path.side { transition: filter .2s; }
+.sb3d-sheen { transition: opacity .2s; }
+
+/* Entrada: cada fatia nasce do centro (spring simplificado, 600ms). */
+@keyframes sb3d-enter {
+  0%   { opacity: 0; transform: scale(.4); }
+  55%  { opacity: 1; transform: scale(1.045); }
+  80%  { transform: scale(.99); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.sb3d-slice.sb3d-entering { animation: sb3d-enter .6s cubic-bezier(.22,1,.36,1) both; }
+
+/* Sombra em duas camadas (contato + elevação), deslocada pra
+   baixo-direita — a luz do componente vem de cima-esquerda. */
+.sb3d-ring-outer { filter: drop-shadow(6px 16px 26px rgba(12,18,30,.18)); }
+.sb3d-slice.mode-icon path.main { filter: drop-shadow(1px 2px 3px rgba(12,18,30,.26)) drop-shadow(4px 9px 16px rgba(12,18,30,.18)); }
+.sb3d-slice.mode-icon:hover path.main { filter: drop-shadow(2px 3px 5px rgba(12,18,30,.3)) drop-shadow(5px 11px 20px rgba(12,18,30,.22)) brightness(1.06); }
+.sb3d-slice.mode-avatar path.main { filter: drop-shadow(1px 2px 3px rgba(12,18,30,.18)); }
+.sb3d-slice.mode-avatar:hover path.main { filter: drop-shadow(2px 3px 5px rgba(12,18,30,.24)) brightness(1.05); }
+/* Clique: sobe levemente + ~5% maior + brilho — já coberto pelo scale
+   no JS (translate/scale) + esta sombra mais forte + saturação. */
+.sb3d-slice.mode-avatar.is-selected path.main { filter: drop-shadow(3px 6px 12px rgba(12,18,30,.28)) brightness(1.1) saturate(1.08); }
+.sb3d-slice.mode-icon.is-selected path.main { filter: drop-shadow(3px 7px 14px rgba(12,18,30,.3)) brightness(1.08) saturate(1.06); }
+
+/* Modo escuro: brilho neon com a própria cor da fatia (--sc), por cima
+   do relevo/extrusão — efeito de vidro sob luz de neon. */
+:root[data-theme="dark"] .sb3d-slice.mode-icon path.main { filter: drop-shadow(1px 2px 3px rgba(0,0,0,.5)) drop-shadow(4px 9px 16px rgba(0,0,0,.35)) drop-shadow(0 0 14px var(--sc)) drop-shadow(0 0 3px var(--sc)); }
+:root[data-theme="dark"] .sb3d-slice.mode-icon:hover path.main { filter: drop-shadow(2px 3px 5px rgba(0,0,0,.55)) drop-shadow(5px 11px 20px rgba(0,0,0,.4)) drop-shadow(0 0 18px var(--sc)) drop-shadow(0 0 4px var(--sc)) brightness(1.08); }
+:root[data-theme="dark"] .sb3d-slice.mode-avatar path.main { filter: drop-shadow(1px 2px 3px rgba(0,0,0,.4)) drop-shadow(0 0 12px var(--sc)) drop-shadow(0 0 3px var(--sc)); }
+:root[data-theme="dark"] .sb3d-slice.mode-avatar:hover path.main { filter: drop-shadow(2px 3px 5px rgba(0,0,0,.45)) drop-shadow(0 0 16px var(--sc)) drop-shadow(0 0 4px var(--sc)) brightness(1.06); }
+:root[data-theme="dark"] .sb3d-slice.is-selected path.main { filter: drop-shadow(3px 6px 12px rgba(0,0,0,.5)) drop-shadow(0 0 22px var(--sc)) drop-shadow(0 0 6px var(--sc)) brightness(1.12) saturate(1.1); }
+:root[data-theme="dark"] .sb3d-slice path.main { stroke: rgba(0,0,0,.5); }
+:root[data-theme="dark"] .sb3d-slice .hi { mix-blend-mode: screen; }
+:root[data-theme="dark"] .sb3d-stage::before {
+  content: ''; position: absolute; inset: -12%; z-index: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 46%, rgba(61,125,255,.22), rgba(120,90,255,.10) 45%, transparent 70%);
+  filter: blur(6px);
+}
+:root[data-theme="dark"] .sb3d-stage > svg { position: relative; z-index: 1; }
+:root[data-theme="dark"] .sb3d-cards { z-index: 1; }
+
+.sb3d-halo { fill: none; opacity: 0; transition: opacity .32s ease; pointer-events: none; }
+.sb3d-halo.on { opacity: .55; }
+.sb3d-icon { pointer-events: none; color: #fff; opacity: .98; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); transition: transform .25s cubic-bezier(.2,.85,.3,1); }
+.sb3d-avatar text { fill: #fff; font-size: 21px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; paint-order: stroke; stroke: rgba(0,0,0,.4); stroke-width: 4px; stroke-linejoin: round; }
+.sb3d-connector { stroke: var(--ink3); stroke-width: 1; opacity: 0; fill: none; transition: opacity .25s; }
+
+/* ─── Hub: cartão glass (glassmorphism de verdade — HTML+backdrop-filter,
+   não dá pra simular direito só com SVG) ─── */
+.sb3d-hub {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; cursor: pointer; z-index: 2; user-select: none;
+  background: color-mix(in srgb, var(--card) 62%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid color-mix(in srgb, #fff 55%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 1px 1px rgba(255,255,255,.6) inset, 0 -6px 14px rgba(0,0,0,.06) inset, 0 10px 28px rgba(12,18,30,.16);
+  transition: transform .18s cubic-bezier(.2,.85,.3,1), box-shadow .18s;
+}
+.sb3d-hub:hover { transform: translate(-50%,-50%) scale(1.03); }
+.sb3d-hub:active { transform: translate(-50%,-50%) scale(.98); }
+:root[data-theme="dark"] .sb3d-hub {
+  background: color-mix(in srgb, var(--card) 55%, transparent);
+  border-color: color-mix(in srgb, #fff 18%, transparent);
+  box-shadow: 0 1px 1px rgba(255,255,255,.08) inset, 0 -6px 14px rgba(0,0,0,.35) inset, 0 10px 30px rgba(0,0,0,.45), 0 0 24px rgba(80,120,255,.12);
+}
+.sb3d-hub-label { font-size: 10.5px; font-weight: 700; color: var(--ink3); letter-spacing: .05em; text-transform: uppercase; }
+.sb3d-hub-value { font-size: 19px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; margin-top: 2px; }
+.sb3d-hub-sub { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #16a34a; margin-top: 3px; }
+:root[data-theme="dark"] .sb3d-hub-sub { color: #4ade80; }
+.sb3d-hub-sub2 { font-size: 10px; color: var(--ink3); font-weight: 600; margin-top: 1px; }
+
+/* ─── Tag flutuante / tooltip glass (fatia selecionada ou em hover) ─── */
+.sb3d-cards { position: absolute; inset: 0; pointer-events: none; }
+.sb3d-tag {
+  position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 7px;
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%);
+  border: 1px solid color-mix(in srgb, #fff 40%, var(--line));
+  border-radius: 11px; padding: 6px 9px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, var(--shadow-sm);
+  cursor: pointer; transform: translate(var(--tx,-50%),-50%) scale(.9); opacity: 0;
+  transition: transform .3s cubic-bezier(.2,.85,.3,1), opacity .25s; max-width: 160px; z-index: 2;
+}
+.sb3d-tag.left { flex-direction: row-reverse; }
+.sb3d-tag.left .sb3d-tag-txt { align-items: flex-end; text-align: right; }
+.sb3d-tag.show { opacity: 1; transform: translate(var(--tx,-50%),-50%) scale(1); }
+.sb3d-tag-dot { width: 9px; height: 9px; border-radius: 3px; flex: none; box-shadow: 0 0 0 1px rgba(255,255,255,.4) inset; }
+.sb3d-tag-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.sb3d-tag-name { font-size: 11.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb3d-tag-val { font-size: 10.5px; color: var(--ink3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sb3d-tag-pct { font-size: 9.5px; color: var(--ink3); font-weight: 700; opacity: .8; }
+
+/* ─── Legenda premium: quadrado, nome, barra, valor, percentual ─── */
+.sb3d-legends { display: flex; gap: 24px; margin-top: 14px; flex-wrap: wrap; }
+.sb3d-legend-block { flex: 1 1 220px; min-width: 200px; }
+.sb3d-legend-title { font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--ink3); margin: 0 0 8px 2px; }
+.sb3d-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.sb3d-legend li {
+  display: grid; grid-template-columns: 10px 1fr auto; grid-template-rows: auto auto; column-gap: 9px;
+  align-items: center; padding: 7px 8px; border-radius: 11px; cursor: pointer;
+  transition: background .12s, box-shadow .12s; font-size: 12.5px;
+}
+.sb3d-legend li:hover { background: var(--surface); }
+.sb3d-legend li.on { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.sb3d-legend li.nosel { cursor: default; }
+.sb3d-legend-sq { grid-column: 1; grid-row: 1 / span 2; width: 10px; height: 10px; border-radius: 3.5px; align-self: center; box-shadow: 0 0 0 1px rgba(255,255,255,.35) inset, 0 1px 2px rgba(0,0,0,.15); }
+.sb3d-legend-nm { grid-column: 2; grid-row: 1; color: var(--ink); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sb3d-legend-right { grid-column: 3; grid-row: 1; display: flex; align-items: baseline; gap: 7px; justify-self: end; }
+.sb3d-legend-val { color: var(--ink); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; font-family: 'DM Mono', ui-monospace, monospace; }
+.sb3d-legend-pct { color: var(--ink3); font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+.sb3d-legend-bar-wrap { grid-column: 2 / span 2; grid-row: 2; height: 5px; border-radius: 99px; background: var(--surface); box-shadow: inset 0 1px 1.5px rgba(0,0,0,.06); overflow: hidden; margin-top: 4px; }
+.sb3d-legend-bar { height: 100%; border-radius: 99px; transition: width .5s cubic-bezier(.22,1,.36,1); box-shadow: 0 0 6px 0 var(--bc, transparent); }
+
+@media (max-width: 760px) { .sb3d-legends { flex-direction: column; gap: 8px; } }
+@media (prefers-reduced-motion: reduce) {
+  .sb3d-slice, .sb3d-tag, .sb3d-connector, .sb3d-halo, .sb3d-legend-bar { transition: none !important; animation: none !important; }
+}
