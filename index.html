@@ -5504,17 +5504,23 @@ function frdDrawRings(){
       // logo depois da âncora (com uma folga pra não ficar em cima da
       // ponta arredondada do preenchimento) e cresce pro lado do vão.
       const capClearance=Math.max((FRD_THICK/2)/R*2.2, 0.06);
-      // Fonte de tamanho fixo, um pouco maior que a rodada anterior
-      // (mais perto do "tamanho ideal" apontado pelo usuário) — mas
-      // encolhe automaticamente só pros anéis pequenos onde não cabe
-      // (donos com participação bem menor), garantindo que o nome
-      // apareça sempre, em vez de simplesmente sumir quando não coubesse
-      // no tamanho padrão.
+      // Fonte-alvo (2px maior que a rodada anterior). Em vez de um piso
+      // fixo que podia simplesmente não desenhar nada quando o texto não
+      // coubesse (caso dos anéis bem pequenos, como Arnaldo e Lucélia,
+      // cujo raio menor sobra bem menos espaço em pixels pro mesmo vão
+      // angular), calculamos o tamanho exato que cabe no vão daquele
+      // anel (medindo a largura do texto numa fonte de referência e
+      // escalando) e usamos o menor entre o alvo e o que cabe — assim
+      // o nome de todo mundo aparece sempre, só ficando menor nos
+      // anéis mais internos.
       const maxSpan=FRD_GAP_ANGLE*0.85;
-      let fontPx=Math.round(FRD_THICK*0.55);
-      while(fontPx>12&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,labelTxt,fontPx,false,col)){
-        fontPx-=2;
-      }
+      const targetPx=Math.round(FRD_THICK*0.55)+2;
+      frdCtx.font='800 100px "Poppins","DM Sans",system-ui,-apple-system,sans-serif';
+      const refWidth=labelTxt.split('').reduce((s,c)=>s+frdCtx.measureText(c).width,0);
+      const refAngle=refWidth/R;
+      const fitPx=Math.floor(100*maxSpan/refAngle);
+      const fontPx=Math.max(9,Math.min(targetPx,fitPx));
+      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,labelTxt,fontPx,false,col);
     }
   });
 }
