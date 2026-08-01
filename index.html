@@ -5369,7 +5369,8 @@ function frxEnsureChart(){
   frxChart=new Sunburst3D(document.getElementById('frxStage'), {
     rings:[FRX_RING.tipo, FRX_RING.dono],
     getIcon:(ringId,key)=>ringId==='tipo'?FRX_ICON_PATHS[frxTypeIcon(key)]:null,
-    getLabel:(ringId,key)=>ringId==='dono'?frxInitials(key):null,
+    getLabel:(ringId,key)=>ringId==='dono'?key:null,
+    getShortLabel:(ringId,key)=>ringId==='dono'?frxInitials(key):null,
     onToggle:(ringId,key)=>frxToggle(ringId,key),
     onOpen:(ringId,key)=>mostrarLancCategoria(ringId,key),
   });

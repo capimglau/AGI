@@ -52,6 +52,7 @@
       this.rings = opts.rings || [];
       this.getIcon = opts.getIcon || (() => null);
       this.getLabel = opts.getLabel || (() => null);
+      this.getShortLabel = opts.getShortLabel || (() => null);
       this.onToggle = opts.onToggle || (() => {});
       this.onOpen = opts.onOpen || (() => {});
       this.uid = ++uid;
@@ -75,6 +76,19 @@
     lightFactor(midDeg) {
       const d = (midDeg - this.lightAngle) * Math.PI / 180;
       return (1 + Math.cos(d)) / 2;
+    }
+    // Maior fonte (até maxFs) que cabe na corda da fatia nesse raio, sem
+    // passar de minFs; se nem o rótulo curto cabe no mínimo, não mostra
+    // nada em vez de estourar/sobrepor a fatia vizinha.
+    fitLabel(radius, spanDeg, full, short) {
+      const chord = 2 * radius * Math.sin(Math.min(spanDeg, 170) * Math.PI / 360) * 0.82;
+      const maxFs = 15, minFs = 7.5, avgCharW = 0.58;
+      const tryFit = text => {
+        if (!text) return null;
+        const fs = Math.min(maxFs, chord / (text.length * avgCharW));
+        return fs >= minFs ? { text, fs: fs.toFixed(1) } : null;
+      };
+      return tryFit(full) || tryFit(short);
     }
 
     _build() {
@@ -302,14 +316,20 @@
         if (icon) rec.markG.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`;
         else rec.markG.innerHTML = '';
         rec.markG.style.color = mc;
-        const scale = s.selected ? 2.3 : 1.75;
+        const scale = s.selected ? 2.15 : 1.6;
         rec.markG.setAttribute('transform', `translate(${ip.x - 12 * scale} ${ip.y - 12 * scale}) scale(${scale})`);
         rec.g.style.transform = s.selected ? `translate(${s.dir.x * (cfg.explode || 18)}px, ${s.dir.y * (cfg.explode || 18)}px)` : '';
       } else {
-        const label = s.locked ? '' : this.getLabel(cfg.id, s.key);
+        // Nome completo do proprietário direto na fatia, numa fonte que
+        // encolhe pra caber na corda da fatia (2·R·sen(ângulo/2)) — fatia
+        // larga (Silvio, ~80%) lê o nome grande; fatia fina (Silvio 2,
+        // ~2%) cai pra um tamanho bem menor e, se nem assim couber, usa
+        // as iniciais (getShortLabel) como último recurso.
+        const markR = cfg.markR || (cfg.rOut + cfg.rIn) / 2;
+        const label = s.locked ? '' : this.fitLabel(markR, s.endA - s.startA, this.getLabel(cfg.id, s.key), this.getShortLabel(cfg.id, s.key));
         if (label) {
-          const ap = this.polar(cfg.markR || (cfg.rOut + cfg.rIn) / 2, s.mid);
-          rec.markG.innerHTML = `<text x="${ap.x}" y="${ap.y + 0.5}" style="fill:${mc}">${label}</text>`;
+          const ap = this.polar(markR, s.mid);
+          rec.markG.innerHTML = `<text x="${ap.x}" y="${ap.y + 0.5}" style="fill:${mc};font-size:${label.fs}px">${label.text}</text>`;
         } else rec.markG.innerHTML = '';
         const op = this.polar((cfg.rOut + cfg.rIn) / 2, s.mid);
         rec.g.style.transformOrigin = `${op.x}px ${op.y}px`;
