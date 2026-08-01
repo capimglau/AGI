@@ -5441,9 +5441,14 @@ function frdDrawRings(){
     // Preenchimento do anel proporcional ao % de cada pessoa — antes
     // todo mundo ocupava o mesmo arco (só o raio indicava a ordem); com
     // isso o próprio comprimento do arco já mostra o peso de cada um no
-    // total. Piso mínimo (0.5%) só pra garantir que quem arredonda pra
-    // 0,0% ainda apareça como uma pontinha arredondada, em vez de sumir.
-    const a1=a0+FRD_SWEEP*(Math.max(seg.pct,0.5)/100);
+    // total. Usa raiz quadrada em vez do % puro: linear deixava a
+    // diferença brutal demais (o maior quase fecha o círculo, o resto
+    // vira lasca invisível) só porque o faturamento real é bem desigual
+    // — a raiz comprime essa distância mantendo a ordem e a proporção
+    // relativa entre eles. Piso mínimo (0.5%) só pra garantir que quem
+    // arredonda pra 0,0% ainda apareça como uma pontinha arredondada,
+    // em vez de sumir.
+    const a1=a0+FRD_SWEEP*Math.sqrt(Math.max(seg.pct,0.5)/100);
     frdCtx.beginPath();
     frdCtx.lineWidth=FRD_THICK; frdCtx.lineCap='round'; frdCtx.strokeStyle=col;
     frdCtx.arc(cx,cy,R,a0,a1,false);
@@ -5511,7 +5516,7 @@ function frdHitTest(mx,my){
     // Só conta como clique no anel se cair dentro do arco realmente
     // preenchido (proporcional ao %) — o resto é track vazio, não deve
     // selecionar o proprietário mesmo estando no mesmo raio.
-    const segA1=FRD_START+FRD_SWEEP*(Math.max(seg.pct,0.5)/100);
+    const segA1=FRD_START+FRD_SWEEP*Math.sqrt(Math.max(seg.pct,0.5)/100);
     const angTol=(FRD_THICK/2)/seg.R;
     if(ang<=segA1+angTol)return seg;
   }
