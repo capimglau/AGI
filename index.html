@@ -2513,6 +2513,13 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .frx-connector { stroke: var(--ink3); stroke-width: 1; opacity: 0; fill: none; transition: opacity .25s; }
 .frx-cardsLayer { position: absolute; inset: 0; pointer-events: none; }
 .frx-tag { position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 7px; background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 6px 9px; box-shadow: var(--shadow-sm); cursor: pointer; transform: translate(-50%,-50%) scale(.9); opacity: 0; transition: transform .3s cubic-bezier(.2,.85,.3,1), opacity .25s; max-width: 150px; z-index: 2; }
+/* Do lado esquerdo do círculo, espelha o cartão: o traço/ponto colorido
+   (que acompanha a linha conectora) fica na ponta esquerda, junto da
+   linha, e o texto fica alinhado à direita, encostado nele — igual ao
+   infográfico de referência, em vez de repetir a mesma ordem dos dois
+   lados. */
+.frx-tag.left { flex-direction: row-reverse; }
+.frx-tag.left .frx-tag-txt { align-items: flex-end; text-align: right; }
 .frx-tag.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
 .frx-tag-dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
 .frx-tag-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
@@ -5463,6 +5470,7 @@ function frxRenderRing(cfg){
     rec.tag.style.left=(lp.x/640*100)+'%';
     rec.tag.style.top=(lp.y/640*100)+'%';
     rec.tag.style.transformOrigin = s.dir.x<-0.15?'right center':(s.dir.x>0.15?'left center':'center center');
+    rec.tag.classList.toggle('left', s.dir.x<-0.15);
     rec.tag.querySelector('.frx-tag-dot').style.background=s.color;
     rec.tag.querySelector('.frx-tag-name').textContent=s.key;
     rec.tag.querySelector('.frx-tag-val').textContent=fR(s.value)+' · '+s.pct.toFixed(1)+'%';
