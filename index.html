@@ -46,11 +46,17 @@
   --card-shadow: 0 2px 12px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.05);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow-x: hidden; }
 body {
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: #eef0f6;
   min-height: 100vh;
   color: var(--ink);
+  /* O anel de "Faturamento por categoria" sangra até a borda da tela no
+     mobile (ver .frx-stage) e o cartão flutuante de uma fatia selecionada
+     pode acabar bem na quina — sem isso, esse caso pontual empurrava a
+     página inteira pra rolar na horizontal. */
+  overflow-x: hidden;
   /* Sem isso, um arraste vertical dentro de um modal curto (ex.: apagar o
      valor/observação de um pagamento) pode "vazar" pro body e disparar o
      puxar-pra-atualizar do navegador — que recarrega a página e parece que
@@ -2501,6 +2507,19 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   .frx-stage { margin: 8px 0; flex: 0 0 546px; }
   .frx-legends { flex: 1 1 0; flex-direction: column; margin-top: 0; min-width: 0; }
 }
+/* No celular o anel ficava pequeno: a largura real era limitada pelo
+   padding do .card (22px) somado ao do .page (14px), não pelo
+   max-width acima. Sangrando o stage por essas duas margens ele some
+   até a borda da tela (~+30% de diâmetro num iPhone comum). */
+@media (max-width: 760px) {
+  /* .card tem overflow-x:auto no mobile (pra tabelas largas rolarem) —
+     nesse card em especial isso cortaria/roleria o anel sangrado em vez
+     de deixá-lo visível até a borda da tela. */
+  .card-donut { overflow-x: visible; }
+  /* Sangria = padding do .card nesse breakpoint (18px, ver regra
+     "#page-resumo > .card:nth-child(n+4)") + padding do .page (14px). */
+  .frx-stage { max-width: none; width: calc(100% + 64px); margin-left: -32px; margin-right: -32px; }
+}
 .frx-stage > svg { width: 100%; height: 100%; overflow: visible; }
 .frx-slice { cursor: pointer; transform-box: fill-box; }
 .frx-slice.tipo { transition: transform .38s cubic-bezier(.2,.85,.3,1); }
@@ -2736,7 +2755,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <div class="card-hd" id="hdBoletos">Boletos do mês</div>
     <div id="resBoletos"></div>
   </div>
-  <div class="card">
+  <div class="card card-donut">
     <div class="card-hd">Faturamento por categoria<span class="sub">filtros próprios</span></div>
     <div class="fr-filterrow">
       <div class="fr-basistoggle" id="frBasisToggle"></div>
