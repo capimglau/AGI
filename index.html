@@ -5498,6 +5498,7 @@ function frdDrawRings(){
   });
   const baselineFontPx=Math.min(...fitInfo.map(f=>f.fitFull));
   const uniformFontPx=Math.min(Math.round(baselineFontPx*2.2), Math.round(FRD_THICK*0.62));
+  const capClearanceOf=R=>Math.max((FRD_THICK/2)/R*2.2, 0.06);
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
     const isOutros=seg.key==='Outros';
@@ -5542,19 +5543,34 @@ function frdDrawRings(){
       // tem sempre o mesmo tamanho reservado pra todo mundo. Começa
       // logo depois da âncora (com uma folga pra não ficar em cima da
       // ponta arredondada do preenchimento) e cresce pro lado do vão.
-      const capClearance=Math.max((FRD_THICK/2)/R*2.2, 0.06);
+      const capClearance=capClearanceOf(R);
       const info=fitInfo.find(f=>f.seg===seg);
-      // A maioria fica no tamanho único; quem não cabe com nome+valor
-      // cai só pro nome (ainda no tamanho único); e no caso extremo de
-      // nem o nome sozinho caber (anel bem interno, com o tamanho único
-      // bem maior que o de antes), esse anel específico encolhe só o
-      // necessário pro nome nunca desaparecer.
-      let labelTxt=info.fullTxt, fontPx=uniformFontPx;
-      if(uniformFontPx>info.fitFull){
-        labelTxt=seg.key;
-        if(uniformFontPx>info.fitName)fontPx=info.fitName;
+      // fitFull/fitName (acima) são só uma ESTIMATIVA pra escolher o
+      // tamanho único — a decisão real de "cabe ou não" é testada aqui
+      // de verdade, tentando desenhar (frDrawArcSegment mede o texto de
+      // verdade e só desenha se couber, retornando false sem desenhar
+      // caso contrário). Isso evita casos de borda em que a estimativa
+      // dizia "não cabe" por 1px de diferença de arredondamento
+      // enquanto o desenho real cabia perfeitamente — o nome+valor de
+      // um anel pequeno sumindo à toa mesmo sobrando espaço no arco.
+      // Se o nome+valor não cabe no tamanho único, primeiro tenta
+      // encolher só um pouco (ainda com o valor) antes de desistir do
+      // valor de vez — o anel pode ter espaço de sobra no arco mesmo
+      // sem caber no tamanho único (ex.: Arnaldo, Lucélia).
+      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,uniformFontPx,false,col))return;
+      let fontPx=uniformFontPx-2;
+      while(fontPx>18&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,fontPx,false,col)){
+        fontPx-=2;
       }
-      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,labelTxt,fontPx,false,col);
+      if(fontPx>18)return;
+      // Nem encolhido o nome+valor coube (anel bem interno) — cai pro
+      // nome sozinho, primeiro no tamanho único e, em último caso,
+      // encolhendo só o necessário pra nunca desaparecer.
+      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,uniformFontPx,false,col))return;
+      fontPx=uniformFontPx;
+      while(fontPx>9&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,fontPx,false,col)){
+        fontPx-=2;
+      }
     }
   });
 }
