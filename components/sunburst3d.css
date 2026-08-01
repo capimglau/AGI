@@ -36,9 +36,13 @@
   .sb3d-stage { max-width: none; width: calc(100% + 44px); margin-left: -22px; margin-right: -22px; }
 }
 
-/* Leve perspectiva de dashboard — só no SVG; cartões/legenda ficam de
-   fora, sempre retos e 100% legíveis. */
-.sb3d-stage > svg { width: 100%; height: 100%; overflow: visible; transform: perspective(1300px) rotateX(4deg) rotateY(-2deg); transform-origin: 50% 55%; }
+/* (Chegou a ter um leve rotateX/rotateY de perspectiva aqui — tirado:
+   um transform 3D no SVG força o navegador a reamostrar o desenho
+   inteiro através da matriz de perspectiva, e em tela não-retina isso
+   deixa tudo (traços finos, texto) visivelmente borrado. O relevo
+   das fatias (extrusão/gradiente/sombra) já dá a sensação de 3D sem
+   esse custo.) */
+.sb3d-stage > svg { width: 100%; height: 100%; overflow: visible; }
 
 .sb3d-slice { cursor: pointer; transform-box: fill-box; transform-origin: center; }
 .sb3d-slice.mode-icon { transition: transform .38s cubic-bezier(.2,.85,.3,1); }
