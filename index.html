@@ -5498,7 +5498,7 @@ function frdDrawRings(){
   });
   const baselineFontPx=Math.min(...fitInfo.map(f=>f.fitFull));
   const uniformFontPxPrev=Math.min(Math.round(baselineFontPx*2.2), Math.round(FRD_THICK*0.62))-1;
-  const uniformFontPx=uniformFontPxPrev-1;
+  const uniformFontPx=uniformFontPxPrev-2;
   const capClearanceOf=R=>Math.max((FRD_THICK/2)/R*2.2, 0.06);
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
