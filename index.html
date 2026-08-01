@@ -5462,13 +5462,20 @@ function frdDrawRings(){
   const maxSpan=FRD_GAP_ANGLE*0.85;
   const fitInfo=specs.filter(seg=>seg.key!=='Outros').map(seg=>{
     const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
-    const labelTxt=(seg.key+' · '+valTxt).toUpperCase();
+    // Volta a manter a capitalização natural do nome (só a primeira
+    // letra maiúscula, como no dado original) — sem forçar tudo em
+    // caixa alta, que o usuário achou pior de ler.
+    const labelTxt=seg.key+' · '+valTxt;
     frdCtx.font='800 100px "Poppins","DM Sans",system-ui,-apple-system,sans-serif';
     const refWidth=labelTxt.split('').reduce((s,c)=>s+frdCtx.measureText(c).width,0);
     const refAngle=refWidth/seg.R;
     const fitPx=Math.floor(100*maxSpan/refAngle);
     return {seg,labelTxt,fitPx};
   });
+  // A capitalização normal (só a 1ª letra maiúscula) é mais estreita
+  // que caixa alta, então o mesmo cálculo já rende +1px de folga no
+  // anel mais apertado (Lucélia: 12px em caixa alta → 13px aqui) —
+  // exatamente o pixel a mais pedido, sem estourar o espaço dela.
   const uniformFontPx=Math.max(9,Math.min(...fitInfo.map(f=>f.fitPx)));
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
