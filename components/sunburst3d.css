@@ -52,11 +52,17 @@
 .sb3d-slice path.main { transition: filter .2s; stroke: rgba(6,10,20,.32); stroke-width: 1; stroke-linejoin: round; }
 .sb3d-slice path.side { transition: filter .2s; }
 .sb3d-sheen { transition: opacity .2s; }
-/* Com alguma fatia selecionada no anel, o resto esmaece — mantém a
-   cor (não vira cinza) só reduz opacidade, então a legenda embaixo
-   (que não esmaece) continua batendo com a cor de cada fatia. */
-.sb3d-slice.dimmed { opacity: .4; }
-.sb3d-slice.dimmed:hover { opacity: .65; }
+/* Com alguma fatia selecionada no anel, o resto esmaece. Só reduzir a
+   opacidade não bastou (uma cor viva tipo o azul do Silvio ainda lê
+   forte a 40% em cima de fundo escuro) — dessatura também, então o
+   contraste com a fatia selecionada (cor cheia) fica óbvio, e no
+   hover volta quase ao normal pra continuar dando pra explorar. */
+.sb3d-slice.dimmed { opacity: .3; }
+.sb3d-slice.dimmed path.main { filter: grayscale(.65) drop-shadow(1px 2px 3px rgba(12,18,30,.16)) !important; }
+:root[data-theme="dark"] .sb3d-slice.dimmed path.main { filter: grayscale(.65) drop-shadow(1px 2px 3px rgba(0,0,0,.3)) !important; }
+.sb3d-slice.dimmed:hover { opacity: .7; }
+.sb3d-slice.dimmed:hover path.main { filter: grayscale(.25) drop-shadow(1px 2px 3px rgba(12,18,30,.16)) !important; }
+:root[data-theme="dark"] .sb3d-slice.dimmed:hover path.main { filter: grayscale(.25) drop-shadow(1px 2px 3px rgba(0,0,0,.3)) !important; }
 
 /* Entrada: cada fatia nasce do centro (spring simplificado, 600ms). */
 @keyframes sb3d-enter {
@@ -88,6 +94,12 @@
 :root[data-theme="dark"] .sb3d-slice.is-selected path.main { filter: drop-shadow(3px 6px 12px rgba(0,0,0,.5)) drop-shadow(0 0 22px var(--sc)) drop-shadow(0 0 6px var(--sc)) brightness(1.12) saturate(1.1); }
 :root[data-theme="dark"] .sb3d-slice path.main { stroke: rgba(0,0,0,.5); }
 :root[data-theme="dark"] .sb3d-slice .hi { mix-blend-mode: screen; }
+/* Esmaecida: sem o friso/especular nem o glow neon do escuro (a cor +
+   grayscale já resolvem lá em cima — filter de novo aqui ia por cima
+   dessas regras e desfazer o grayscale). */
+.sb3d-slice.dimmed .hi,
+.sb3d-slice.dimmed .inhi,
+.sb3d-slice.dimmed .sb3d-rim { opacity: 0 !important; }
 /* Friso neon no contorno inteiro (as 4 bordas da fatia) — diferente do
    drop-shadow ambiente acima (que só borra ao redor), isso traça uma
    linha fina e nítida em cima do próprio contorno, tipo tubo de neon,
