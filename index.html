@@ -5360,10 +5360,10 @@ function frdBuildSpecs(){
 function frdBoxFor(specs){
   if(!specs.length)return FRD_HUB_R*2+40;
   const outerEdge=specs[0].R+FRD_THICK/2;
-  // Buffer (90): todos os percentuais ficam do lado de fora do anel
-  // mais externo (outerEdge+22, +20 alternado) mais a largura do
-  // próprio texto.
-  return Math.round((outerEdge+90)*2);
+  // Buffer (34): os percentuais agora ficam dentro do próprio raio de
+  // cada anel (no vão reservado no topo), não precisa de mais margem
+  // que isso.
+  return Math.round((outerEdge+34)*2);
 }
 function frdSizeCanvas(box){
   frdCanvas=document.getElementById('frdCanvas');
@@ -5447,14 +5447,6 @@ function frdDrawRings(){
   // atravessando 9h→6h→3h até chegar perto do outro lado do vão em
   // 100%. Só inverte de qual lado o anel nasce; o vão continua no topo.
   const anchor=FRD_START+FRD_SWEEP;
-  // Raio fixo pra todos os percentuais, fora do anel mais externo de
-  // todos (não só do próprio) — como todo mundo nasce do mesmo ponto,
-  // o anel maior sempre cobre o ângulo onde os menores terminam, então
-  // um percentual só um pouco pra fora do próprio anel ficava em cima
-  // da faixa colorida de outro anel maior. Pra ficar de verdade do
-  // lado de fora (igual ao infográfico de referência), precisa ser
-  // além de tudo, não só do vizinho mais próximo.
-  const outerR=specs.length?specs[0].R+FRD_THICK/2:0;
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
     const isOutros=seg.key==='Outros';
@@ -5509,15 +5501,15 @@ function frdDrawRings(){
       // disponível é o próprio arco preenchido (a1-a0).
       const aMid=frdLabelAngle(frdCtx,R,a0,a1,fontPx,labelTxt);
       frDrawArcLabel(frdCtx,cx,cy,R,aMid,(a1-a0)*0.85,labelTxt,fontPx);
-      // Percentual do lado de fora de todos os anéis (não só do
-      // próprio), na direção da ponta final da barra (a0) — sem chip
-      // nem borda, só o número na cor do anel, igual ao infográfico de
-      // referência do usuário. Alterna um pouco a distância por
-      // posição (par/ímpar) só pra não empilhar dois percentuais
-      // iguais (donos empatados na mesma %) exatamente um em cima do
-      // outro.
-      const pctR=outerR+22+(segIdx%2===0?0:20);
-      const px=cx+pctR*Math.cos(a0), py=cy+pctR*Math.sin(a0);
+      // Percentual perto do início da própria barra (ponto fixo/
+      // âncora), dentro do vão reservado no topo — sem chip nem borda,
+      // só o número na cor do anel. Como o ângulo é quase o mesmo pra
+      // todo mundo (só o raio muda por anel), os percentuais ficam
+      // alinhados numa coluna limpa, sem nunca sobrepor as faixas
+      // coloridas (a área do vão nunca recebe preenchimento).
+      const pctAngle=anchor+FRD_GAP_ANGLE*0.4;
+      const pctR=R;
+      const px=cx+pctR*Math.cos(pctAngle), py=cy+pctR*Math.sin(pctAngle);
       frdCtx.save();
       frdCtx.font='800 26px "DM Sans", system-ui, -apple-system, sans-serif';
       frdCtx.textAlign='center'; frdCtx.textBaseline='middle';
