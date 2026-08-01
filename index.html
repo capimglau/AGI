@@ -5291,9 +5291,12 @@ function frBreakdown(dim,rows,grand){
 // dados mostrar (cross-filter FRT, bucket "Outros", cor por ranking) e
 // liga os cliques de volta na lógica financeira (frxToggle abre/fecha
 // filtro; mostrarLancCategoria abre o detalhamento).
+// Vão real entre os dois anéis (26 em vez dos 10 de antes) — sem essa
+// separação visível, a extrusão de um anel "encostava" no outro e o
+// efeito de peça sólida separada se perdia.
 const FRX_RING={
-  tipo:{id:'tipo', mode:'icon',   rIn:104, rOut:198, markR:151, gapDeg:0.9, labelR:255, explode:18, power:0.3},
-  dono:{id:'dono', mode:'avatar', rIn:208, rOut:308, markR:258, gapDeg:0.7, labelR:314, grow:14,    power:0.5, big:true},
+  tipo:{id:'tipo', mode:'icon',   rIn:104, rOut:188, markR:146, gapDeg:0.9, labelR:248, explode:18, power:0.3},
+  dono:{id:'dono', mode:'avatar', rIn:214, rOut:308, markR:261, gapDeg:0.7, labelR:317, grow:14,    power:0.5, big:true},
 };
 // Ícones (mesmo traço fino já usado no resto do app: viewBox 24, stroke
 // currentColor, stroke-width 1.8) por tipo de lançamento — por palavra-chave
