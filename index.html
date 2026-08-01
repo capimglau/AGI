@@ -2491,7 +2491,16 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
    expande deslocando a fatia pra fora (destaca ícone + cartão); o de
    Proprietário expande crescendo e ganhando um halo no próprio lugar,
    pra não perder a leitura do anel com muitos donos. */
-.frx-stage { position: relative; width: 100%; max-width: 420px; aspect-ratio: 1 / 1; margin: 8px auto 4px; }
+.frx-body { display: flex; flex-direction: column; }
+/* 546px = 420px + 30%, pedido pra deixar o gráfico maior em geral. */
+.frx-stage { position: relative; width: 100%; max-width: 546px; aspect-ratio: 1 / 1; margin: 8px auto 4px; flex: none; }
+/* PC: gráfico fixo à esquerda, textos (Tipo/Proprietário) alinhados
+   numa coluna à direita, em vez de empilhados abaixo do gráfico. */
+@media (min-width: 920px) {
+  .frx-body { flex-direction: row; align-items: center; gap: 32px; }
+  .frx-stage { margin: 8px 0; flex: 0 0 546px; }
+  .frx-legends { flex: 1 1 0; flex-direction: column; margin-top: 0; min-width: 0; }
+}
 .frx-stage > svg { width: 100%; height: 100%; overflow: visible; }
 .frx-slice { cursor: pointer; transform-box: fill-box; }
 .frx-slice.tipo { transition: transform .38s cubic-bezier(.2,.85,.3,1); }
@@ -2738,28 +2747,30 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
       </div>
       <div class="rf-bar rf-flat" id="fatRingFilters"></div>
     </div>
-    <div class="frx-stage" id="frxStage">
-      <svg viewBox="0 0 640 640" id="frxSvg" aria-hidden="true">
-        <g id="frxConnectors"></g>
-        <g id="frxHalos"></g>
-        <g id="frxSlicesDono"></g>
-        <g id="frxSlicesTipo"></g>
-        <g class="frx-hub" id="frxHub">
-          <circle class="frx-hub-bg" cx="320" cy="320" r="66"></circle>
-          <text class="frx-hub-label" id="frxHubLabel" x="320" y="312" text-anchor="middle">Total</text>
-          <text class="frx-hub-value" id="frxHubValue" x="320" y="337" text-anchor="middle">R$ 0</text>
-        </g>
-      </svg>
-      <div class="frx-cardsLayer" id="frxCardsLayer"></div>
-    </div>
-    <div class="frx-legends">
-      <div class="frx-legend-block">
-        <div class="fr-bargroup-title">Tipo</div>
-        <ul class="frx-legend" id="frxLegendTipo"></ul>
+    <div class="frx-body">
+      <div class="frx-stage" id="frxStage">
+        <svg viewBox="0 0 640 640" id="frxSvg" aria-hidden="true">
+          <g id="frxConnectors"></g>
+          <g id="frxHalos"></g>
+          <g id="frxSlicesDono"></g>
+          <g id="frxSlicesTipo"></g>
+          <g class="frx-hub" id="frxHub">
+            <circle class="frx-hub-bg" cx="320" cy="320" r="66"></circle>
+            <text class="frx-hub-label" id="frxHubLabel" x="320" y="312" text-anchor="middle">Total</text>
+            <text class="frx-hub-value" id="frxHubValue" x="320" y="337" text-anchor="middle">R$ 0</text>
+          </g>
+        </svg>
+        <div class="frx-cardsLayer" id="frxCardsLayer"></div>
       </div>
-      <div class="frx-legend-block">
-        <div class="fr-bargroup-title">Proprietário</div>
-        <ul class="frx-legend" id="frxLegendDono"></ul>
+      <div class="frx-legends">
+        <div class="frx-legend-block">
+          <div class="fr-bargroup-title">Tipo</div>
+          <ul class="frx-legend" id="frxLegendTipo"></ul>
+        </div>
+        <div class="frx-legend-block">
+          <div class="fr-bargroup-title">Proprietário</div>
+          <ul class="frx-legend" id="frxLegendDono"></ul>
+        </div>
       </div>
     </div>
   </div>
