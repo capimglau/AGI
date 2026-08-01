@@ -5497,7 +5497,8 @@ function frdDrawRings(){
     return {seg,fullTxt,maxSpan,fitFull:fitPxFor(fullTxt),fitName:fitPxFor(seg.key)};
   });
   const baselineFontPx=Math.min(...fitInfo.map(f=>f.fitFull));
-  const uniformFontPx=Math.min(Math.round(baselineFontPx*2.2), Math.round(FRD_THICK*0.62))-1;
+  const uniformFontPxPrev=Math.min(Math.round(baselineFontPx*2.2), Math.round(FRD_THICK*0.62))-1;
+  const uniformFontPx=uniformFontPxPrev-1;
   const capClearanceOf=R=>Math.max((FRD_THICK/2)/R*2.2, 0.06);
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
@@ -5557,8 +5558,11 @@ function frdDrawRings(){
       // encolher só um pouco (ainda com o valor) antes de desistir do
       // valor de vez — o anel pode ter espaço de sobra no arco mesmo
       // sem caber no tamanho único (ex.: Arnaldo, Lucélia).
-      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,uniformFontPx,false,col))return;
-      let fontPx=uniformFontPx-2;
+      // A Lucélia já usa um tamanho encolhido à parte (o anel mais
+      // apertado); mantém o dela como estava, só os outros diminuem.
+      const targetPx=seg.key==='Lucélia'?uniformFontPxPrev:uniformFontPx;
+      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,targetPx,false,col))return;
+      let fontPx=targetPx-2;
       while(fontPx>18&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,fontPx,false,col)){
         fontPx-=2;
       }
@@ -5566,8 +5570,8 @@ function frdDrawRings(){
       // Nem encolhido o nome+valor coube (anel bem interno) — cai pro
       // nome sozinho, primeiro no tamanho único e, em último caso,
       // encolhendo só o necessário pra nunca desaparecer.
-      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,uniformFontPx,false,col))return;
-      fontPx=uniformFontPx;
+      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,targetPx,false,col))return;
+      fontPx=targetPx;
       while(fontPx>9&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,fontPx,false,col)){
         fontPx-=2;
       }
