@@ -5482,7 +5482,7 @@ function frdDrawRings(){
     return {seg,fullTxt,fitFull:fitPxFor(fullTxt),fitName:fitPxFor(seg.key)};
   });
   const baselineFontPx=Math.min(...fitInfo.map(f=>f.fitFull));
-  const uniformFontPx=Math.round(baselineFontPx*1.4);
+  const uniformFontPx=Math.round(baselineFontPx*2.2);
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
     const isOutros=seg.key==='Outros';
@@ -5529,8 +5529,17 @@ function frdDrawRings(){
       // ponta arredondada do preenchimento) e cresce pro lado do vão.
       const capClearance=Math.max((FRD_THICK/2)/R*2.2, 0.06);
       const info=fitInfo.find(f=>f.seg===seg);
-      const labelTxt=uniformFontPx<=info.fitFull?info.fullTxt:seg.key;
-      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,labelTxt,uniformFontPx,false,col);
+      // A maioria fica no tamanho único; quem não cabe com nome+valor
+      // cai só pro nome (ainda no tamanho único); e no caso extremo de
+      // nem o nome sozinho caber (anel bem interno, com o tamanho único
+      // bem maior que o de antes), esse anel específico encolhe só o
+      // necessário pro nome nunca desaparecer.
+      let labelTxt=info.fullTxt, fontPx=uniformFontPx;
+      if(uniformFontPx>info.fitFull){
+        labelTxt=seg.key;
+        if(uniformFontPx>info.fitName)fontPx=info.fitName;
+      }
+      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,labelTxt,fontPx,false,col);
     }
   });
 }
