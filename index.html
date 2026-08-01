@@ -5499,6 +5499,10 @@ function frdDrawRings(){
   const baselineFontPx=Math.min(...fitInfo.map(f=>f.fitFull));
   const uniformFontPxPrev=Math.min(Math.round(baselineFontPx*2.2), Math.round(FRD_THICK*0.62))-1;
   const uniformFontPx=uniformFontPxPrev-3;
+  // O anel mais "apertado" (menor raio) muda de dono conforme o mês —
+  // identifica pela posição (menor R), não por nome, senão o ajuste
+  // "gruda" no nome de um mês específico e some quando o mês muda.
+  const tightestKey=fitInfo.reduce((min,f)=>f.seg.R<min.seg.R?f:min).seg.key;
   const capClearanceOf=R=>Math.max((FRD_THICK/2)/R*2.2, 0.06);
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
@@ -5560,11 +5564,12 @@ function frdDrawRings(){
       // sem caber no tamanho único (ex.: Arnaldo, Lucélia).
       // A Lucélia já usa um tamanho encolhido à parte (o anel mais
       // apertado); mantém o dela como estava, só os outros diminuem.
-      const targetPx=seg.key==='Lucélia'?uniformFontPxPrev:uniformFontPx;
+      const targetPx=seg.key===tightestKey?uniformFontPxPrev:uniformFontPx;
       // Cor do rótulo em texto: igual à do anel pra todo mundo, exceto
-      // o Arnaldo, um pouco mais claro que o verde escuro do anel dele
-      // (mais fácil de ler).
-      const labelCol=seg.key==='Arnaldo'?frdLighten(col,0.18):col;
+      // no anel verde-escuro (índice 5 da paleta) — sempre um pouco
+      // mais claro que o preenchimento, pra ficar mais fácil de ler,
+      // não importa qual dono caia nessa cor em cada mês.
+      const labelCol=col===FR_PALETTE[5]?frdLighten(col,0.18):col;
       if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,targetPx,false,labelCol))return;
       let fontPx=targetPx-2;
       while(fontPx>18&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,fontPx,false,labelCol)){
