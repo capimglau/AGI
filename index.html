@@ -5498,7 +5498,7 @@ function frdDrawRings(){
   });
   const baselineFontPx=Math.min(...fitInfo.map(f=>f.fitFull));
   const uniformFontPxPrev=Math.min(Math.round(baselineFontPx*2.2), Math.round(FRD_THICK*0.62))-1;
-  const uniformFontPx=uniformFontPxPrev-2;
+  const uniformFontPx=uniformFontPxPrev-3;
   const capClearanceOf=R=>Math.max((FRD_THICK/2)/R*2.2, 0.06);
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
@@ -5561,18 +5561,22 @@ function frdDrawRings(){
       // A Lucélia já usa um tamanho encolhido à parte (o anel mais
       // apertado); mantém o dela como estava, só os outros diminuem.
       const targetPx=seg.key==='Lucélia'?uniformFontPxPrev:uniformFontPx;
-      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,targetPx,false,col))return;
+      // Cor do rótulo em texto: igual à do anel pra todo mundo, exceto
+      // o Arnaldo, um pouco mais claro que o verde escuro do anel dele
+      // (mais fácil de ler).
+      const labelCol=seg.key==='Arnaldo'?frdLighten(col,0.18):col;
+      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,targetPx,false,labelCol))return;
       let fontPx=targetPx-2;
-      while(fontPx>18&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,fontPx,false,col)){
+      while(fontPx>18&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,fontPx,false,labelCol)){
         fontPx-=2;
       }
       if(fontPx>18)return;
       // Nem encolhido o nome+valor coube (anel bem interno) — cai pro
       // nome sozinho, primeiro no tamanho único e, em último caso,
       // encolhendo só o necessário pra nunca desaparecer.
-      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,targetPx,false,col))return;
+      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,targetPx,false,labelCol))return;
       fontPx=targetPx;
-      while(fontPx>9&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,fontPx,false,col)){
+      while(fontPx>9&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,fontPx,false,labelCol)){
         fontPx-=2;
       }
     }
