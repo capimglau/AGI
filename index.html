@@ -5454,32 +5454,26 @@ function frdDrawRings(){
     const isOutros=seg.key==='Outros';
     const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
     // O resto do anel (sem preenchimento) é a própria cor do anel
-    // esmaecida (20% de opacidade, um meio-termo — nem tão claro que
-    // suma, nem tão forte que pareça preenchido) — sem contorno. O
-    // trecho preenchido (mais à frente) desenha por cima, bem mais
-    // grosso e na cor cheia.
+    // esmaecida (24% de opacidade) — sem contorno. O trecho preenchido
+    // (mais à frente) desenha por cima, bem mais grosso e na cor
+    // cheia. O círculo vai só até 2π-0.001 (não fecha o laço exatamente
+    // em 2π) pra evitar aquela linha/emenda visível bem no ponto onde
+    // o traço começa e termina se sobrepondo (artefato comum ao
+    // desenhar um círculo cheio com stroke translúcido).
     const rgb=frdHexToRgb(col);
     frdCtx.beginPath();
-    frdCtx.lineWidth=FRD_THICK; frdCtx.strokeStyle=`rgba(${rgb.r},${rgb.g},${rgb.b},.2)`;
-    frdCtx.arc(cx,cy,R,0,Math.PI*2);
+    frdCtx.lineWidth=FRD_THICK; frdCtx.strokeStyle=`rgba(${rgb.r},${rgb.g},${rgb.b},.24)`;
+    frdCtx.arc(cx,cy,R,0,Math.PI*2-0.001);
     frdCtx.stroke();
 
-    // Preenchimento do anel proporcional ao % de cada pessoa — antes
-    // todo mundo ocupava o mesmo arco (só o raio indicava a ordem); com
-    // isso o próprio comprimento do arco já mostra o peso de cada um no
-    // total. Usa uma raiz mais forte (0.3) em vez do % puro: linear (e
-    // até a raiz quadrada) deixava a diferença brutal demais (o maior
-    // quase fecha o círculo, o resto vira lasca invisível) só porque o
-    // faturamento real é bem desigual — a raiz comprime essa distância
-    // mantendo a ordem e a proporção relativa entre eles. Piso mínimo
-    // (0.5%) só pra garantir que quem arredonda pra 0,0% ainda apareça
-    // como uma pontinha arredondada, em vez de sumir.
-    let frac=Math.pow(Math.max(seg.pct,0.5)/100,0.3);
-    // +50% no arco de todo mundo, MENOS o dono dominante (rank 0, ex.:
-    // Silvio) — que já é o maior e não precisa crescer mais. Sem isso,
-    // vários anéis pequenos ficavam curtos demais até pro próprio nome
-    // caber dentro (ficavam sem rótulo nenhum).
-    if(seg.rank!==0)frac=Math.min(frac*1.5,0.95);
+    // Preenchimento do anel proporcional ao % REAL de cada pessoa —
+    // sem compressão nem reforço: o comprimento do arco é fiel ao %
+    // (só um piso de 0,3% pra quem arredonda pra 0,0% ainda aparecer
+    // como uma pontinha arredondada, em vez de sumir). Como agora o
+    // nome e o valor moram no vão esmaecido (não mais dentro do
+    // preenchimento), o tamanho real da barra não precisa mais deixar
+    // espaço pro texto — só precisa ser fiel ao dado.
+    const frac=Math.max(seg.pct,0.3)/100;
     const a0=anchor-FRD_SWEEP*frac, a1=anchor;
     frdCtx.beginPath();
     frdCtx.lineWidth=FRD_THICK; frdCtx.lineCap='round'; frdCtx.strokeStyle=col;
@@ -5494,25 +5488,25 @@ function frdDrawRings(){
       // No PC (tela larga) tem espaço de sobra pra mostrar o valor
       // completo em vez de abreviado — só nas telas estreitas (mobile,
       // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
-      const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
+      // Sem o "R$" — só o número — pra ficar mais enxuto na área
+      // esmaecida.
+      const valTxt=(window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value)).replace('R$ ','');
       // Fonte proporcional ao raio (com teto e piso) — nos anéis mais
       // internos (menor raio, arco mais curto em pixels mesmo com o
       // mesmo ângulo) uma fonte menor cabe melhor; nos de fora usa o
       // tamanho cheio de sempre.
       const fontPx=Math.max(14,Math.min(Math.round(FRD_THICK*0.7),Math.round(R*0.15)));
-      // Nome e valor são dois trechos separados, não um rótulo só: o
-      // nome sempre termina exatamente onde acaba o preenchimento
-      // (nunca invade nem sobra), pintado em branco por cima da cor
-      // cheia; o valor começa ali — sempre inteiro, sem cortar o "R$"
-      // ao meio — e continua na cor do anel por cima da área
-      // esmaecida.
-      frDrawArcSegment(frdCtx,cx,cy,R,anchor,-1,(a1-a0)*0.95,seg.key+' · ',fontPx,true,col);
-      // Pequena folga depois da âncora: a ponta arredondada
-      // (lineCap='round') do preenchimento se estende um pouco além
-      // do ângulo exato da âncora e escondia a primeira letra do valor
-      // atrás dela.
-      const capClearance=(FRD_THICK/2)/R*1.15;
-      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,FRD_GAP_ANGLE*0.55,valTxt,fontPx,false,col);
+      // Nome e valor juntos (um texto só, sem ponto nem "R$"), sempre
+      // dentro do vão esmaecido — não mais dentro do preenchimento.
+      // Como a barra agora é fiel ao % real (pode ser bem curta pros
+      // donos pequenos), o texto não pode mais depender do tamanho da
+      // barra pra caber; o vão esmaecido tem sempre o mesmo tamanho
+      // reservado pra todo mundo, então o rótulo sempre cabe do mesmo
+      // jeito, veja o % pequeno ou grande. Começa logo depois da
+      // âncora (com uma folga pra não ficar em cima da ponta
+      // arredondada do preenchimento) e cresce pro lado do vão.
+      const capClearance=Math.max((FRD_THICK/2)/R*2.2, 0.06);
+      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,FRD_GAP_ANGLE*0.85,seg.key+' '+valTxt,fontPx,false,col);
     }
   });
 }
@@ -5531,15 +5525,12 @@ function frdHitTest(mx,my){
   for(let i=0;i<frdRingSpecs.length;i++){
     const seg=frdRingSpecs[i];
     if(dist<seg.R-FRD_THICK/2-tol||dist>seg.R+FRD_THICK/2+tol)continue;
-    // Só conta como clique no anel se cair dentro do arco realmente
-    // preenchido (proporcional ao %) — o resto é track vazio, não deve
-    // selecionar o proprietário mesmo estando no mesmo raio. O anel
-    // nasce do lado esquerdo do vão (ver frdDrawRings), então o arco
-    // preenchido vai de segA0 até o fim do sweep (FRD_START+FRD_SWEEP).
-    const anchor=FRD_START+FRD_SWEEP;
-    const segA0=anchor-FRD_SWEEP*Math.pow(Math.max(seg.pct,0.5)/100,0.3);
-    const angTol=(FRD_THICK/2)/seg.R;
-    if(ang>=segA0-angTol)return seg;
+    // Conta como clique em qualquer ponto do anel (preenchido ou
+    // esmaecido) — a área esmaecida também mostra o nome/valor daquele
+    // proprietário, então é parte da mesma "linha" clicável, não só o
+    // trechinho colorido (que agora é fiel ao % real e pode ser bem
+    // curto pros donos pequenos).
+    return seg;
   }
   return null;
 }
