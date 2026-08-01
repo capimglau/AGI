@@ -242,6 +242,14 @@
       const inHi = el('path', 'inhi'); inHi.setAttribute('fill', 'none'); inHi.setAttribute('stroke', '#fff');
       inHi.setAttribute('stroke-width', 1.4); inHi.setAttribute('stroke-linecap', 'round'); inHi.setAttribute('pointer-events', 'none');
       g.appendChild(inHi);
+      // Friso neon no CONTORNO INTEIRO da fatia (as 4 bordas: arco de
+      // fora, arco de dentro e os 2 lados retos) — só aparece no modo
+      // escuro (.sb3d-rim na CSS). O hi/inHi acima só cobrem o lado
+      // virado pra luz; isso aqui é o brilho parelho em toda a borda,
+      // igual à referência.
+      const rim = el('path', 'sb3d-rim'); rim.setAttribute('fill', 'none');
+      rim.setAttribute('stroke-linejoin', 'round'); rim.setAttribute('pointer-events', 'none');
+      g.appendChild(rim);
 
       const markG = el('g', cfg.mode === 'icon' ? 'sb3d-icon' : 'sb3d-avatar');
       g.appendChild(markG);
@@ -265,7 +273,7 @@
       tag.addEventListener('click', () => { if (!s.locked) this.onToggle(cfg.id, s.key); });
       this._cards.appendChild(tag);
 
-      return { g, path, side, hi, inHi, markG, grad, halo, line, tag, hover: false };
+      return { g, path, side, hi, inHi, rim, markG, grad, halo, line, tag, hover: false };
     }
 
     _hoverTag(cfg, key, on) {
@@ -281,13 +289,19 @@
     }
 
     _updateSlice(cfg, rec, s) {
-      rec.path.setAttribute('d', this.ringPath(cfg.rOut, cfg.rIn, s.startA, s.endA));
-      rec.side.setAttribute('d', this.ringPath(cfg.rOut, cfg.rIn, s.startA, s.endA));
+      const d = this.ringPath(cfg.rOut, cfg.rIn, s.startA, s.endA);
+      rec.path.setAttribute('d', d);
+      rec.side.setAttribute('d', d);
+      rec.rim.setAttribute('d', d);
+      rec.rim.setAttribute('stroke', s.color);
       rec.g.classList.toggle('is-selected', !!s.selected);
 
       const lf = this.lightFactor(s.mid);
       rec.side.setAttribute('fill', mix(s.color, '#000000', 0.56 - lf * 0.16));
-      rec.path.style.setProperty('--sc', s.color);
+      // No próprio grupo (não só no path) pra hi/inHi/rim, todos irmãos
+      // do path, também poderem usar var(--sc) — custom property só
+      // desce pra descendentes, não pra irmãos.
+      rec.g.style.setProperty('--sc', s.color);
 
       const gp1 = this.polar(cfg.rOut + 8, s.mid), gp2 = this.polar(cfg.rIn - 8, s.mid);
       rec.grad.setAttribute('x1', gp1.x); rec.grad.setAttribute('y1', gp1.y);
