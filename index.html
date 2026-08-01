@@ -2541,6 +2541,25 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .frx-slice.dono path.main { filter: drop-shadow(1px 2px 3px rgba(12,18,30,.18)); }
 .frx-slice.dono:hover path.main { filter: drop-shadow(2px 3px 5px rgba(12,18,30,.24)) brightness(1.05); }
 .frx-slice.dono.on path.main { filter: drop-shadow(3px 6px 12px rgba(12,18,30,.28)) brightness(1.1) saturate(1.08); }
+/* Modo escuro: brilho neon por cima do relevo/extrusão que já existe
+   nos dois temas — cada fatia usa a própria cor (--sc, setado por
+   fatia no JS) num drop-shadow difuso, tipo vidro sob luz de neon. */
+:root[data-theme="dark"] .frx-slice.tipo path.main { filter: drop-shadow(1px 2px 3px rgba(0,0,0,.5)) drop-shadow(4px 9px 16px rgba(0,0,0,.35)) drop-shadow(0 0 14px var(--sc)) drop-shadow(0 0 3px var(--sc)); }
+:root[data-theme="dark"] .frx-slice.tipo:hover path.main { filter: drop-shadow(2px 3px 5px rgba(0,0,0,.55)) drop-shadow(5px 11px 20px rgba(0,0,0,.4)) drop-shadow(0 0 18px var(--sc)) drop-shadow(0 0 4px var(--sc)) brightness(1.08); }
+:root[data-theme="dark"] .frx-slice.dono path.main { filter: drop-shadow(1px 2px 3px rgba(0,0,0,.4)) drop-shadow(0 0 12px var(--sc)) drop-shadow(0 0 3px var(--sc)); }
+:root[data-theme="dark"] .frx-slice.dono:hover path.main { filter: drop-shadow(2px 3px 5px rgba(0,0,0,.45)) drop-shadow(0 0 16px var(--sc)) drop-shadow(0 0 4px var(--sc)) brightness(1.06); }
+:root[data-theme="dark"] .frx-slice.dono.on path.main { filter: drop-shadow(3px 6px 12px rgba(0,0,0,.5)) drop-shadow(0 0 22px var(--sc)) drop-shadow(0 0 6px var(--sc)) brightness(1.12) saturate(1.1); }
+:root[data-theme="dark"] .frx-slice path.main { stroke: rgba(0,0,0,.5); }
+:root[data-theme="dark"] .frx-slice .hi { mix-blend-mode: screen; }
+/* Halo azulado por trás do gráfico inteiro, tipo a referência (peça
+   de vidro sob spot de luz), só no escuro — no claro ficaria só sujo. */
+:root[data-theme="dark"] .frx-stage::before {
+  content: ''; position: absolute; inset: -12%; z-index: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 46%, rgba(61,125,255,.22), rgba(120,90,255,.10) 45%, transparent 70%);
+  filter: blur(6px);
+}
+:root[data-theme="dark"] .frx-stage > svg { position: relative; z-index: 1; }
+:root[data-theme="dark"] .frx-cardsLayer { z-index: 1; }
 .frx-halo { fill: none; opacity: 0; transition: opacity .32s ease; pointer-events: none; }
 .frx-halo.on { opacity: .55; }
 .frx-icon { pointer-events: none; color: #fff; opacity: .96; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); transition: transform .25s cubic-bezier(.2,.85,.3,1); }
@@ -5335,7 +5354,10 @@ const FR_ORDER=['dono','tipo'];
 // ordem validada por validate_palette.js: pares adjacentes E o par de
 // wraparound (última cor encostando na primeira, já que o anel é
 // circular) passam o piso de visão normal (ΔE≥15) nos dois temas.
-const FR_PALETTE=['#3987e5','#d95926','#199e70','#c98500','#d55181','#008300','#9085e9','#e66767'];
+// Azul da Locação trocado pro tom pedido (#2D7DFF) — os demais já
+// batiam com a referência (verde, ouro, magenta, roxo) e continuam os
+// mesmos, já validados (ver comentário abaixo).
+const FR_PALETTE=['#2D7DFF','#d95926','#199e70','#c98500','#d55181','#008300','#9085e9','#e66767'];
 const FR_OUTROS='#9aa2b1';
 const FRT=newFilterState();
 let frBasis='comp'; // 'comp' previsto | 'caixa' recebido
@@ -5651,6 +5673,10 @@ function frxRenderRing(cfg){
     // brilhando por conta própria.
     const lf=frxLightFactor(s.mid);
     rec.side.setAttribute('fill', frxMix(s.color,'#000000',0.56-lf*0.16));
+    // Cor da própria fatia exposta como variável CSS — usada só no modo
+    // escuro pra um brilho neon (drop-shadow colorido) ao redor de cada
+    // peça, por cima do relevo/extrusão que já existe nos dois temas.
+    rec.path.style.setProperty('--sc', s.color);
 
     // Eixo do gradiente segue o ângulo médio da fatia: claro do lado de
     // fora (luz), escuro do lado de dentro (sombra) — cada fatia parece
