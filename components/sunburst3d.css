@@ -6,9 +6,29 @@
 .sb3d-stage { position: relative; width: 100%; max-width: 546px; aspect-ratio: 1 / 1; margin: 8px auto 4px; flex: none; }
 .sb3d-body { display: flex; flex-direction: column; }
 @media (min-width: 920px) {
-  .sb3d-body { flex-direction: row; align-items: center; gap: 32px; }
-  .sb3d-stage { margin: 8px 0; flex: 0 0 546px; }
-  .sb3d-legends { flex: 1 1 0; flex-direction: column; margin-top: 0; min-width: 0; }
+  /* -10% pedido: 546px -> ~491px. A legenda para de esticar até a borda
+     do card (flex:1 1 0) e passa a acompanhar o tamanho do gráfico —
+     largura máxima proporcional ao novo raio, em vez de sobrar espaço
+     vazio largo do lado de um anel menor. */
+  .sb3d-body { flex-direction: row; align-items: center; gap: 28px; }
+  .sb3d-stage { margin: 8px 0; flex: 0 0 491px; }
+  .sb3d-legends { flex: 0 1 460px; flex-direction: column; margin-top: 0; min-width: 0; gap: 20px; }
+  /* Fontes/espaçamento da legenda ~10% menores, acompanhando o gráfico
+     — do tamanho antigo (546px), sem isso a legenda ficaria grande
+     demais perto de um anel 10% menor. */
+  .sb3d-legend-block { flex-basis: 200px; min-width: 180px; }
+  .sb3d-legend-title { font-size: 10px; margin-bottom: 7px; }
+  .sb3d-legend li { padding: 6px 7px; font-size: 11.3px; column-gap: 8px; }
+  .sb3d-legend-val { font-size: 11px; }
+  .sb3d-legend-pct { font-size: 9.5px; min-width: 30px; }
+  .sb3d-legend-bar-wrap { height: 4.5px; margin-top: 3.5px; }
+  /* Teste: nomes de proprietário com uma fonte "de vitrine" (a mesma
+     família nativa do sistema, SF Pro no Mac/iOS) em vez da fonte
+     padrão do app — só o nome, não o valor/percentual ao lado. */
+  .sb3d-legend li[data-ring="dono"] .sb3d-legend-nm {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'DM Sans', sans-serif;
+    letter-spacing: -.01em;
+  }
 }
 @media (max-width: 760px) {
   .sb3d-stage { max-width: none; width: calc(100% + 44px); margin-left: -22px; margin-right: -22px; }
