@@ -4517,6 +4517,26 @@ if(window.Chart){
       ctx.restore();
     }
   });
+  // Plugin: destaca a coluna do mês vigente com uma faixa de fundo sutil
+  // (opt-in via options.plugins.currentCol={index}) — evita ter que
+  // procurar o mês atual entre os 12 pra comparar com os outros.
+  Chart.register({
+    id:'currentCol',
+    beforeDatasetsDraw(chart,args,opts){
+      if(!opts||opts.index==null||opts.index<0)return;
+      const {ctx,chartArea:{top,bottom}}=chart;
+      const xScale=chart.scales.x;
+      const i=opts.index;
+      if(i>=xScale.ticks.length)return;
+      const centerPx=xScale.getPixelForTick(i);
+      const neighborPx=xScale.getPixelForTick(i===0?Math.min(1,xScale.ticks.length-1):i-1);
+      const slot=Math.abs(neighborPx-centerPx)||(xScale.width/xScale.ticks.length);
+      ctx.save();
+      ctx.fillStyle=isDark()?'rgba(255,255,255,.05)':'rgba(15,18,26,.045)';
+      ctx.fillRect(centerPx-slot/2, top, slot, bottom-top);
+      ctx.restore();
+    }
+  });
   // Plugin: texto no centro da rosca (opt-in via options.plugins.center)
   Chart.register({
     id:'center',
@@ -5408,7 +5428,7 @@ function frdDrawRings(){
   frdCtx.clearRect(0,0,box,box);
   const trackCol=isDark()?'rgba(255,255,255,.12)':'rgba(10,12,20,.07)';
   const haloCol=isDark()?'#ffffff':'#0c0c0f';
-  const a0=FRD_START, a1=FRD_START+FRD_SWEEP;
+  const a0=FRD_START;
   specs.forEach(seg=>{
     const R=seg.R;
     frdCtx.beginPath();
@@ -5418,6 +5438,12 @@ function frdDrawRings(){
 
     const isOutros=seg.key==='Outros';
     const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
+    // Preenchimento do anel proporcional ao % de cada pessoa — antes
+    // todo mundo ocupava o mesmo arco (só o raio indicava a ordem); com
+    // isso o próprio comprimento do arco já mostra o peso de cada um no
+    // total. Piso mínimo (0.5%) só pra garantir que quem arredonda pra
+    // 0,0% ainda apareça como uma pontinha arredondada, em vez de sumir.
+    const a1=a0+FRD_SWEEP*(Math.max(seg.pct,0.5)/100);
     frdCtx.beginPath();
     frdCtx.lineWidth=FRD_THICK; frdCtx.lineCap='round'; frdCtx.strokeStyle=col;
     frdCtx.arc(cx,cy,R,a0,a1,false);
@@ -5433,7 +5459,10 @@ function frdDrawRings(){
       // completo em vez de abreviado — só nas telas estreitas (mobile,
       // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
       const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
-      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+valTxt,Math.round(FRD_THICK*0.7));
+      // O vão disponível pro rótulo agora é o próprio arco preenchido
+      // (a1-a0), não mais o sweep fixo — em anéis pequenos (% baixo) o
+      // nome some se não couber, igual já acontecia antes.
+      frDrawArcLabel(frdCtx,cx,cy,R,aMid,(a1-a0)*0.85,seg.key+' · '+valTxt,Math.round(FRD_THICK*0.7));
       // Percentual bem no cantinho final da barra (na parte sem
       // preenchimento, coladinho na ponta do anel) — não centralizado
       // no vão inteiro.
@@ -5478,7 +5507,13 @@ function frdHitTest(mx,my){
   const tol=Math.max(1,FRD_GAP/2-1);
   for(let i=0;i<frdRingSpecs.length;i++){
     const seg=frdRingSpecs[i];
-    if(dist>=seg.R-FRD_THICK/2-tol&&dist<=seg.R+FRD_THICK/2+tol)return seg;
+    if(dist<seg.R-FRD_THICK/2-tol||dist>seg.R+FRD_THICK/2+tol)continue;
+    // Só conta como clique no anel se cair dentro do arco realmente
+    // preenchido (proporcional ao %) — o resto é track vazio, não deve
+    // selecionar o proprietário mesmo estando no mesmo raio.
+    const segA1=FRD_START+FRD_SWEEP*(Math.max(seg.pct,0.5)/100);
+    const angTol=(FRD_THICK/2)/seg.R;
+    if(ang<=segA1+angTol)return seg;
   }
   return null;
 }
@@ -5665,12 +5700,16 @@ function renderResumo(){
   const hdMes=document.getElementById('hdMes');
   if(hdMes) hdMes.textContent='Faturamento mensal'+acumSfx;
   const temAtrsMes=atrsA.some(v=>v>0);
+  // Respiro entre os segmentos empilhados: borda na cor do fundo do
+  // card só no topo de cada segmento, separando visualmente
+  // recebido/a vencer/atrasado mesmo quando algum deles é bem fino.
+  const segGapBorder={borderColor:cardBgCol(),borderWidth:{top:2,left:0,right:0,bottom:0}};
   const dsMes = resBase==='caixa'
-    ? [{label:'Recebido',data:recA,backgroundColor:'#34c759',borderRadius:6,borderSkipped:false,maxBarThickness:46}]
-    : [{label:'Recebido',data:recA,backgroundColor:'#34c759',stack:'s',borderRadius:{bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46},
-       ...(temAtrsMes?[{label:'Atrasado',data:atrsA,backgroundColor:'#bf2518',stack:'s',borderSkipped:false,maxBarThickness:46}]:[]),
-       {label:'A vencer',data:pendA,backgroundColor:'#f0b429',stack:'s',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46}];
-  mkC('cMes',{type:'bar',data:{labels:labelsT,datasets:dsMes},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',align:'start',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:5,boxHeight:5,padding:9,font:{size:10}}},barLabels:{display:true,size:window.innerWidth<=760?14:10,fmt:v=>'R$'+Math.round(v/1000)+'k'},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>items.length>1?'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0)):''}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:false}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
+    ? [{label:'Recebido',data:recA,backgroundColor:'#34c759',borderRadius:6,borderSkipped:false,maxBarThickness:46,categoryPercentage:.62,barPercentage:.92}]
+    : [{label:'Recebido',data:recA,backgroundColor:'#34c759',stack:'s',borderRadius:{bottomLeft:6,bottomRight:6},borderSkipped:false,maxBarThickness:46,categoryPercentage:.62,barPercentage:.92,...segGapBorder},
+       ...(temAtrsMes?[{label:'Atrasado',data:atrsA,backgroundColor:'#bf2518',stack:'s',borderSkipped:false,maxBarThickness:46,categoryPercentage:.62,barPercentage:.92,...segGapBorder}]:[]),
+       {label:'A vencer',data:pendA,backgroundColor:'#f0b429',stack:'s',borderRadius:{topLeft:6,topRight:6},borderSkipped:false,maxBarThickness:46,categoryPercentage:.62,barPercentage:.92,...segGapBorder}];
+  mkC('cMes',{type:'bar',data:{labels:labelsT,datasets:dsMes},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},plugins:{legend:{display:true,position:'top',align:'start',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:5,boxHeight:5,padding:9,font:{size:10}}},barLabels:{display:true,size:window.innerWidth<=760?14:10,fmt:v=>'R$'+Math.round(v/1000)+'k'},currentCol:{index:mShown.indexOf(curMes)},tooltip:{mode:'index',callbacks:{title:items=>items[0].label,label:ctx=>' '+ctx.dataset.label+': '+fR(ctx.raw),footer:items=>items.length>1?'Total: '+fR(items.reduce((a,it)=>a+(it.raw||0),0)):''}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:false}},y:{stacked:true,beginAtZero:true,grace:'12%',ticks:{callback:v=>'R$'+Math.round(v/1000)+'k',maxTicksLimit:5},grid:{color:gridCol()},border:{display:false,dash:[4,4]}}}}});
   // Os painéis de barra mostram previsto E recebido juntos, então não seguem
   // o seletor previsto/recebido (que continua valendo para os gráficos).
   const hd=(id,txt)=>{const el=document.getElementById(id);if(el)el.textContent=txt;};
@@ -6550,6 +6589,7 @@ function swEnd(e){
 // ── TEMA (claro/escuro) ──
 function isDark(){return document.documentElement.getAttribute('data-theme')==='dark';}
 function gridCol(){return isDark()?'rgba(255,255,255,.08)':'#eeece8';}
+function cardBgCol(){return isDark()?'#1e2738':'#ffffff';}
 // Três temas em ciclo: claro (padrão) → escuro → branco total (fundo
 // 100% branco, botões/filtros em vidro cinza — o inverso do claro, onde
 // o fundo é acinzentado e os botões são brancos).
