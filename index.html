@@ -2516,9 +2516,9 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
      nesse card em especial isso cortaria/roleria o anel sangrado em vez
      de deixá-lo visível até a borda da tela. */
   .card-donut { overflow-x: visible; }
-  /* Sangria = padding do .card nesse breakpoint (18px, ver regra
-     "#page-resumo > .card:nth-child(n+4)") + padding do .page (14px). */
-  .frx-stage { max-width: none; width: calc(100% + 64px); margin-left: -32px; margin-right: -32px; }
+  /* Sangria = padding do .card (18px) + do .page (14px), menos uma
+     folga de ~10px pra não colar exatamente na borda da tela. */
+  .frx-stage { max-width: none; width: calc(100% + 44px); margin-left: -22px; margin-right: -22px; }
 }
 .frx-stage > svg { width: 100%; height: 100%; overflow: visible; }
 .frx-slice { cursor: pointer; transform-box: fill-box; }
@@ -2540,14 +2540,14 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .frx-icon { pointer-events: none; color: #fff; opacity: .96; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); transition: transform .25s cubic-bezier(.2,.85,.3,1); }
 /* Sem círculo de fundo — só as duas iniciais, com um contorno escuro
    sutil (paint-order) pra continuar legível em qualquer cor de fatia. */
-.frx-avatar text { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; paint-order: stroke; stroke: rgba(0,0,0,.4); stroke-width: 3px; stroke-linejoin: round; }
+.frx-avatar text { fill: #fff; font-size: 21px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; paint-order: stroke; stroke: rgba(0,0,0,.4); stroke-width: 4px; stroke-linejoin: round; }
 .frx-hub { cursor: pointer; }
 .frx-hub-bg { filter: drop-shadow(0 1px 4px rgba(0,0,0,.12)) drop-shadow(0 -1px 1px rgba(255,255,255,.5)); }
 .frx-hub-label { font-size: 10.5px; font-weight: 700; fill: var(--ink3); letter-spacing: .04em; text-transform: uppercase; }
 .frx-hub-value { font-size: 20px; font-weight: 800; fill: var(--ink); }
 .frx-connector { stroke: var(--ink3); stroke-width: 1; opacity: 0; fill: none; transition: opacity .25s; }
 .frx-cardsLayer { position: absolute; inset: 0; pointer-events: none; }
-.frx-tag { position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 7px; background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 6px 9px; box-shadow: var(--shadow-sm); cursor: pointer; transform: translate(-50%,-50%) scale(.9); opacity: 0; transition: transform .3s cubic-bezier(.2,.85,.3,1), opacity .25s; max-width: 150px; z-index: 2; }
+.frx-tag { position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 7px; background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 6px 9px; box-shadow: var(--shadow-sm); cursor: pointer; transform: translate(var(--tx,-50%),-50%) scale(.9); opacity: 0; transition: transform .3s cubic-bezier(.2,.85,.3,1), opacity .25s; max-width: 150px; z-index: 2; }
 /* Do lado esquerdo do círculo, espelha o cartão: o traço/ponto colorido
    (que acompanha a linha conectora) fica na ponta esquerda, junto da
    linha, e o texto fica alinhado à direita, encostado nele — igual ao
@@ -2555,7 +2555,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
    lados. */
 .frx-tag.left { flex-direction: row-reverse; }
 .frx-tag.left .frx-tag-txt { align-items: flex-end; text-align: right; }
-.frx-tag.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+.frx-tag.show { opacity: 1; transform: translate(var(--tx,-50%),-50%) scale(1); }
 .frx-tag-dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
 .frx-tag-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
 .frx-tag-name { font-size: 11.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -5618,7 +5618,7 @@ function frxRenderRing(cfg){
       // Ao selecionar, o ícone cresce (mantendo o centro fixo em ip:
       // translate compensa a metade dos 24px de viewBox vezes a escala,
       // em vez de deslocar pro canto).
-      const iconScale=s.sel?1.35:1.08;
+      const iconScale=s.sel?2.3:1.75;
       rec.markG.setAttribute('transform', `translate(${ip.x-12*iconScale} ${ip.y-12*iconScale}) scale(${iconScale})`);
       rec.g.style.transform = s.sel ? `translate(${s.dir.x*cfg.explode}px, ${s.dir.y*cfg.explode}px)` : '';
     } else {
@@ -5648,6 +5648,12 @@ function frxRenderRing(cfg){
     rec.tag.style.top=(lp.y/640*100)+'%';
     rec.tag.style.transformOrigin = s.dir.x<-0.15?'right center':(s.dir.x>0.15?'left center':'center center');
     rec.tag.classList.toggle('left', s.dir.x<-0.15);
+    // Perto da lateral (dir.x perto de ±1, ex. fatia "SI"/"Locação" que
+    // ocupa quase o anel inteiro) o cartão centralizado no ponto de
+    // ancoragem (translate -50%) estourava a borda da tela e cortava o
+    // valor — desloca o cartão pra dentro conforme se aproxima da borda.
+    const tx=-50-Math.max(-35,Math.min(35,s.dir.x*35));
+    rec.tag.style.setProperty('--tx', tx+'%');
     rec.tag.querySelector('.frx-tag-dot').style.background=s.color;
     rec.tag.querySelector('.frx-tag-name').textContent=s.key;
     rec.tag.querySelector('.frx-tag-val').textContent=fR(s.value);
