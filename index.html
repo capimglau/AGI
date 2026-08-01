@@ -5458,15 +5458,16 @@ function frdDrawRings(){
     const isOutros=seg.key==='Outros';
     const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
     // O resto do anel (sem preenchimento) é a própria cor do anel
-    // esmaecida (24% de opacidade) — sem contorno. O trecho preenchido
-    // (mais à frente) desenha por cima, bem mais grosso e na cor
-    // cheia. O círculo vai só até 2π-0.001 (não fecha o laço exatamente
-    // em 2π) pra evitar aquela linha/emenda visível bem no ponto onde
-    // o traço começa e termina se sobrepondo (artefato comum ao
-    // desenhar um círculo cheio com stroke translúcido).
+    // esmaecida (30% de opacidade — mais escura que a versão anterior,
+    // de 24%) — sem contorno. O trecho preenchido (mais à frente)
+    // desenha por cima, bem mais grosso e na cor cheia. O círculo vai
+    // só até 2π-0.001 (não fecha o laço exatamente em 2π) pra evitar
+    // aquela linha/emenda visível bem no ponto onde o traço começa e
+    // termina se sobrepondo (artefato comum ao desenhar um círculo
+    // cheio com stroke translúcido).
     const rgb=frdHexToRgb(col);
     frdCtx.beginPath();
-    frdCtx.lineWidth=FRD_THICK; frdCtx.strokeStyle=`rgba(${rgb.r},${rgb.g},${rgb.b},.24)`;
+    frdCtx.lineWidth=FRD_THICK; frdCtx.strokeStyle=`rgba(${rgb.r},${rgb.g},${rgb.b},.3)`;
     frdCtx.arc(cx,cy,R,0,Math.PI*2-0.001);
     frdCtx.stroke();
 
@@ -5493,23 +5494,27 @@ function frdDrawRings(){
       // completo em vez de abreviado — só nas telas estreitas (mobile,
       // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
       const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
-      // Fonte de tamanho fixo pra todos os anéis (não mais proporcional
-      // ao raio) — o mesmo tamanho pra todo mundo, calibrado no
-      // tamanho que o anel do meio (ex.: Lorenzo) já usava. Baseado em
-      // FRD_THICK (constante), não no raio de cada anel (que varia com
-      // a quantidade de proprietários), pra ficar sempre previsível.
-      const fontPx=Math.round(FRD_THICK*0.37);
-      // Nome e valor juntos ("Nome · R$ valor"), sempre dentro do vão
-      // esmaecido — não mais dentro do preenchimento. Como a barra
-      // agora é fiel ao % real (pode ser bem curta pros donos
-      // pequenos), o texto não pode mais depender do tamanho da barra
-      // pra caber; o vão esmaecido tem sempre o mesmo tamanho
-      // reservado pra todo mundo, então o rótulo sempre cabe do mesmo
-      // jeito, veja o % pequeno ou grande. Começa logo depois da
-      // âncora (com uma folga pra não ficar em cima da ponta
-      // arredondada do preenchimento) e cresce pro lado do vão.
+      // Tudo maiúsculo — mais legível curvado do que misto.
+      const labelTxt=(seg.key+' · '+valTxt).toUpperCase();
+      // Nome e valor juntos, sempre dentro do vão esmaecido — não mais
+      // dentro do preenchimento. Como a barra agora é fiel ao % real
+      // (pode ser bem curta pros donos pequenos), o texto não pode
+      // mais depender do tamanho da barra pra caber; o vão esmaecido
+      // tem sempre o mesmo tamanho reservado pra todo mundo. Começa
+      // logo depois da âncora (com uma folga pra não ficar em cima da
+      // ponta arredondada do preenchimento) e cresce pro lado do vão.
       const capClearance=Math.max((FRD_THICK/2)/R*2.2, 0.06);
-      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,FRD_GAP_ANGLE*0.85,seg.key+' · '+valTxt,fontPx,false,col);
+      // Fonte de tamanho fixo, um pouco maior que a rodada anterior
+      // (mais perto do "tamanho ideal" apontado pelo usuário) — mas
+      // encolhe automaticamente só pros anéis pequenos onde não cabe
+      // (donos com participação bem menor), garantindo que o nome
+      // apareça sempre, em vez de simplesmente sumir quando não coubesse
+      // no tamanho padrão.
+      const maxSpan=FRD_GAP_ANGLE*0.85;
+      let fontPx=Math.round(FRD_THICK*0.55);
+      while(fontPx>12&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,labelTxt,fontPx,false,col)){
+        fontPx-=2;
+      }
     }
   });
 }
