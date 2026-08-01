@@ -228,7 +228,7 @@
       side.setAttribute('transform', 'translate(5,11)');
       g.appendChild(side);
 
-      const path = el('path', 'main');
+      const path = el('path', 'main'); path.setAttribute('pointer-events', 'none');
       g.appendChild(path);
       const gradId = `sb3d-grad-${this.uid}-${cfg.id}-${Math.random().toString(36).slice(2, 8)}`;
       const grad = el('linearGradient'); grad.setAttribute('id', gradId); grad.setAttribute('gradientUnits', 'userSpaceOnUse');
@@ -254,9 +254,17 @@
       const markG = el('g', cfg.mode === 'icon' ? 'sb3d-icon' : 'sb3d-avatar');
       g.appendChild(markG);
 
-      g.addEventListener('click', () => { if (!s.locked) this.onToggle(cfg.id, s.key); });
-      g.addEventListener('pointerenter', () => this._hoverTag(cfg, s.key, true));
-      g.addEventListener('pointerleave', () => this._hoverTag(cfg, s.key, false));
+      // Área de toque menor que a fatia visual e recuada das bordas
+      // (ver _updateSlice) — no celular, o dedo cobre com facilidade um
+      // pedaço do anel vizinho perto da fronteira entre os dois anéis;
+      // encolher e centralizar a área clicável evita pegar a fatia
+      // errada. path.main fica só visual (pointer-events:none).
+      const hit = el('path', 'hit'); hit.setAttribute('fill', 'transparent'); hit.setAttribute('pointer-events', 'all');
+      g.appendChild(hit);
+
+      hit.addEventListener('click', () => { if (!s.locked) this.onToggle(cfg.id, s.key); });
+      hit.addEventListener('pointerenter', () => this._hoverTag(cfg, s.key, true));
+      hit.addEventListener('pointerleave', () => this._hoverTag(cfg, s.key, false));
 
       let halo = null;
       if (cfg.mode === 'avatar') {
@@ -273,7 +281,7 @@
       tag.addEventListener('click', () => { if (!s.locked) this.onToggle(cfg.id, s.key); });
       this._cards.appendChild(tag);
 
-      return { g, path, side, hi, inHi, rim, markG, grad, halo, line, tag, hover: false };
+      return { g, path, side, hi, inHi, rim, hit, markG, grad, halo, line, tag, hover: false };
     }
 
     _hoverTag(cfg, key, on) {
@@ -295,6 +303,13 @@
       rec.rim.setAttribute('d', d);
       rec.rim.setAttribute('stroke', s.color);
       rec.g.classList.toggle('is-selected', !!s.selected);
+
+      // Área de clique recuada (~17% da espessura em cada borda,
+      // centralizada) — bem menor que a fatia pintada, pra sobrar uma
+      // faixa "morta" entre os dois anéis onde nenhum dos dois responde
+      // ao toque, em vez do dedo grudar sempre no anel vizinho.
+      const inset = (cfg.rOut - cfg.rIn) * 0.17;
+      rec.hit.setAttribute('d', this.ringPath(cfg.rOut - inset, cfg.rIn + inset, s.startA, s.endA));
 
       const lf = this.lightFactor(s.mid);
       rec.side.setAttribute('fill', mix(s.color, '#000000', 0.56 - lf * 0.16));
