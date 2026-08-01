@@ -202,6 +202,10 @@
         this._prevSig[cfg.id] = sig;
       }
       const sheen = group.querySelector('.sb3d-sheen');
+      // Com alguma fatia selecionada nesse anel, o resto esmaece — o
+      // olho vai direto pro que está filtrado em vez de competir com o
+      // anel inteiro na mesma força.
+      const anySelected = segs.some(s => s.selected);
 
       segs.forEach(s => {
         let rec = this._els[cfg.id][s.key];
@@ -212,6 +216,7 @@
           this._els[cfg.id][s.key] = rec;
           group.insertBefore(rec.g, sheen);
         }
+        rec.g.classList.toggle('dimmed', anySelected && !s.selected);
         this._updateSlice(cfg, rec, s);
         if (isNew) {
           rec.g.classList.add('sb3d-entering');
