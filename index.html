@@ -5459,7 +5459,7 @@ function frdDrawRings(){
   // pro mesmo vão angular), e usamos o menor valor entre todos + 1px —
   // assim o anel mais apertado (hoje o da Lucélia) manda no tamanho de
   // todo mundo, e nenhum nome nunca desaparece nem se sobrepõe.
-  const maxSpan=FRD_GAP_ANGLE*0.85;
+  const maxSpan=FRD_GAP_ANGLE*0.90;
   const fitInfo=specs.filter(seg=>seg.key!=='Outros').map(seg=>{
     const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
     // Volta a manter a capitalização natural do nome (só a primeira
