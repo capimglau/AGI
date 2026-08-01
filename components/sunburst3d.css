@@ -106,7 +106,7 @@
 .sb3d-icon { pointer-events: none; color: #fff; opacity: .98; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); transition: transform .25s cubic-bezier(.2,.85,.3,1); }
 /* font-size vem inline por fatia (Sunburst3D.fitLabel) — o valor aqui é
    só um teto de segurança caso algum consumidor não passe a fonte. */
-.sb3d-avatar text { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; paint-order: stroke; stroke: rgba(0,0,0,.42); stroke-width: 3px; stroke-linejoin: round; }
+.sb3d-avatar text { pointer-events: none; fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; paint-order: stroke; stroke: rgba(0,0,0,.42); stroke-width: 3px; stroke-linejoin: round; }
 .sb3d-connector { stroke: var(--ink3); stroke-width: 1; opacity: 0; fill: none; transition: opacity .25s; }
 
 /* ─── Hub: cartão glass (glassmorphism de verdade — HTML+backdrop-filter,
