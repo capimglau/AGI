@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="AGI Locadora">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Poppins:wght@700;800&display=swap');
 
 :root {
   --ink: #0c0c0f;
@@ -5296,7 +5296,11 @@ function frBreakdown(dim,rows,grand){
 // Retorna false (sem desenhar nada) se o texto não couber no espaço
 // disponível — quem chamou decide o que fazer.
 function frDrawArcSegment(ctx,cx,cy,radius,anchorAngle,dirFromAnchor,maxAngleSpan,text,fontPx,useStroke,col){
-  ctx.font='700 '+fontPx+'px "DM Sans", system-ui, -apple-system, sans-serif';
+  // "Poppins" (geométrica, traço mais uniforme) em vez de "DM Sans" só
+  // aqui nos rótulos curvos do anel — letras com essa geometria mais
+  // regular ficam bem mais legíveis curvadas do que a DM Sans (usada
+  // no resto do app), cujos traços variam mais de espessura.
+  ctx.font='800 '+fontPx+'px "Poppins", "DM Sans", system-ui, -apple-system, sans-serif';
   const chars=text.split('');
   const widths=chars.map(c=>ctx.measureText(c).width);
   const totalWidth=widths.reduce((a,b)=>a+b,0);
@@ -5488,25 +5492,24 @@ function frdDrawRings(){
       // No PC (tela larga) tem espaço de sobra pra mostrar o valor
       // completo em vez de abreviado — só nas telas estreitas (mobile,
       // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
-      // Sem o "R$" — só o número — pra ficar mais enxuto na área
-      // esmaecida.
-      const valTxt=(window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value)).replace('R$ ','');
-      // Fonte proporcional ao raio (com teto e piso) — nos anéis mais
-      // internos (menor raio, arco mais curto em pixels mesmo com o
-      // mesmo ângulo) uma fonte menor cabe melhor; nos de fora usa o
-      // tamanho cheio de sempre.
-      const fontPx=Math.max(14,Math.min(Math.round(FRD_THICK*0.7),Math.round(R*0.15)));
-      // Nome e valor juntos (um texto só, sem ponto nem "R$"), sempre
-      // dentro do vão esmaecido — não mais dentro do preenchimento.
-      // Como a barra agora é fiel ao % real (pode ser bem curta pros
-      // donos pequenos), o texto não pode mais depender do tamanho da
-      // barra pra caber; o vão esmaecido tem sempre o mesmo tamanho
+      const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
+      // Fonte de tamanho fixo pra todos os anéis (não mais proporcional
+      // ao raio) — o mesmo tamanho pra todo mundo, calibrado no
+      // tamanho que o anel do meio (ex.: Lorenzo) já usava. Baseado em
+      // FRD_THICK (constante), não no raio de cada anel (que varia com
+      // a quantidade de proprietários), pra ficar sempre previsível.
+      const fontPx=Math.round(FRD_THICK*0.37);
+      // Nome e valor juntos ("Nome · R$ valor"), sempre dentro do vão
+      // esmaecido — não mais dentro do preenchimento. Como a barra
+      // agora é fiel ao % real (pode ser bem curta pros donos
+      // pequenos), o texto não pode mais depender do tamanho da barra
+      // pra caber; o vão esmaecido tem sempre o mesmo tamanho
       // reservado pra todo mundo, então o rótulo sempre cabe do mesmo
       // jeito, veja o % pequeno ou grande. Começa logo depois da
       // âncora (com uma folga pra não ficar em cima da ponta
       // arredondada do preenchimento) e cresce pro lado do vão.
       const capClearance=Math.max((FRD_THICK/2)/R*2.2, 0.06);
-      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,FRD_GAP_ANGLE*0.85,seg.key+' '+valTxt,fontPx,false,col);
+      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,FRD_GAP_ANGLE*0.85,seg.key+' · '+valTxt,fontPx,false,col);
     }
   });
 }
