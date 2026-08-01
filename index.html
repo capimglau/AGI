@@ -2525,11 +2525,16 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .frx-slice.tipo { transition: transform .38s cubic-bezier(.2,.85,.3,1); }
 .frx-slice.dono { transition: transform .32s cubic-bezier(.25,.9,.35,1); }
 .frx-slice path.main { transition: filter .2s; }
-.frx-slice.tipo path.main { filter: drop-shadow(0 3px 6px rgba(0,0,0,.22)) drop-shadow(0 1px 2px rgba(0,0,0,.15)); }
-.frx-slice.tipo:hover path.main { filter: drop-shadow(0 5px 10px rgba(0,0,0,.28)) drop-shadow(0 2px 3px rgba(0,0,0,.18)) brightness(1.08); }
-.frx-slice.dono path.main { filter: drop-shadow(0 2px 5px rgba(0,0,0,.18)); }
-.frx-slice.dono:hover path.main { filter: drop-shadow(0 3px 7px rgba(0,0,0,.22)) brightness(1.06); }
-.frx-slice.dono.on path.main { filter: drop-shadow(0 6px 16px rgba(0,0,0,.3)) brightness(1.14) saturate(1.12); }
+/* Sombra em duas camadas — "contato" (curta, mais opaca, cola a fatia
+   no anel de trás) + "elevação" (longa, difusa, discreta) — em vez de
+   um drop-shadow só, que só escurecia o contorno sem dar sensação de
+   objeto flutuando. */
+#frxSlicesDono { filter: drop-shadow(0 14px 26px rgba(12,18,30,.16)); }
+.frx-slice.tipo path.main { filter: drop-shadow(0 2px 4px rgba(12,18,30,.24)) drop-shadow(0 8px 16px rgba(12,18,30,.16)); }
+.frx-slice.tipo:hover path.main { filter: drop-shadow(0 3px 6px rgba(12,18,30,.28)) drop-shadow(0 10px 20px rgba(12,18,30,.2)) brightness(1.06); }
+.frx-slice.dono path.main { filter: drop-shadow(0 2px 4px rgba(12,18,30,.16)); }
+.frx-slice.dono:hover path.main { filter: drop-shadow(0 3px 6px rgba(12,18,30,.22)) brightness(1.05); }
+.frx-slice.dono.on path.main { filter: drop-shadow(0 5px 12px rgba(12,18,30,.26)) brightness(1.1) saturate(1.08); }
 .frx-halo { fill: none; opacity: 0; transition: opacity .32s ease; pointer-events: none; }
 .frx-halo.on { opacity: .55; }
 .frx-icon { pointer-events: none; color: #fff; opacity: .96; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); transition: transform .25s cubic-bezier(.2,.85,.3,1); }
@@ -2537,7 +2542,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
    sutil (paint-order) pra continuar legível em qualquer cor de fatia. */
 .frx-avatar text { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; paint-order: stroke; stroke: rgba(0,0,0,.4); stroke-width: 3px; stroke-linejoin: round; }
 .frx-hub { cursor: pointer; }
-.frx-hub-bg { fill: var(--card); filter: drop-shadow(0 1px 4px rgba(0,0,0,.12)); }
+.frx-hub-bg { filter: drop-shadow(0 1px 4px rgba(0,0,0,.12)) drop-shadow(0 -1px 1px rgba(255,255,255,.5)); }
 .frx-hub-label { font-size: 10.5px; font-weight: 700; fill: var(--ink3); letter-spacing: .04em; text-transform: uppercase; }
 .frx-hub-value { font-size: 20px; font-weight: 800; fill: var(--ink); }
 .frx-connector { stroke: var(--ink3); stroke-width: 1; opacity: 0; fill: none; transition: opacity .25s; }
@@ -2769,12 +2774,19 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
     <div class="frx-body">
       <div class="frx-stage" id="frxStage">
         <svg viewBox="0 0 640 640" id="frxSvg" aria-hidden="true">
+          <defs id="frxDefs">
+            <radialGradient id="frxHubGrad" cx="41%" cy="36%" r="78%">
+              <stop offset="0%" style="stop-color:var(--card)"></stop>
+              <stop offset="68%" style="stop-color:var(--card)"></stop>
+              <stop offset="100%" style="stop-color:var(--surface)"></stop>
+            </radialGradient>
+          </defs>
           <g id="frxConnectors"></g>
           <g id="frxHalos"></g>
           <g id="frxSlicesDono"></g>
           <g id="frxSlicesTipo"></g>
           <g class="frx-hub" id="frxHub">
-            <circle class="frx-hub-bg" cx="320" cy="320" r="66"></circle>
+            <circle class="frx-hub-bg" cx="320" cy="320" r="66" fill="url(#frxHubGrad)"></circle>
             <text class="frx-hub-label" id="frxHubLabel" x="320" y="312" text-anchor="middle">Total</text>
             <text class="frx-hub-value" id="frxHubValue" x="320" y="337" text-anchor="middle">R$ 0</text>
           </g>
@@ -5380,10 +5392,14 @@ const FRX_CX=320, FRX_CY=320;
 // as categorias/donos menores com espaço suficiente pro ícone/iniciais
 // aparecerem — sem isso, Locação toma quase o anel inteiro (>95% do
 // faturamento) e as demais viram lascas invisíveis.
+// Raios ampliados (anéis mais grossos e ocupando quase todo o
+// viewBox 640×640, já que no mobile o stage agora sangra até a borda
+// da tela — anel fino sobrando espaço vazio ao redor não fazia
+// sentido com o cartão inteiro virando a "moldura" do gráfico).
 const FRX_RING={
-  tipo:{dim:'tipo', cls:'tipo', mode:'icon', rIn:95, rOut:168, markR:131, gap:2.2, labelR:256, explode:16, power:0.3,
+  tipo:{dim:'tipo', cls:'tipo', mode:'icon', rIn:104, rOut:198, markR:151, gap:2.2, labelR:255, explode:18, power:0.3,
         groupId:'frxSlicesTipo', legendId:'frxLegendTipo'},
-  dono:{dim:'dono', cls:'dono', mode:'grow', rIn:182, rOut:246, markR:214, gap:1.8, labelR:290, grow:16, power:0.5,
+  dono:{dim:'dono', cls:'dono', mode:'grow', rIn:208, rOut:308, markR:258, gap:1.8, labelR:314, grow:14, power:0.5,
         groupId:'frxSlicesDono', legendId:'frxLegendDono'},
 };
 // Ícones (mesmo traço fino já usado no resto do app: viewBox 24, stroke
@@ -5441,6 +5457,30 @@ function frxRingD(rOut,rIn,startA,endA){
 const SVGNS='http://www.w3.org/2000/svg';
 function frxEl(tag,cls){const e=document.createElementNS(SVGNS,tag); if(cls)e.setAttribute('class',cls); return e;}
 
+// Mistura hex com branco/preto (amt 0-1) — usado só pro bisel de luz
+// de cada fatia (stops do gradiente); a cor "base" da paleta continua
+// exatamente no meio do degradê, então a leitura/contraste validados
+// em FR_PALETTE não mudam, só ganham volume.
+function frxMix(hex,target,amt){
+  const h=hex.replace('#',''), t=target.replace('#','');
+  const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+  const tr=parseInt(t.slice(0,2),16), tg=parseInt(t.slice(2,4),16), tb=parseInt(t.slice(4,6),16);
+  const mr=Math.round(r+(tr-r)*amt), mg=Math.round(g+(tg-g)*amt), mb=Math.round(b+(tb-b)*amt);
+  return '#'+[mr,mg,mb].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+// Luminância relativa (WCAG) — decide se o ícone/inicial em cima da
+// fatia fica branco ou escuro, pra nunca cair abaixo do contraste
+// mínimo (ex.: "S2" em roxo claro com texto branco quase some).
+function frxLuminance(hex){
+  const h=hex.replace('#','');
+  const [r,g,b]=[0,2,4].map(i=>{
+    const c=parseInt(h.slice(i,i+2),16)/255;
+    return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);
+  });
+  return 0.2126*r+0.7152*g+0.0722*b;
+}
+function frxMarkColor(hex){ return frxLuminance(hex)>0.42?'#16202E':'#ffffff'; }
+
 // Fatias em ângulo proporcional ao valor (pizza), maior pro menor —
 // reaproveita frRowsForRing/frBreakdown, que já cuidam do cross-filter
 // (o anel nunca aplica o próprio filtro nele mesmo) e do bucket "Outros".
@@ -5469,7 +5509,7 @@ function frxComputeSegs(dim,gap,power){
   });
 }
 
-let frxEls={tipo:{}, dono:{}}, frxPrevKeys={tipo:null, dono:null};
+let frxEls={tipo:{}, dono:{}, tipoSeq:0, donoSeq:0}, frxPrevKeys={tipo:null, dono:null};
 function frxToggle(dim,key){
   const set=FRT[dim];
   if(set.has(key))set.delete(key); else set.add(key);
@@ -5481,6 +5521,7 @@ function frxRenderRing(cfg){
   const keySig=segs.map(s=>s.key).join('|');
   const group=document.getElementById(cfg.groupId), legendEl=document.getElementById(cfg.legendId);
   const haloG=document.getElementById('frxHalos'), connG=document.getElementById('frxConnectors'), cardsLayer=document.getElementById('frxCardsLayer');
+  const defs=document.getElementById('frxDefs');
   if(frxPrevKeys[cfg.dim]!==keySig){
     group.innerHTML=''; legendEl.innerHTML='';
     haloG.querySelectorAll(`[data-dim="${cfg.dim}"]`).forEach(e=>e.remove());
@@ -5496,6 +5537,20 @@ function frxRenderRing(cfg){
       g.dataset.dim=cfg.dim; g.dataset.key=s.key;
       const path=frxEl('path','main');
       g.appendChild(path);
+      // Bisel: gradiente próprio por fatia (luz na borda externa, sombra
+      // na interna) em vez de fill sólido — a cor da paleta continua
+      // exatamente no meio do degradê, só ganha volume.
+      const gradId='frxGrad-'+cfg.dim+'-'+frxEls[cfg.dim+'Seq']++;
+      const grad=frxEl('linearGradient'); grad.setAttribute('id',gradId); grad.setAttribute('gradientUnits','userSpaceOnUse');
+      grad.innerHTML='<stop class="s0" offset="0%"/><stop class="s1" offset="52%"/><stop class="s2" offset="100%"/>';
+      defs.appendChild(grad);
+      path.setAttribute('fill', `url(#${gradId})`);
+      // Brilho especular fino no quadrante externo voltado pra luz —
+      // só reforça a curvatura, sem competir com o ícone/inicial.
+      const hi=frxEl('path','hi'); hi.setAttribute('fill','none'); hi.setAttribute('stroke','#fff');
+      hi.setAttribute('stroke-width',1.6); hi.setAttribute('stroke-linecap','round'); hi.setAttribute('opacity',.32);
+      hi.setAttribute('pointer-events','none');
+      g.appendChild(hi);
       const markG=frxEl('g', cfg.mode==='icon'?'frx-icon':'frx-avatar');
       g.appendChild(markG);
       if(s.key!=='Outros')g.addEventListener('click', ()=>frxToggle(cfg.dim,s.key));
@@ -5529,17 +5584,37 @@ function frxRenderRing(cfg){
       if(s.key!=='Outros')tag.addEventListener('click', ()=>frxToggle(cfg.dim,s.key));
       cardsLayer.appendChild(tag);
 
-      rec={g,path,markG,halo,line,li,tag};
+      rec={g,path,markG,halo,line,li,tag,grad,hi};
       frxEls[cfg.dim][s.key]=rec;
     }
 
     rec.path.setAttribute('d', frxRingD(cfg.rOut,cfg.rIn,s.startA,s.endA));
-    rec.path.setAttribute('fill', s.color);
     rec.g.classList.toggle('on', !!s.sel);
 
+    // Eixo do gradiente segue o ângulo médio da fatia: claro do lado de
+    // fora (luz), escuro do lado de dentro (sombra) — cada fatia parece
+    // curva em vez de um preenchimento chapado.
+    {
+      const gp1=frxPolar(cfg.rOut+8, s.mid), gp2=frxPolar(cfg.rIn-8, s.mid);
+      rec.grad.setAttribute('x1',gp1.x); rec.grad.setAttribute('y1',gp1.y);
+      rec.grad.setAttribute('x2',gp2.x); rec.grad.setAttribute('y2',gp2.y);
+      rec.grad.querySelector('.s0').setAttribute('stop-color', frxMix(s.color,'#ffffff',0.30));
+      rec.grad.querySelector('.s1').setAttribute('stop-color', s.color);
+      rec.grad.querySelector('.s2').setAttribute('stop-color', frxMix(s.color,'#000000',0.24));
+    }
+    if(s.endA-s.startA>13){
+      const hiSpan=Math.min(s.endA-s.startA-4, 26);
+      const a0=s.mid-hiSpan/2, a1=s.mid+hiSpan/2;
+      const hp1=frxPolar(cfg.rOut-2,a0), hp2=frxPolar(cfg.rOut-2,a1);
+      rec.hi.setAttribute('d', `M${hp1.x} ${hp1.y} A${cfg.rOut-2} ${cfg.rOut-2} 0 0 1 ${hp2.x} ${hp2.y}`);
+      rec.hi.style.display='';
+    } else rec.hi.style.display='none';
+
+    const markColor=frxMarkColor(s.color);
     if(cfg.mode==='icon'){
       const ip=frxPolar(cfg.markR, s.mid);
       rec.markG.innerHTML=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${FRX_ICON_PATHS[frxTypeIcon(s.key)]}</svg>`;
+      rec.markG.style.color=markColor;
       // Ao selecionar, o ícone cresce (mantendo o centro fixo em ip:
       // translate compensa a metade dos 24px de viewBox vezes a escala,
       // em vez de deslocar pro canto).
@@ -5549,7 +5624,7 @@ function frxRenderRing(cfg){
     } else {
       if(s.key!=='Outros'){
         const ap=frxPolar(cfg.markR, s.mid);
-        rec.markG.innerHTML=`<text x="${ap.x}" y="${ap.y+0.5}">${frxInitials(s.key)}</text>`;
+        rec.markG.innerHTML=`<text x="${ap.x}" y="${ap.y+0.5}" style="fill:${markColor}">${frxInitials(s.key)}</text>`;
       } else rec.markG.innerHTML='';
       const op=frxPolar((cfg.rOut+cfg.rIn)/2, s.mid);
       rec.g.style.transformOrigin=`${op.x}px ${op.y}px`;
