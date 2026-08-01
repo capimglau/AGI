@@ -180,13 +180,20 @@
 
     update(dataByRing) {
       this._lastData = dataByRing;
+      // Esmaecer é uma decisão GLOBAL, não por anel: se algo está
+      // selecionado em qualquer anel (ex.: um tipo), o outro anel (ex.:
+      // proprietário) não tem nada "selecionado" nele mesmo, mas também
+      // não deve ficar em destaque — senão a fatia que sobra ali (às
+      // vezes um anel inteiro, se só um dono tiver aquele tipo) parece
+      // uma segunda seleção por engano.
+      const anySelected = this.rings.some(cfg => (dataByRing[cfg.id] || []).some(it => it.selected));
       this.rings.forEach(cfg => {
         const items = dataByRing[cfg.id] || [];
-        this._renderRing(cfg, items);
+        this._renderRing(cfg, items, anySelected);
       });
     }
 
-    _renderRing(cfg, items) {
+    _renderRing(cfg, items, anySelected) {
       this._ensureSheen(cfg);
       const segs = this._computeSegs(cfg, items);
       const sig = segs.map(s => s.key).join('|');
@@ -202,10 +209,6 @@
         this._prevSig[cfg.id] = sig;
       }
       const sheen = group.querySelector('.sb3d-sheen');
-      // Com alguma fatia selecionada nesse anel, o resto esmaece — o
-      // olho vai direto pro que está filtrado em vez de competir com o
-      // anel inteiro na mesma força.
-      const anySelected = segs.some(s => s.selected);
 
       segs.forEach(s => {
         let rec = this._els[cfg.id][s.key];
