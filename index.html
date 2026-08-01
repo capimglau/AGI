@@ -2607,7 +2607,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
        lá embaixo) pra baixo das ações Selec. Todos/Baixar. -->
   <div class="fbar" style="margin-bottom:10px">
     <input type="text" id="bx-q" class="search-input" style="flex:1;min-width:0;margin-bottom:0" placeholder="Buscar placa, cliente, proprietário, observação, nº do cartão…" autocomplete="off" oninput="renderBaixas()">
-    <button class="btn btn-sm" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, período (saída/retorno) e tipo">🔁 Duplicados</button>
+    <button class="btn btn-sm" onclick="mostrarDuplicados()" title="Lançamentos com a mesma placa, período (saída/retorno), tipo, vencimento e valor">🔁 Duplicados</button>
   </div>
   <!-- No mobile o botão "Filtros" e este painel são movidos por JS
        (initMobileFilters) pra ficarem ao lado dos botões redondos
@@ -6305,16 +6305,19 @@ function mostrarLancCategoria(dim,key){
   box.innerHTML=totHtml+lancListHtml(items,true);
 }
 // Botão "Duplicados" de Recebimentos: agrupa TODOS os lançamentos (não só
-// os do mês) por placa + período (saída/retorno) + tipo. Se esses três
-// itens forem idênticos entre duas linhas, é acusado como duplicado —
-// independente de cliente, vencimento ou valor. Mostra cada grupo com
-// seus itens, reaproveitando o modal e os cartões (com edição/baixa/
-// reverter) da busca global.
+// os do mês) por placa + período (saída/retorno) + tipo — mas também por
+// vencimento (prev_pgto) e valor, senão cada parcela de um mesmo "Crédito
+// 2x/3x" (mesma placa/período/tipo, uma linha por parcela, cada uma com
+// vencimento e valor diferentes) aparece como falso duplicado. Duas linhas
+// com placa, período, tipo, vencimento E valor todos iguais são, isso sim,
+// quase sempre duplicata de importação — independente do cliente. Mostra
+// cada grupo com seus itens, reaproveitando o modal e os cartões (com
+// edição/baixa/reverter) da busca global.
 function mostrarDuplicados(){
   const all=allD();
   const grupos={};
   all.forEach((r,i)=>{
-    const key=[r.placa||'—',r.saida||'—',r.retorno||'—',r.tipo||'—'].join(' · ');
+    const key=[r.placa||'—',r.saida||'—',r.retorno||'—',r.tipo||'—',r.prev_pgto||'—',fN(r.valor).toFixed(2)].join(' · ');
     (grupos[key]=grupos[key]||[]).push({r,i});
   });
   const dupGrupos=Object.entries(grupos).filter(([,items])=>items.length>1)
@@ -6325,7 +6328,7 @@ function mostrarDuplicados(){
   if(tit) tit.textContent='🔁 Possíveis duplicados';
   const box=document.getElementById('searchResults');
   if(!dupGrupos.length){
-    box.innerHTML='<div class="srow-empty">Nenhum duplicado encontrado — nenhum lançamento repete placa, período e tipo.</div>';
+    box.innerHTML='<div class="srow-empty">Nenhum duplicado encontrado — nenhum lançamento repete placa, período, tipo, vencimento e valor.</div>';
     return;
   }
   const totalItens=dupGrupos.reduce((a,[,items])=>a+items.length,0);
