@@ -5393,13 +5393,15 @@ function frxEnsureChart(){
 
 function frxUpdateHub(){
   // O valor já era o total FILTRADO (frFilteredRows aplica FRT inteiro);
-  // só o rótulo ainda dizia sempre "Total do mês", mesmo com um filtro
-  // ativo — agora ele mostra o que está selecionado (o nome, se for só
-  // um; a contagem, se for mais de um).
-  const selKeys=FR_ORDER.flatMap(d=>[...FRT[d]]);
-  const label = selKeys.length===0 ? 'Total do mês'
-    : selKeys.length===1 ? selKeys[0]
-    : selKeys.length+' filtros';
+  // o rótulo mostra o que está selecionado: itens da mesma dimensão são
+  // somados entre si ("Eliana + Silvio"), dimensões diferentes aparecem
+  // separadas ("Locação · Eliana + Silvio"). Com muitos itens selecionados
+  // cai para a contagem, pra não estourar o espaço do hub.
+  const groups=FR_ORDER.map(d=>[...FRT[d]]).filter(g=>g.length);
+  const selCount=groups.reduce((n,g)=>n+g.length,0);
+  const label = selCount===0 ? 'Total do mês'
+    : selCount>4 ? selCount+' filtros'
+    : groups.map(g=>g.join(' + ')).join(' · ');
   frxChart.setHub({
     label,
     value: frAbbrevR(frSum(frFilteredRows())),
