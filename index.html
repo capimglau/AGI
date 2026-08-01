@@ -7210,6 +7210,11 @@ function go(id){
   document.querySelectorAll('#mainDock .ntab').forEach(t=>t.classList.toggle('on', t.dataset.pg===id));
   setDockHidden(false);
   renderAll();
+  // Padroniza: toda troca de página deve abrir no topo, não na posição de
+  // scroll deixada pela página anterior (o scroll é da janela, comum a
+  // todas as .page — sem isso a nova página aparecia "no meio" ou "no
+  // final" dependendo de onde o usuário tinha rolado antes).
+  window.scrollTo(0,0);
   // Ao entrar em Recebimentos, começa centralizado no dia mais próximo de
   // hoje: rolar para cima mostra os lançamentos futuros, para baixo os
   // passados/vencidos (a lista já vem ordenada do mais recente/futuro pro
