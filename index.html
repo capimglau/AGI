@@ -5433,18 +5433,33 @@ function frdDrawRings(){
       // completo em vez de abreviado — só nas telas estreitas (mobile,
       // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
       const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
-      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+valTxt,Math.round(FRD_THICK*0.625));
+      frDrawArcLabel(frdCtx,cx,cy,R,aMid,FRD_SWEEP*0.8,seg.key+' · '+valTxt,Math.round(FRD_THICK*0.7));
       // Percentual bem no cantinho final da barra (na parte sem
       // preenchimento, coladinho na ponta do anel) — não centralizado
       // no vão inteiro.
       const pctAngle=a0-FRD_GAP_ANGLE*0.4;
       const px=cx+R*Math.cos(pctAngle), py=cy+R*Math.sin(pctAngle);
       frdCtx.save();
-      frdCtx.font='800 21px "DM Sans", system-ui, -apple-system, sans-serif';
+      frdCtx.font='800 26px "DM Sans", system-ui, -apple-system, sans-serif';
       frdCtx.textAlign='center'; frdCtx.textBaseline='middle';
-      frdCtx.shadowColor=isDark()?'rgba(0,0,0,.6)':'rgba(0,0,0,.2)'; frdCtx.shadowBlur=3;
+      const pctTxt=frPct(seg.pct);
+      // Chip (pílula) atrás do percentual — sem fundo sólido, o número
+      // colorido em cima do card claro (ou de um anel de cor parecida)
+      // ficava fraco demais pra ler. O fundo do card + borda na cor do
+      // anel garante contraste em qualquer tema/posição.
+      const padX=8, padY=4;
+      const tw=frdCtx.measureText(pctTxt).width;
+      const chipW=tw+padX*2, chipH=26+padY*2;
+      frdCtx.shadowColor=isDark()?'rgba(0,0,0,.5)':'rgba(0,0,0,.15)'; frdCtx.shadowBlur=4;
+      frdCtx.fillStyle=isDark()?'#1c2130':'#ffffff';
+      frdCtx.beginPath();
+      frdCtx.roundRect(px-chipW/2,py-chipH/2,chipW,chipH,chipH/2);
+      frdCtx.fill();
+      frdCtx.shadowColor='transparent'; frdCtx.shadowBlur=0;
+      frdCtx.lineWidth=1.5; frdCtx.strokeStyle=col;
+      frdCtx.stroke();
       frdCtx.fillStyle=col;
-      frdCtx.fillText(frPct(seg.pct), px, py);
+      frdCtx.fillText(pctTxt, px, py+1);
       frdCtx.restore();
     }
   });
