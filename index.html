@@ -2485,32 +2485,55 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .fr-filterrow .fr-total-label { font-size: 9px; }
 .fr-filterrow .fr-total-value { font-size: 15px; margin-top: 1px; }
 .fr-filterrow .fr-total-sub { display: none; }
-.fr-splitrow { display: flex; align-items: flex-start; gap: 32px; }
-.fr-splitcol { flex: 1 1 0; min-width: 0; }
-.fr-splitcol-ring { flex: 1.12 1 0; display: flex; flex-direction: column; align-items: center; }
-.fr-splitcol-ring .fr-bargroup-title { align-self: flex-start; }
-.fr-splitcol-bars { flex: 1 1 0; padding-top: 2px; }
-.fr-splitcol-bars .fr-bargroups { gap: 20px; }
-.fr-splitcol-bars .fr-bar-name { font-size: 12.5px; }
-.fr-splitcol-bars .fr-bar-val { font-size: 11.5px; }
-.fr-splitcol-bars .fr-bar-top { margin-bottom: 5px; }
-.fr-splitcol-bars .fr-bar-track { height: 7.5px; }
+/* Dois anéis interativos (SVG) — interno por Tipo, externo por
+   Proprietário, girando ao redor do mesmo hub central. O anel de Tipo
+   expande deslocando a fatia pra fora (destaca ícone + cartão); o de
+   Proprietário expande crescendo e ganhando um halo no próprio lugar,
+   pra não perder a leitura do anel com muitos donos. */
+.frx-stage { position: relative; width: 100%; max-width: 420px; aspect-ratio: 1 / 1; margin: 8px auto 4px; }
+.frx-stage svg { width: 100%; height: 100%; overflow: visible; }
+.frx-slice { cursor: pointer; transform-box: fill-box; }
+.frx-slice.tipo { transition: transform .38s cubic-bezier(.2,.85,.3,1); }
+.frx-slice.dono { transition: transform .32s cubic-bezier(.25,.9,.35,1); }
+.frx-slice path.main { transition: filter .2s; }
+.frx-slice.tipo path.main { filter: drop-shadow(0 3px 6px rgba(0,0,0,.22)) drop-shadow(0 1px 2px rgba(0,0,0,.15)); }
+.frx-slice.tipo:hover path.main { filter: drop-shadow(0 5px 10px rgba(0,0,0,.28)) drop-shadow(0 2px 3px rgba(0,0,0,.18)) brightness(1.08); }
+.frx-slice.dono path.main { filter: drop-shadow(0 2px 5px rgba(0,0,0,.18)); }
+.frx-slice.dono:hover path.main { filter: drop-shadow(0 3px 7px rgba(0,0,0,.22)) brightness(1.06); }
+.frx-slice.dono.on path.main { filter: drop-shadow(0 6px 16px rgba(0,0,0,.3)) brightness(1.14) saturate(1.12); }
+.frx-halo { fill: none; opacity: 0; transition: opacity .32s ease; pointer-events: none; }
+.frx-halo.on { opacity: .55; }
+.frx-icon { pointer-events: none; color: #fff; opacity: .96; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+.frx-avatar circle { fill: rgba(255,255,255,.16); stroke: #fff; stroke-width: 1.3; }
+.frx-avatar text { fill: #fff; font-size: 13px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; }
+.frx-hub { cursor: pointer; }
+.frx-hub-bg { fill: var(--card); filter: drop-shadow(0 1px 4px rgba(0,0,0,.12)); }
+.frx-hub-label { font-size: 10.5px; font-weight: 700; fill: var(--ink3); letter-spacing: .04em; text-transform: uppercase; }
+.frx-hub-value { font-size: 20px; font-weight: 800; fill: var(--ink); }
+.frx-connector { stroke: var(--ink3); stroke-width: 1; opacity: 0; fill: none; transition: opacity .25s; }
+.frx-cardsLayer { position: absolute; inset: 0; pointer-events: none; }
+.frx-tag { position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 7px; background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 6px 9px; box-shadow: var(--shadow-sm); cursor: pointer; transform: translate(-50%,-50%) scale(.9); opacity: 0; transition: transform .3s cubic-bezier(.2,.85,.3,1), opacity .25s; max-width: 150px; z-index: 2; }
+.frx-tag.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+.frx-tag-dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.frx-tag-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.frx-tag-name { font-size: 11.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.frx-tag-val { font-size: 10.5px; color: var(--ink3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.frx-legends { display: flex; gap: 24px; margin-top: 14px; flex-wrap: wrap; }
+.frx-legend-block { flex: 1 1 220px; min-width: 200px; }
+.frx-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.frx-legend li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; cursor: pointer; transition: background .12s; font-size: 12.5px; }
+.frx-legend li:hover { background: var(--surface); }
+.frx-legend li.on { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.frx-legend li.nosel { cursor: default; }
+.frx-legend .dot { width: 8px; height: 8px; border-radius: 2.5px; flex: none; }
+.frx-legend .nm { color: var(--ink); font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frx-legend .val { color: var(--ink3); font-size: 11px; font-variant-numeric: tabular-nums; font-family: 'DM Mono', monospace; }
 @media (max-width: 760px) {
-  .fr-splitrow { flex-direction: column; gap: 8px; }
-  .fr-splitcol-ring { width: 100%; }
-  .fr-splitcol-bars { width: 100%; }
-  .fr-splitcol-bars .fr-bar-name { font-size: 13px; }
-  .fr-splitcol-bars .fr-bar-val { font-size: 12px; }
+  .frx-legends { flex-direction: column; gap: 8px; }
 }
-.frd-chartrow { display: flex; flex-direction: column; align-items: center; margin: 4px 0 8px; width: 100%; }
-.frd-scale-outer { position: relative; flex: 0 0 auto; max-width: 100%; }
-.frd-ring-wrap { position: relative; flex: 0 0 auto; transform-origin: top left; }
-.frd-ring-wrap canvas { display: block; cursor: pointer; }
-/* Miolo vermelho fixo (não segue o tema), igual ao infográfico de
-   referência — dá pra ver de longe que é um botão, não só um rótulo. */
-.frd-hub { position: absolute; border-radius: 50%; background: #e3453a; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: var(--shadow-sm); padding: 4px 8px; cursor: pointer; transition: background .12s; }
-.frd-hub:hover, .frd-hub:active { background: #c53c32; }
-.frd-hub-label { font-size: 15px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: #fff; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .frx-slice, .frx-tag, .frx-connector, .frx-halo { transition: none !important; }
+}
 
 /* Previsto/Recebido e os dropdowns Proprietário/Tipo sempre na mesma
    linha — Proprietário/Tipo viram só ícone (sem o nome) pra sempre
@@ -2556,20 +2579,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .fr-total-value { font-size: 22px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); margin-top: 3px; }
 .fr-total-sub { font-size: 12px; color: var(--ink3); margin-top: 3px; }
 
-.fr-bargroups { display: flex; flex-direction: column; gap: 24px; }
 .fr-bargroup-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 10px; }
-.fr-bar-row { padding: 6px 8px; margin: 0 -8px; border-radius: 10px; cursor: pointer; transition: background .12s; }
-.fr-bar-row:not(.nosel):hover { background: var(--surface); }
-.fr-bar-row.nosel { cursor: default; }
-.fr-bar-row.sel { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--ink); }
-html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--ink); }
-.fr-bar-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-.fr-bar-name { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fr-bar-val { font-size: 12px; color: var(--ink3); font-family: 'DM Mono', monospace; white-space: nowrap; flex: 0 0 auto; }
-.fr-bar-val b { color: var(--ink); font-weight: 700; margin-left: 5px; }
-.fr-bar-track { height: 8px; border-radius: 99px; background: var(--surface); overflow: hidden; }
-.fr-bar-row.sel .fr-bar-track { background: var(--card); }
-.fr-bar-fill { height: 100%; border-radius: 99px; }
 
 </style>
 <script id="ds" type="application/json">
@@ -2719,22 +2729,28 @@ html[data-theme="dark"] .fr-bar-row.sel { box-shadow: inset 0 0 0 1.5px var(--in
       </div>
       <div class="rf-bar rf-flat" id="fatRingFilters"></div>
     </div>
-    <div class="fr-splitrow">
-      <div class="fr-splitcol fr-splitcol-ring">
-        <div class="fr-bargroup-title">Proprietário</div>
-        <div class="frd-chartrow">
-          <div class="frd-scale-outer" id="frdScaleOuter">
-            <div class="frd-ring-wrap" id="frdRingWrap">
-              <canvas id="frdCanvas"></canvas>
-              <div class="frd-hub" id="frdHub">
-                <div class="frd-hub-label" id="frdHubLabel">Total</div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="frx-stage" id="frxStage">
+      <svg viewBox="0 0 640 640" id="frxSvg" aria-hidden="true">
+        <g id="frxConnectors"></g>
+        <g id="frxHalos"></g>
+        <g id="frxSlicesDono"></g>
+        <g id="frxSlicesTipo"></g>
+        <g class="frx-hub" id="frxHub">
+          <circle class="frx-hub-bg" cx="320" cy="320" r="66"></circle>
+          <text class="frx-hub-label" id="frxHubLabel" x="320" y="312" text-anchor="middle">Total</text>
+          <text class="frx-hub-value" id="frxHubValue" x="320" y="337" text-anchor="middle">R$ 0</text>
+        </g>
+      </svg>
+      <div class="frx-cardsLayer" id="frxCardsLayer"></div>
+    </div>
+    <div class="frx-legends">
+      <div class="frx-legend-block">
+        <div class="fr-bargroup-title">Tipo</div>
+        <ul class="frx-legend" id="frxLegendTipo"></ul>
       </div>
-      <div class="fr-splitcol fr-splitcol-bars">
-        <div class="fr-bargroups" id="frBarGroups"></div>
+      <div class="frx-legend-block">
+        <div class="fr-bargroup-title">Proprietário</div>
+        <ul class="frx-legend" id="frxLegendDono"></ul>
       </div>
     </div>
   </div>
@@ -5230,11 +5246,6 @@ function renderBoletosPainel(rows){
 // mesmo tempo — percentual e valor aparecem direto no gráfico.
 // ═══════════════════════════════════════════════════════════════════════
 const FR_ORDER=['dono','tipo'];
-// Proprietário já aparece por completo no anel fixo acima — repetir em
-// barra embaixo seria redundante. As barras mostram só Tipo; o filtro
-// de Proprietário continua disponível no dropdown, alimentando o
-// cross-filter do anel e das barras de Tipo normalmente.
-const FR_BAR_DIMS=['tipo'];
 // Paleta categórica fixa (não segue o tema) — são os mesmos 8 tons do modo
 // escuro do design system, usados também no claro a pedido (ficam mais
 // vivos que a paleta clara do resto do app). Uma cor por categoria, na
@@ -5285,360 +5296,193 @@ function frBreakdown(dim,rows,grand){
   return top.map((it,idx)=>({key:it.key,value:it.value,pct:grand?it.value/grand*100:0,rank:it.key==='Outros'?-1:idx,sel:FRT[dim].has(it.key)}));
 }
 
-// Escreve texto seguindo a curva do anel, sempre em pé (nunca de cabeça
-// pra baixo): se o meio do texto cai na metade de baixo do círculo,
-// percorre os caracteres ao contrário e espelha a rotação. Cada letra
-// ganha um contorno escuro sutil por trás pra garantir leitura em
-// qualquer cor de fundo do anel. Retorna false (sem desenhar nada) se o
-// texto não couber no arco disponível — quem chamou decide o que fazer.
-// Escreve um trecho de texto curvo terminando ou começando numa
-// âncora fixa (sempre em pé, nunca de cabeça pra baixo — se o meio do
-// trecho cai na metade de baixo do círculo, percorre os caracteres ao
-// contrário e espelha a rotação). dirFromAnchor=-1: o texto TERMINA na
-// âncora, crescendo pro lado do preenchimento (usado pro nome).
-// dirFromAnchor=+1: o texto COMEÇA na âncora, crescendo pro lado do
-// vão/esmaecido (usado pro valor). useStroke=true pinta branco com
-// contorno escuro (pra ler sobre a cor cheia); false pinta na cor do
-// próprio anel, sem contorno (pra ler sobre a área esmaecida clara).
-// Retorna false (sem desenhar nada) se o texto não couber no espaço
-// disponível — quem chamou decide o que fazer.
-function frDrawArcSegment(ctx,cx,cy,radius,anchorAngle,dirFromAnchor,maxAngleSpan,text,fontPx,useStroke,col){
-  // "Poppins" (geométrica, traço mais uniforme) em vez de "DM Sans" só
-  // aqui nos rótulos curvos do anel — letras com essa geometria mais
-  // regular ficam bem mais legíveis curvadas do que a DM Sans (usada
-  // no resto do app), cujos traços variam mais de espessura.
-  ctx.font='800 '+fontPx+'px "Poppins", "DM Sans", system-ui, -apple-system, sans-serif';
-  const chars=text.split('');
-  const widths=chars.map(c=>ctx.measureText(c).width);
-  const totalWidth=widths.reduce((a,b)=>a+b,0);
-  const totalAngle=totalWidth/radius;
-  if(totalAngle>maxAngleSpan)return false;
 
-  const aMid=anchorAngle+dirFromAnchor*(totalAngle/2);
-  const flip=Math.sin(aMid)>0.001;
-  const dir=flip?-1:1;
-  const rotOffset=flip?-Math.PI/2:Math.PI/2;
-  ctx.save();
-  ctx.textBaseline='middle'; ctx.textAlign='center';
-  ctx.lineJoin='round'; ctx.miterLimit=2;
-  let angle=aMid-dir*(totalAngle/2);
-  for(let i=0;i<chars.length;i++){
-    const w=widths[i];
-    const charAngle=angle+dir*(w/2/radius);
-    const x=cx+radius*Math.cos(charAngle), y=cy+radius*Math.sin(charAngle);
-    ctx.save();
-    ctx.translate(x,y);
-    ctx.rotate(charAngle+rotOffset);
-    if(useStroke){
-      ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.strokeText(chars[i],0,0);
-      ctx.fillStyle='#fff'; ctx.fillText(chars[i],0,0);
+// Dois anéis concêntricos interativos (SVG) — interno por Tipo, externo
+// por Proprietário — substituindo os antigos anéis em canvas + barras
+// retas. Cada fatia é proporcional ao valor (pizza), com espaço entre
+// fatias e sombra. O anel de Tipo expande deslocando a fatia pra fora
+// (destaca ícone do tipo + cartão); o de Proprietário expande crescendo
+// e ganhando um halo no próprio lugar, sem se afastar do centro — com
+// muitos donos, deslocar cada fatia bagunçaria a leitura do anel.
+// Clicar numa fatia (ou na legenda) alterna o filtro daquela dimensão
+// em FRT, o mesmo cross-filter que já existia; clicar no cartão
+// flutuante abre o detalhamento (mostrarLancCategoria).
+const FRX_CX=320, FRX_CY=320;
+const FRX_RING={
+  tipo:{dim:'tipo', cls:'tipo', mode:'icon', rIn:95, rOut:168, markR:131, gap:2.2, labelR:256, explode:16,
+        groupId:'frxSlicesTipo', legendId:'frxLegendTipo'},
+  dono:{dim:'dono', cls:'dono', mode:'grow', rIn:182, rOut:246, markR:214, gap:1.8, labelR:290, grow:16,
+        groupId:'frxSlicesDono', legendId:'frxLegendDono'},
+};
+// Ícones (mesmo traço fino já usado no resto do app: viewBox 24, stroke
+// currentColor, stroke-width 1.8) por tipo de lançamento. Tipos fora
+// desta lista (cadastro livre na planilha) caem no ícone genérico.
+const FRX_TYPE_ICON_BY_KEY={'Locação':'key','Avarias':'wrench','Lavagem':'droplet','Multas':'alert'};
+const FRX_ICON_PATHS={
+  key:'<circle cx="8" cy="9" r="3.3"/><line x1="10.4" y1="11.4" x2="19" y2="20"/><line x1="14.6" y1="15.6" x2="17.1" y2="13.1"/><line x1="17.2" y1="18.2" x2="19.4" y2="16"/>',
+  wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 4.6L4 16.2V20h3.8l5.3-5.3a4 4 0 0 0 4.6-5.4l-2.9 2.9-2-2 2.9-2.9Z"/>',
+  droplet:'<path d="M12 3.5c3 4 6 7.4 6 10.8a6 6 0 0 1-12 0c0-3.4 3-6.8 6-10.8Z"/>',
+  alert:'<path d="M12 4 3 20H21L12 4Z"/><line x1="12" y1="10.5" x2="12" y2="15"/><circle cx="12" cy="17.6" r="0.9" fill="currentColor" stroke="none"/>',
+  receipt:'<path d="M6.3 3H17.7V21L15.5 19.6 13.3 21 11 19.6 8.8 21 6.3 19.6V3Z"/><line x1="8.7" y1="8" x2="15.3" y2="8"/><line x1="8.7" y1="12.2" x2="15.3" y2="12.2"/>',
+  dots:'<circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.5" fill="currentColor" stroke="none"/>',
+};
+function frxTypeIcon(key){
+  if(FRX_TYPE_ICON_BY_KEY[key])return FRX_TYPE_ICON_BY_KEY[key];
+  if(/^taxa/i.test(key))return 'receipt';
+  return 'dots';
+}
+function frxInitials(name){
+  return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+function frxPolar(r,angDeg){
+  const a=(angDeg-90)*Math.PI/180;
+  return {x:FRX_CX+r*Math.cos(a), y:FRX_CY+r*Math.sin(a)};
+}
+function frxRingD(rOut,rIn,startA,endA){
+  const p1=frxPolar(rOut,startA), p2=frxPolar(rOut,endA);
+  const p3=frxPolar(rIn,endA), p4=frxPolar(rIn,startA);
+  const large=endA-startA>180?1:0;
+  return `M${p1.x} ${p1.y} A${rOut} ${rOut} 0 ${large} 1 ${p2.x} ${p2.y} L${p3.x} ${p3.y} A${rIn} ${rIn} 0 ${large} 0 ${p4.x} ${p4.y} Z`;
+}
+const SVGNS='http://www.w3.org/2000/svg';
+function frxEl(tag,cls){const e=document.createElementNS(SVGNS,tag); if(cls)e.setAttribute('class',cls); return e;}
+
+// Fatias em ângulo proporcional ao valor (pizza), maior pro menor —
+// reaproveita frRowsForRing/frBreakdown, que já cuidam do cross-filter
+// (o anel nunca aplica o próprio filtro nele mesmo) e do bucket "Outros".
+function frxComputeSegs(dim,gap){
+  const rows=frRowsForRing(dim);
+  const grand=frSum(rows);
+  const list=grand>0?frBreakdown(dim,rows,grand):[];
+  let acc=0;
+  return list.map(seg=>{
+    const frac=Math.max(seg.pct,0.4)/100;
+    const startA=acc*360, endA=(acc+frac)*360;
+    acc+=frac;
+    const mid=(startA+endA)/2;
+    const rad=(mid-90)*Math.PI/180;
+    const isOutros=seg.key==='Outros';
+    return {...seg, startA:startA+gap/2, endA:endA-gap/2, mid,
+      color:isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length],
+      dir:{x:Math.cos(rad), y:Math.sin(rad)}};
+  });
+}
+
+let frxEls={tipo:{}, dono:{}}, frxPrevKeys={tipo:null, dono:null};
+function frxToggle(dim,key){
+  const set=FRT[dim];
+  if(set.has(key))set.delete(key); else set.add(key);
+  buildFatRingFilters();
+  frRenderData();
+}
+function frxRenderRing(cfg){
+  const segs=frxComputeSegs(cfg.dim,cfg.gap);
+  const keySig=segs.map(s=>s.key).join('|');
+  const group=document.getElementById(cfg.groupId), legendEl=document.getElementById(cfg.legendId);
+  const haloG=document.getElementById('frxHalos'), connG=document.getElementById('frxConnectors'), cardsLayer=document.getElementById('frxCardsLayer');
+  if(frxPrevKeys[cfg.dim]!==keySig){
+    group.innerHTML=''; legendEl.innerHTML='';
+    haloG.querySelectorAll(`[data-dim="${cfg.dim}"]`).forEach(e=>e.remove());
+    connG.querySelectorAll(`[data-dim="${cfg.dim}"]`).forEach(e=>e.remove());
+    cardsLayer.querySelectorAll(`[data-dim="${cfg.dim}"]`).forEach(e=>e.remove());
+    frxEls[cfg.dim]={};
+    frxPrevKeys[cfg.dim]=keySig;
+  }
+  segs.forEach(s=>{
+    let rec=frxEls[cfg.dim][s.key];
+    if(!rec){
+      const g=frxEl('g',`frx-slice ${cfg.cls}`);
+      g.dataset.dim=cfg.dim; g.dataset.key=s.key;
+      const path=frxEl('path','main');
+      g.appendChild(path);
+      const markG=frxEl('g', cfg.mode==='icon'?'frx-icon':'frx-avatar');
+      g.appendChild(markG);
+      if(s.key!=='Outros')g.addEventListener('click', ()=>frxToggle(cfg.dim,s.key));
+      group.appendChild(g);
+
+      let halo=null;
+      if(cfg.mode==='grow'){
+        halo=frxEl('path','frx-halo');
+        halo.dataset.dim=cfg.dim; halo.dataset.key=s.key;
+        halo.setAttribute('stroke-width',3);
+        haloG.appendChild(halo);
+      }
+
+      const line=frxEl('line','frx-connector');
+      line.dataset.dim=cfg.dim; line.dataset.key=s.key;
+      connG.appendChild(line);
+
+      const li=document.createElement('li');
+      li.dataset.dim=cfg.dim; li.dataset.key=s.key;
+      li.innerHTML='<span class="dot"></span><span class="nm"></span><span class="val"></span>';
+      if(s.key!=='Outros')li.addEventListener('click', ()=>frxToggle(cfg.dim,s.key));
+      legendEl.appendChild(li);
+
+      const tag=document.createElement('div');
+      tag.className='frx-tag'; tag.dataset.dim=cfg.dim; tag.dataset.key=s.key;
+      tag.innerHTML='<span class="frx-tag-dot"></span><span class="frx-tag-txt"><span class="frx-tag-name"></span><span class="frx-tag-val"></span></span>';
+      tag.addEventListener('click', ()=>mostrarLancCategoria(cfg.dim,s.key));
+      cardsLayer.appendChild(tag);
+
+      rec={g,path,markG,halo,line,li,tag};
+      frxEls[cfg.dim][s.key]=rec;
+    }
+
+    rec.path.setAttribute('d', frxRingD(cfg.rOut,cfg.rIn,s.startA,s.endA));
+    rec.path.setAttribute('fill', s.color);
+    rec.g.classList.toggle('on', !!s.sel);
+
+    if(cfg.mode==='icon'){
+      const ip=frxPolar(cfg.markR, s.mid);
+      rec.markG.innerHTML=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${FRX_ICON_PATHS[frxTypeIcon(s.key)]}</svg>`;
+      rec.markG.setAttribute('transform', `translate(${ip.x-13} ${ip.y-13}) scale(1.08)`);
+      rec.g.style.transform = s.sel ? `translate(${s.dir.x*cfg.explode}px, ${s.dir.y*cfg.explode}px)` : '';
     } else {
-      ctx.fillStyle=col; ctx.fillText(chars[i],0,0);
-    }
-    ctx.restore();
-    angle+=dir*(w/radius);
-  }
-  ctx.restore();
-  return true;
-}
-
-// Anéis concêntricos por proprietário — do maior (Silvio) pro menor,
-// um dentro do outro, igual ao infográfico de referência do usuário. O
-// vão (sem cor) fica sempre no topo, sweep fixo pra todos — se o sweep
-// fosse proporcional ao valor de cada um, com a receita tão desigual a
-// maioria viraria uma lasca sem espaço pro nome. O raio decrescente já
-// mostra a ordem/importância; o valor exato aparece no rótulo
-// flutuante perto do topo de cada anel. Reage ao filtro de Tipo
-// (cross-filter): selecionar Locação recalcula a fatia de cada
-// proprietário só daquele tipo.
-const FRD_HUB_R=58, FRD_THICK=82, FRD_GAP=9;
-const FRD_GAP_ANGLE=75*Math.PI/180;
-const FRD_SWEEP=Math.PI*2-FRD_GAP_ANGLE;
-const FRD_START=-Math.PI/2+FRD_GAP_ANGLE/2;
-let frdCanvas=null, frdCtx=null, frdRingSpecs=[], frdBoxCur=0;
-
-function frdBuildSpecs(){
-  const ringRows=frRowsForRing('dono');
-  const ringGrand=frSum(ringRows);
-  const segs=ringGrand>0?frBreakdown('dono',ringRows,ringGrand):[];
-  const outros=segs.find(s=>s.key==='Outros');
-  const real=segs.filter(s=>s.key!=='Outros').sort((a,b)=>b.pct-a.pct);
-  const ordered=outros?[...real,outros]:real;
-  let r=FRD_HUB_R+22+FRD_THICK/2+Math.max(0,ordered.length-1)*(FRD_THICK+FRD_GAP);
-  return ordered.map(seg=>{
-    const spec=Object.assign({},seg,{R:r});
-    r-=(FRD_THICK+FRD_GAP);
-    return spec;
-  });
-}
-function frdBoxFor(specs){
-  if(!specs.length)return FRD_HUB_R*2+40;
-  const outerEdge=specs[0].R+FRD_THICK/2;
-  // Buffer (34): folga suficiente pro halo do anel selecionado e pra
-  // ponta arredondada do arco mais externo.
-  return Math.round((outerEdge+34)*2);
-}
-function frdSizeCanvas(box){
-  frdCanvas=document.getElementById('frdCanvas');
-  if(!frdCanvas)return;
-  frdCtx=frdCanvas.getContext('2d');
-  frdBoxCur=box;
-  const dpr=Math.max(2,window.devicePixelRatio||1);
-  frdCanvas.width=box*dpr; frdCanvas.height=box*dpr;
-  frdCanvas.style.width=box+'px'; frdCanvas.style.height=box+'px';
-  frdCtx.setTransform(dpr,0,0,dpr,0,0);
-  const hub=document.getElementById('frdHub');
-  if(hub){
-    hub.style.width=(FRD_HUB_R*2)+'px'; hub.style.height=(FRD_HUB_R*2)+'px';
-    hub.style.left=(box/2-FRD_HUB_R)+'px'; hub.style.top=(box/2-FRD_HUB_R)+'px';
-  }
-}
-// Em telas grandes (PC), o container fica bem mais largo que o gráfico
-// precisa — sem um teto, o anel virava gigante, desproporcional aos
-// outros cards da página. Trava o tamanho exibido num máximo fixo,
-// igual ao usado no mobile, e só encolhe além disso se a tela for
-// menor que esse teto.
-const FRD_MAX_DISPLAY=420;
-function frdApplyResponsiveScale(){
-  const outer=document.getElementById('frdScaleOuter'), wrap=document.getElementById('frdRingWrap');
-  if(!outer||!wrap||!frdBoxCur)return;
-  const available=Math.min(outer.parentElement.clientWidth, FRD_MAX_DISPLAY);
-  const scale=Math.min(1, available/frdBoxCur);
-  wrap.style.transform='scale('+scale+')';
-  outer.style.width=(frdBoxCur*scale)+'px';
-  outer.style.height=(frdBoxCur*scale)+'px';
-}
-function frdHexToRgb(hex){
-  hex=String(hex).replace('#','');
-  if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
-  const num=parseInt(hex,16);
-  return {r:(num>>16)&255,g:(num>>8)&255,b:num&255};
-}
-function frdLighten(hex,amt){
-  const c=frdHexToRgb(hex);
-  return 'rgb('+Math.round(c.r+(255-c.r)*amt)+','+Math.round(c.g+(255-c.g)*amt)+','+Math.round(c.b+(255-c.b)*amt)+')';
-}
-function frdDarken(hex,amt){
-  const c=frdHexToRgb(hex);
-  return 'rgb('+Math.round(c.r*(1-amt))+','+Math.round(c.g*(1-amt))+','+Math.round(c.b*(1-amt))+')';
-}
-function frdMix(hexA,hexB,t){
-  const a=frdHexToRgb(hexA),b=frdHexToRgb(hexB);
-  return 'rgb('+Math.round(a.r+(b.r-a.r)*t)+','+Math.round(a.g+(b.g-a.g)*t)+','+Math.round(a.b+(b.b-a.b)*t)+')';
-}
-// Segunda cor de cada dupla duotone — deslocada 4 posições na paleta (metade
-// do array), pra formar pares complementares fixos e consistentes por rank.
-const FR_PALETTE2=FR_PALETTE.map((_,i)=>FR_PALETTE[(i+Math.floor(FR_PALETTE.length/2))%FR_PALETTE.length]);
-// Desenha um arco com gradiente "duotone" girando ao redor do anel — em
-// pequenos segmentos, já que createConicGradient não é suportado em todo
-// navegador/webview.
-function frdDrawDuoArc(ctx,cx,cy,R,thick,a0,a1,colA,colB){
-  const steps=48;
-  ctx.lineCap='butt'; ctx.lineWidth=thick;
-  for(let i=0;i<steps;i++){
-    const t0=i/steps, t1=(i+1)/steps;
-    ctx.beginPath();
-    ctx.strokeStyle=frdMix(colA,colB,t0);
-    ctx.arc(cx,cy,R,a0+(a1-a0)*t0,a0+(a1-a0)*t1+0.012,false);
-    ctx.stroke();
-  }
-  ctx.lineCap='round';
-  ctx.strokeStyle=colA; ctx.beginPath(); ctx.arc(cx,cy,R,a0,a0+0.001,false); ctx.stroke();
-  ctx.strokeStyle=colB; ctx.beginPath(); ctx.arc(cx,cy,R,a1-0.001,a1,false); ctx.stroke();
-}
-function frdDrawRings(){
-  const specs=frdBuildSpecs();
-  frdRingSpecs=specs;
-  const box=frdBoxFor(specs);
-  frdSizeCanvas(box);
-  if(!frdCtx)return;
-  const cx=box/2, cy=box/2;
-  frdCtx.clearRect(0,0,box,box);
-  const haloCol=isDark()?'#ffffff':'#0c0c0f';
-  // Ponto fixo de onde todo mundo "nasce" — do lado ESQUERDO do vão
-  // (em vez do direito) — e cresce em sentido horário a partir dali,
-  // atravessando 9h→6h→3h até chegar perto do outro lado do vão em
-  // 100%. Só inverte de qual lado o anel nasce; o vão continua no topo.
-  const anchor=FRD_START+FRD_SWEEP;
-  // Todos os anéis no MESMO tamanho de fonte. O vão esmaecido de cada
-  // anel não é só os 75° reservados no topo — a trilha esmaecida dá a
-  // volta inteira (2π), e só uma fatia proporcional ao % de cada dono
-  // fica colorida; pra quem tem % pequeno (Lorenzo, Arnaldo, Lucélia)
-  // isso sobra quase o círculo inteiro livre, bem mais que os 75° que
-  // a gente vinha usando. Por isso o espaço de texto de cada anel
-  // agora é o círculo inteiro menos a fatia colorida DELE (com uma
-  // pequena folga nas duas pontas), em vez de um limite fixo igual
-  // pra todos.
-  const fitInfo=specs.filter(seg=>seg.key!=='Outros').map(seg=>{
-    const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
-    // Capitalização natural do nome (só a primeira letra maiúscula) —
-    // sem forçar caixa alta, que o usuário achou pior de ler.
-    const fullTxt=seg.key+' · '+valTxt;
-    const frac=Math.max(seg.pct,0.3)/100;
-    const filledAngle=FRD_SWEEP*frac;
-    // Trava num máximo de ~140° mesmo quando sobra o círculo quase
-    // inteiro (donos bem pequenos): um arco maior que isso cruza o
-    // polo de baixo do círculo, onde a lógica de "virar" o texto de
-    // cabeça pra cima (pra sempre ler da esquerda pra direita) só
-    // decide uma vez pra frase inteira — um arco comprido cruzando
-    // esse ponto ficaria com metade do texto de cabeça pra baixo.
-    const maxSpan=Math.min(Math.PI*0.78, Math.max(0.2, Math.PI*2-filledAngle-0.25));
-    frdCtx.font='800 100px "Poppins","DM Sans",system-ui,-apple-system,sans-serif';
-    // Com tanto espaço angular sobrando (principalmente nos anéis
-    // pequenos), o próprio ângulo praticamente não limita mais o
-    // tamanho da fonte — por isso trava também na espessura do anel
-    // (FRD_THICK), pra letra nunca crescer a ponto de invadir o anel
-    // vizinho verticalmente.
-    const fitPxFor=text=>{
-      const refWidth=text.split('').reduce((s,c)=>s+frdCtx.measureText(c).width,0);
-      const refAngle=refWidth/seg.R;
-      return Math.max(9,Math.min(Math.floor(100*maxSpan/refAngle), Math.round(FRD_THICK*0.62)));
-    };
-    return {seg,fullTxt,maxSpan,fitFull:fitPxFor(fullTxt),fitName:fitPxFor(seg.key)};
-  });
-  const baselineFontPx=Math.min(...fitInfo.map(f=>f.fitFull));
-  const uniformFontPxPrev=Math.min(Math.round(baselineFontPx*2.2), Math.round(FRD_THICK*0.62))-1;
-  const uniformFontPx=uniformFontPxPrev-3;
-  // O anel mais "apertado" (menor raio) muda de dono conforme o mês —
-  // identifica pela posição (menor R), não por nome, senão o ajuste
-  // "gruda" no nome de um mês específico e some quando o mês muda.
-  const tightestKey=fitInfo.reduce((min,f)=>f.seg.R<min.seg.R?f:min).seg.key;
-  const capClearanceOf=R=>Math.max((FRD_THICK/2)/R*2.2, 0.06);
-  specs.forEach((seg,segIdx)=>{
-    const R=seg.R;
-    const isOutros=seg.key==='Outros';
-    const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
-    // O resto do anel (sem preenchimento) é a própria cor do anel
-    // esmaecida (30% de opacidade — mais escura que a versão anterior,
-    // de 24%) — sem contorno. O trecho preenchido (mais à frente)
-    // desenha por cima, bem mais grosso e na cor cheia. O círculo vai
-    // só até 2π-0.001 (não fecha o laço exatamente em 2π) pra evitar
-    // aquela linha/emenda visível bem no ponto onde o traço começa e
-    // termina se sobrepondo (artefato comum ao desenhar um círculo
-    // cheio com stroke translúcido).
-    const rgb=frdHexToRgb(col);
-    frdCtx.beginPath();
-    frdCtx.lineWidth=FRD_THICK; frdCtx.strokeStyle=`rgba(${rgb.r},${rgb.g},${rgb.b},.3)`;
-    frdCtx.arc(cx,cy,R,0,Math.PI*2-0.001);
-    frdCtx.stroke();
-
-    // Preenchimento do anel proporcional ao % REAL de cada pessoa —
-    // sem compressão nem reforço: o comprimento do arco é fiel ao %
-    // (só um piso de 0,3% pra quem arredonda pra 0,0% ainda aparecer
-    // como uma pontinha arredondada, em vez de sumir). Como agora o
-    // nome e o valor moram no vão esmaecido (não mais dentro do
-    // preenchimento), o tamanho real da barra não precisa mais deixar
-    // espaço pro texto — só precisa ser fiel ao dado.
-    const frac=Math.max(seg.pct,0.3)/100;
-    const a0=anchor-FRD_SWEEP*frac, a1=anchor;
-    frdCtx.beginPath();
-    frdCtx.lineWidth=FRD_THICK; frdCtx.lineCap='round'; frdCtx.strokeStyle=col;
-    frdCtx.arc(cx,cy,R,a0,a1,false);
-    frdCtx.stroke();
-    if(seg.sel){
-      frdCtx.lineWidth=2; frdCtx.lineCap='round'; frdCtx.strokeStyle=haloCol;
-      frdCtx.beginPath(); frdCtx.arc(cx,cy,R-FRD_THICK/2-2.5,a0,a1,false); frdCtx.stroke();
-      frdCtx.beginPath(); frdCtx.arc(cx,cy,R+FRD_THICK/2+2.5,a0,a1,false); frdCtx.stroke();
-    }
-    if(!isOutros){
-      // Nome e valor juntos, sempre dentro do vão esmaecido — não mais
-      // dentro do preenchimento. Como a barra agora é fiel ao % real
-      // (pode ser bem curta pros donos pequenos), o texto não pode
-      // mais depender do tamanho da barra pra caber; o vão esmaecido
-      // tem sempre o mesmo tamanho reservado pra todo mundo. Começa
-      // logo depois da âncora (com uma folga pra não ficar em cima da
-      // ponta arredondada do preenchimento) e cresce pro lado do vão.
-      const capClearance=capClearanceOf(R);
-      const info=fitInfo.find(f=>f.seg===seg);
-      // fitFull/fitName (acima) são só uma ESTIMATIVA pra escolher o
-      // tamanho único — a decisão real de "cabe ou não" é testada aqui
-      // de verdade, tentando desenhar (frDrawArcSegment mede o texto de
-      // verdade e só desenha se couber, retornando false sem desenhar
-      // caso contrário). Isso evita casos de borda em que a estimativa
-      // dizia "não cabe" por 1px de diferença de arredondamento
-      // enquanto o desenho real cabia perfeitamente — o nome+valor de
-      // um anel pequeno sumindo à toa mesmo sobrando espaço no arco.
-      // Se o nome+valor não cabe no tamanho único, primeiro tenta
-      // encolher só um pouco (ainda com o valor) antes de desistir do
-      // valor de vez — o anel pode ter espaço de sobra no arco mesmo
-      // sem caber no tamanho único (ex.: Arnaldo, Lucélia).
-      // A Lucélia já usa um tamanho encolhido à parte (o anel mais
-      // apertado); mantém o dela como estava, só os outros diminuem.
-      const targetPx=seg.key===tightestKey?uniformFontPxPrev:uniformFontPx;
-      // Cor do rótulo em texto: igual à do anel pra todo mundo, exceto
-      // no anel verde-escuro (índice 5 da paleta) — sempre um pouco
-      // mais claro que o preenchimento, pra ficar mais fácil de ler,
-      // não importa qual dono caia nessa cor em cada mês.
-      const labelCol=col===FR_PALETTE[5]?frdLighten(col,0.18):col;
-      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,targetPx,false,labelCol))return;
-      let fontPx=targetPx-2;
-      while(fontPx>18&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,info.fullTxt,fontPx,false,labelCol)){
-        fontPx-=2;
-      }
-      if(fontPx>18)return;
-      // Nem encolhido o nome+valor coube (anel bem interno) — cai pro
-      // nome sozinho, primeiro no tamanho único e, em último caso,
-      // encolhendo só o necessário pra nunca desaparecer.
-      if(frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,targetPx,false,labelCol))return;
-      fontPx=targetPx;
-      while(fontPx>9&&!frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,seg.key,fontPx,false,labelCol)){
-        fontPx-=2;
+      if(s.key!=='Outros'){
+        const ap=frxPolar(cfg.markR, s.mid);
+        rec.markG.innerHTML=`<circle cx="${ap.x}" cy="${ap.y}" r="15"></circle><text x="${ap.x}" y="${ap.y+0.5}">${frxInitials(s.key)}</text>`;
+      } else rec.markG.innerHTML='';
+      const op=frxPolar((cfg.rOut+cfg.rIn)/2, s.mid);
+      rec.g.style.transformOrigin=`${op.x}px ${op.y}px`;
+      rec.g.style.transform = s.sel ? 'scale(1.045)' : '';
+      if(rec.halo){
+        rec.halo.setAttribute('d', frxRingD(cfg.rOut+cfg.grow, Math.max(cfg.rIn-cfg.grow*0.4,0), s.startA, s.endA));
+        rec.halo.setAttribute('stroke', s.color);
+        rec.halo.setAttribute('fill', s.color);
+        rec.halo.classList.toggle('on', !!s.sel);
       }
     }
+
+    rec.li.className = s.key==='Outros' ? 'nosel' : (s.sel?'on':'');
+    rec.li.querySelector('.dot').style.background=s.color;
+    rec.li.querySelector('.nm').textContent=s.key;
+    rec.li.querySelector('.val').textContent=fR(s.value);
+
+    const lp=frxPolar(cfg.labelR, s.mid);
+    rec.tag.classList.toggle('show', !!s.sel);
+    rec.tag.style.left=(lp.x/640*100)+'%';
+    rec.tag.style.top=(lp.y/640*100)+'%';
+    rec.tag.style.transformOrigin = s.dir.x<-0.15?'right center':(s.dir.x>0.15?'left center':'center center');
+    rec.tag.querySelector('.frx-tag-dot').style.background=s.color;
+    rec.tag.querySelector('.frx-tag-name').textContent=s.key;
+    rec.tag.querySelector('.frx-tag-val').textContent=fR(s.value)+' · '+s.pct.toFixed(1)+'%';
+
+    if(s.sel){
+      const edgeR=cfg.mode==='icon'?cfg.rOut+cfg.explode:cfg.rOut+cfg.grow*0.6;
+      const outerP=frxPolar(edgeR, s.mid);
+      rec.line.setAttribute('x1', outerP.x); rec.line.setAttribute('y1', outerP.y);
+      rec.line.setAttribute('x2', lp.x); rec.line.setAttribute('y2', lp.y);
+      rec.line.style.opacity=0.32;
+    } else {
+      rec.line.style.opacity=0;
+    }
   });
 }
-function frdUpdateHub(){
-  const lbl=document.getElementById('frdHubLabel');
+function frxUpdateHub(){
   const isLocOnly=FRT.tipo.size===1&&FRT.tipo.has('Locação');
-  if(lbl)lbl.textContent=isLocOnly?'Locações':'Total';
-}
-function frdHitTest(mx,my){
-  const cx=frdBoxCur/2, cy=frdBoxCur/2, dx=mx-cx, dy=my-cy, dist=Math.hypot(dx,dy);
-  let ang=Math.atan2(dy,dx);
-  while(ang<FRD_START)ang+=Math.PI*2;
-  while(ang>=FRD_START+Math.PI*2)ang-=Math.PI*2;
-  if(ang>FRD_START+FRD_SWEEP)return null;
-  const tol=Math.max(1,FRD_GAP/2-1);
-  for(let i=0;i<frdRingSpecs.length;i++){
-    const seg=frdRingSpecs[i];
-    if(dist<seg.R-FRD_THICK/2-tol||dist>seg.R+FRD_THICK/2+tol)continue;
-    // Conta como clique em qualquer ponto do anel (preenchido ou
-    // esmaecido) — a área esmaecida também mostra o nome/valor daquele
-    // proprietário, então é parte da mesma "linha" clicável, não só o
-    // trechinho colorido (que agora é fiel ao % real e pode ser bem
-    // curto pros donos pequenos).
-    return seg;
-  }
-  return null;
-}
-
-// Barra reta EXCLUSIVA por categoria real (cada proprietário, cada
-// tipo), em vez de anel — a pedido do usuário: como os valores são bem
-// desiguais (um dono/tipo dominante e vários pequenos), colocar cada um
-// no seu próprio anel circular desperdiçava quase todo o espaço em
-// círculo vazio e deixava as categorias pequenas ilegíveis. Barra reta
-// mostra nome e valor sempre visíveis pras 15 categorias, do maior pro
-// menor, sem esse desperdício.
-function frBarGroupHtml(dim){
-  const ringRows=frRowsForRing(dim);
-  const ringGrand=frSum(ringRows);
-  const segs=ringGrand>0?frBreakdown(dim,ringRows,ringGrand):[];
-  const outros=segs.find(s=>s.key==='Outros');
-  const real=segs.filter(s=>s.key!=='Outros').sort((a,b)=>b.pct-a.pct);
-  const ordered=outros?[...real,outros]:real;
-  const maxPct=Math.max(1,...real.map(s=>s.pct));
-  const rows=ordered.map(seg=>{
-    const isOutros=seg.key==='Outros';
-    const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
-    const widthPct=Math.max(2,Math.min(100,seg.pct/maxPct*100));
-    return '<div class="fr-bar-row'+(seg.sel?' sel':'')+(isOutros?' nosel':'')+'" data-dim="'+dim+'" data-key="'+escHtml(seg.key)+'">'+
-      '<div class="fr-bar-top"><span class="fr-bar-name">'+escHtml(seg.key)+'</span>'+
-      '<span class="fr-bar-val">'+fR(seg.value)+'</span></div>'+
-      '<div class="fr-bar-track"><div class="fr-bar-fill" style="width:'+widthPct+'%;background:'+col+'"></div></div>'+
-      '</div>';
-  }).join('');
-  return '<div class="fr-bargroup"><div class="fr-bargroup-title">'+RF_LABELS[dim]+'</div>'+
-    (rows||'<div class="rf-empty">Sem dados</div>')+'</div>';
+  const lbl=document.getElementById('frxHubLabel'), val=document.getElementById('frxHubValue');
+  if(lbl)lbl.textContent=isLocOnly?'Locações':'Total do mês';
+  if(val)val.textContent=frAbbrevR(frSum(frFilteredRows()));
 }
 
 function frUpdateTotal(){
@@ -5653,52 +5497,26 @@ function frUpdateTotal(){
 }
 
 function frRenderData(){
-  frdDrawRings();
-  frdUpdateHub();
-  const container=document.getElementById('frBarGroups');
-  if(container)container.innerHTML=FR_BAR_DIMS.map(frBarGroupHtml).join('');
+  frxRenderRing(FRX_RING.tipo);
+  frxRenderRing(FRX_RING.dono);
+  frxUpdateHub();
   frUpdateTotal();
-}
-
-function frdHitFromEvent(canvas,e){
-  const rect=canvas.getBoundingClientRect();
-  const k=frdBoxCur/rect.width;
-  return frdHitTest((e.clientX-rect.left)*k, (e.clientY-rect.top)*k);
 }
 
 let frBound=false;
 function frBindEvents(){
   if(frBound)return; frBound=true;
-  const canvas=document.getElementById('frdCanvas');
-  canvas.addEventListener('click', e=>{
-    const seg=frdHitFromEvent(canvas,e);
-    if(!seg||seg.key==='Outros')return;
-    const set=FRT.dono;
-    if(set.has(seg.key))set.delete(seg.key); else set.add(seg.key);
-    buildFatRingFilters();
-    frRenderData();
-  });
-  window.addEventListener('resize', ()=>{frdDrawRings(); frdApplyResponsiveScale();});
   // O total no centro do anel já aparece fora, acima do gráfico — em
   // vez de só repetir a informação, o miolo alterna entre o total geral
   // (padrão) e só o valor de Locação: clica uma vez pra filtrar por
   // Locação, clica de novo pra voltar ao total.
-  const hub=document.getElementById('frdHub');
+  const hub=document.getElementById('frxHub');
   hub.addEventListener('click', ()=>{
     const isLocOnly=FRT.tipo.size===1&&FRT.tipo.has('Locação');
     FRT.tipo.clear();
     if(!isLocOnly)FRT.tipo.add('Locação');
     buildFatRingFilters();
     frRenderData();
-  });
-  const container=document.getElementById('frBarGroups');
-  container.addEventListener('click', e=>{
-    const row=e.target.closest('.fr-bar-row');
-    if(!row||row.classList.contains('nosel'))return;
-    // Clique abre o detalhamento (lista de lançamentos) em vez de
-    // alternar o filtro — pra filtrar, o usuário usa o dropdown
-    // Proprietário/Tipo, que continua funcionando normalmente.
-    mostrarLancCategoria(row.dataset.dim, row.dataset.key);
   });
 }
 
@@ -5734,13 +5552,9 @@ function buildFatRingFilters(){
 }
 
 function renderFatRings(){
-  if(!document.getElementById('frBarGroups'))return;
+  if(!document.getElementById('frxSvg'))return;
   if(!frFiltersBuilt){buildFatRingFilters(); frBindEvents(); frFiltersBuilt=true;}
   frRenderData();
-  frdApplyResponsiveScale();
-  if(document.fonts && document.fonts.ready){
-    document.fonts.ready.then(()=>{frdDrawRings(); frdApplyResponsiveScale();}).catch(()=>{});
-  }
 }
 
 function renderResumo(){
