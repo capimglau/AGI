@@ -5460,30 +5460,27 @@ function frdDrawRings(){
   // atravessando 9h→6h→3h até chegar perto do outro lado do vão em
   // 100%. Só inverte de qual lado o anel nasce; o vão continua no topo.
   const anchor=FRD_START+FRD_SWEEP;
-  // Tamanho de fonte único pra todos os anéis (em vez de um por anel):
-  // medimos, pra cada dono, o maior tamanho que caberia no vão do seu
-  // próprio anel (raios menores têm bem menos pixels de circunferência
-  // pro mesmo vão angular), e usamos o menor valor entre todos + 1px —
-  // assim o anel mais apertado (hoje o da Lucélia) manda no tamanho de
-  // todo mundo, e nenhum nome nunca desaparece nem se sobrepõe.
+  // Cada anel usa o MAIOR tamanho de fonte que cabe no vão dele —
+  // deixamos de igualar todo mundo pelo anel mais apertado (Lucélia),
+  // porque isso arrastava até o anel do Silvio (que sobra bastante
+  // espaço) pro mesmo tamanho minúsculo dela. O tela real do celular
+  // ainda encolhe tudo por CSS (a resolução interna do canvas é bem
+  // maior que o espaço exibido), então cada anel aproveitando seu
+  // próprio máximo é o que garante o maior texto possível na tela de
+  // verdade — só os 1-2 anéis mais internos (valor quase zero) ficam
+  // pequenos, porque literalmente não sobra circunferência pra mais.
   const maxSpan=FRD_GAP_ANGLE*0.90;
   const fitInfo=specs.filter(seg=>seg.key!=='Outros').map(seg=>{
     const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
-    // Volta a manter a capitalização natural do nome (só a primeira
-    // letra maiúscula, como no dado original) — sem forçar tudo em
-    // caixa alta, que o usuário achou pior de ler.
+    // Capitalização natural do nome (só a primeira letra maiúscula) —
+    // sem forçar caixa alta, que o usuário achou pior de ler.
     const labelTxt=seg.key+' · '+valTxt;
     frdCtx.font='800 100px "Poppins","DM Sans",system-ui,-apple-system,sans-serif';
     const refWidth=labelTxt.split('').reduce((s,c)=>s+frdCtx.measureText(c).width,0);
     const refAngle=refWidth/seg.R;
-    const fitPx=Math.floor(100*maxSpan/refAngle);
+    const fitPx=Math.max(9,Math.floor(100*maxSpan/refAngle));
     return {seg,labelTxt,fitPx};
   });
-  // A capitalização normal (só a 1ª letra maiúscula) é mais estreita
-  // que caixa alta, então o mesmo cálculo já rende +1px de folga no
-  // anel mais apertado (Lucélia: 12px em caixa alta → 13px aqui) —
-  // exatamente o pixel a mais pedido, sem estourar o espaço dela.
-  const uniformFontPx=Math.max(9,Math.min(...fitInfo.map(f=>f.fitPx)));
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
     const isOutros=seg.key==='Outros';
@@ -5529,8 +5526,8 @@ function frdDrawRings(){
       // logo depois da âncora (com uma folga pra não ficar em cima da
       // ponta arredondada do preenchimento) e cresce pro lado do vão.
       const capClearance=Math.max((FRD_THICK/2)/R*2.2, 0.06);
-      const labelTxt=fitInfo.find(f=>f.seg===seg).labelTxt;
-      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,labelTxt,uniformFontPx,false,col);
+      const info=fitInfo.find(f=>f.seg===seg);
+      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,info.labelTxt,info.fitPx,false,col);
     }
   });
 }
