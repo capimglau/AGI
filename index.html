@@ -5460,29 +5460,44 @@ function frdDrawRings(){
   // atravessando 9h→6h→3h até chegar perto do outro lado do vão em
   // 100%. Só inverte de qual lado o anel nasce; o vão continua no topo.
   const anchor=FRD_START+FRD_SWEEP;
-  // Todos os anéis no MESMO tamanho de fonte — 40% maior que o tamanho
-  // único anterior (calibrado pelo anel mais apertado, o da Lucélia).
-  // Nesse tamanho maior, o rótulo completo ("Nome · R$ valor") não cabe
-  // mais no vão dos 1-2 anéis mais internos (participação quase zero);
-  // em vez de simplesmente não desenhar nada, esses caem pro nome
-  // sozinho (sem o valor) — mais curto o suficiente pra caber no mesmo
-  // tamanho de todo mundo, sem nunca sumir.
-  const maxSpan=FRD_GAP_ANGLE*0.90;
+  // Todos os anéis no MESMO tamanho de fonte. O vão esmaecido de cada
+  // anel não é só os 75° reservados no topo — a trilha esmaecida dá a
+  // volta inteira (2π), e só uma fatia proporcional ao % de cada dono
+  // fica colorida; pra quem tem % pequeno (Lorenzo, Arnaldo, Lucélia)
+  // isso sobra quase o círculo inteiro livre, bem mais que os 75° que
+  // a gente vinha usando. Por isso o espaço de texto de cada anel
+  // agora é o círculo inteiro menos a fatia colorida DELE (com uma
+  // pequena folga nas duas pontas), em vez de um limite fixo igual
+  // pra todos.
   const fitInfo=specs.filter(seg=>seg.key!=='Outros').map(seg=>{
     const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
     // Capitalização natural do nome (só a primeira letra maiúscula) —
     // sem forçar caixa alta, que o usuário achou pior de ler.
     const fullTxt=seg.key+' · '+valTxt;
+    const frac=Math.max(seg.pct,0.3)/100;
+    const filledAngle=FRD_SWEEP*frac;
+    // Trava num máximo de ~140° mesmo quando sobra o círculo quase
+    // inteiro (donos bem pequenos): um arco maior que isso cruza o
+    // polo de baixo do círculo, onde a lógica de "virar" o texto de
+    // cabeça pra cima (pra sempre ler da esquerda pra direita) só
+    // decide uma vez pra frase inteira — um arco comprido cruzando
+    // esse ponto ficaria com metade do texto de cabeça pra baixo.
+    const maxSpan=Math.min(Math.PI*0.78, Math.max(0.2, Math.PI*2-filledAngle-0.25));
     frdCtx.font='800 100px "Poppins","DM Sans",system-ui,-apple-system,sans-serif';
+    // Com tanto espaço angular sobrando (principalmente nos anéis
+    // pequenos), o próprio ângulo praticamente não limita mais o
+    // tamanho da fonte — por isso trava também na espessura do anel
+    // (FRD_THICK), pra letra nunca crescer a ponto de invadir o anel
+    // vizinho verticalmente.
     const fitPxFor=text=>{
       const refWidth=text.split('').reduce((s,c)=>s+frdCtx.measureText(c).width,0);
       const refAngle=refWidth/seg.R;
-      return Math.max(9,Math.floor(100*maxSpan/refAngle));
+      return Math.max(9,Math.min(Math.floor(100*maxSpan/refAngle), Math.round(FRD_THICK*0.62)));
     };
-    return {seg,fullTxt,fitFull:fitPxFor(fullTxt),fitName:fitPxFor(seg.key)};
+    return {seg,fullTxt,maxSpan,fitFull:fitPxFor(fullTxt),fitName:fitPxFor(seg.key)};
   });
   const baselineFontPx=Math.min(...fitInfo.map(f=>f.fitFull));
-  const uniformFontPx=Math.round(baselineFontPx*2.2);
+  const uniformFontPx=Math.min(Math.round(baselineFontPx*2.2), Math.round(FRD_THICK*0.62));
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
     const isOutros=seg.key==='Outros';
@@ -5539,7 +5554,7 @@ function frdDrawRings(){
         labelTxt=seg.key;
         if(uniformFontPx>info.fitName)fontPx=info.fitName;
       }
-      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,labelTxt,fontPx,false,col);
+      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,info.maxSpan,labelTxt,fontPx,false,col);
     }
   });
 }
