@@ -1397,6 +1397,7 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
 .rf-opt { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--ink); }
 .rf-opt:hover { background: var(--surface); }
 .rf-opt input { accent-color: var(--blue); width: 15px; height: 15px; flex-shrink: 0; }
+.rf-opt-all { font-weight: 700; border-bottom: 1px solid var(--line); border-radius: 8px 8px 0 0; margin-bottom: 2px; padding-bottom: 9px; }
 .rf-empty { padding: 10px; color: var(--ink3); font-size: 12px; }
 .rf-clear { border: none; background: none; color: var(--blue); font-weight: 700; font-size: 12.5px; cursor: pointer; padding: 8px 8px; display: inline-flex; align-items: center; gap: 4px; }
 .rf-clear:hover { text-decoration: underline; }
@@ -2504,8 +2505,9 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
 .frx-halo { fill: none; opacity: 0; transition: opacity .32s ease; pointer-events: none; }
 .frx-halo.on { opacity: .55; }
 .frx-icon { pointer-events: none; color: #fff; opacity: .96; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); transition: transform .25s cubic-bezier(.2,.85,.3,1); }
-.frx-avatar circle { fill: rgba(255,255,255,.16); stroke: #fff; stroke-width: 1.3; }
-.frx-avatar text { fill: #fff; font-size: 13px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; }
+/* Sem círculo de fundo — só as duas iniciais, com um contorno escuro
+   sutil (paint-order) pra continuar legível em qualquer cor de fatia. */
+.frx-avatar text { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; paint-order: stroke; stroke: rgba(0,0,0,.4); stroke-width: 3px; stroke-linejoin: round; }
 .frx-hub { cursor: pointer; }
 .frx-hub-bg { fill: var(--card); filter: drop-shadow(0 1px 4px rgba(0,0,0,.12)); }
 .frx-hub-label { font-size: 10.5px; font-weight: 700; fill: var(--ink3); letter-spacing: .04em; text-transform: uppercase; }
@@ -4869,9 +4871,13 @@ function makeFilterSelector(mountId,state,onChange,flat,dims,extraHtml){
   const uniq=k=>[...new Set(data.map(r=>r[k]).filter(v=>v!=null&&v!==''))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
   const sections=dimsToRender.map(dim=>{
     const opts=uniq(dim);
+    const allChecked=opts.length>0&&opts.every(v=>state[dim].has(String(v)));
     return `<details class="rf-sec">
       <summary class="rf-sec-tt"><span class="rf-sec-label">${RF_LABELS[dim]}</span><span class="rf-badge" data-badge="${dim}"></span><span class="rf-caret">▾</span></summary>
-      <div class="rf-sec-opts">${opts.length?opts.map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" data-dim="${dim}"${state[dim].has(String(v))?' checked':''}> ${escHtml(String(v))}</label>`).join(''):'<div class="rf-empty">Sem dados</div>'}</div>
+      <div class="rf-sec-opts">${opts.length?
+        `<label class="rf-opt rf-opt-all"><input type="checkbox" data-dim="${dim}" data-selall${allChecked?' checked':''}> Selecionar todos</label>`+
+        opts.map(v=>`<label class="rf-opt"><input type="checkbox" value="${escHtml(String(v))}" data-dim="${dim}"${state[dim].has(String(v))?' checked':''}> ${escHtml(String(v))}</label>`).join('')
+        :'<div class="rf-empty">Sem dados</div>'}</div>
     </details>`;
   }).join('');
   bar.innerHTML = flat
@@ -4884,17 +4890,39 @@ function makeFilterSelector(mountId,state,onChange,flat,dims,extraHtml){
         ${sections}
       </div>
     </details>`;
+  // Deriva as opções de "Selecionar todos" das checkboxes REALMENTE
+  // presentes no DOM (não de uniq(dim) de novo) — algumas telas removem
+  // uma opção específica depois de montar o seletor (ex.: "Indefinido"
+  // em Proprietário, no gráfico de Faturamento), e usar uniq(dim) aqui
+  // reintroduziria essa opção escondida no filtro sem checkbox visível
+  // pra desmarcá-la.
+  const optionCbs=dim=>[...bar.querySelectorAll(`input[type=checkbox][data-dim="${dim}"]:not([data-selall])`)];
+  const syncSelAll=dim=>{
+    const selAll=bar.querySelector(`input[data-selall][data-dim="${dim}"]`); if(!selAll)return;
+    const cbs=optionCbs(dim);
+    const allSel=cbs.length>0&&cbs.every(c=>state[dim].has(c.value));
+    selAll.checked=allSel;
+    selAll.indeterminate=!allSel&&cbs.some(c=>state[dim].has(c.value));
+  };
   const update=()=>{
     let total=0;
     RF_DIMS.forEach(dim=>{const n=state[dim].size;const b=bar.querySelector(`[data-badge="${dim}"]`);if(b)b.textContent=n?String(n):'';total+=n;});
     const all=bar.querySelector('[data-badge="__all"]'); if(all)all.textContent=total?String(total):'';
     const c=bar.querySelector('[data-clear]'); if(c)c.style.display=total?'inline-flex':'none';
   };
-  bar.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener('change',()=>{
-    const dim=cb.dataset.dim; if(cb.checked)state[dim].add(cb.value); else state[dim].delete(cb.value); update(); onChange();
+  bar.querySelectorAll('input[type=checkbox]:not([data-selall])').forEach(cb=>cb.addEventListener('change',()=>{
+    const dim=cb.dataset.dim; if(cb.checked)state[dim].add(cb.value); else state[dim].delete(cb.value);
+    syncSelAll(dim); update(); onChange();
   }));
+  bar.querySelectorAll('input[data-selall]').forEach(cb=>cb.addEventListener('change',()=>{
+    const dim=cb.dataset.dim, cbs=optionCbs(dim);
+    cbs.forEach(c=>{ c.checked=cb.checked; if(cb.checked)state[dim].add(c.value); else state[dim].delete(c.value); });
+    cb.indeterminate=false;
+    update(); onChange();
+  }));
+  dimsToRender.forEach(syncSelAll);
   const clr=bar.querySelector('[data-clear]');
-  if(clr) clr.addEventListener('click',()=>{ RF_DIMS.forEach(d=>state[d].clear()); bar.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false); update(); onChange(); });
+  if(clr) clr.addEventListener('click',()=>{ RF_DIMS.forEach(d=>state[d].clear()); bar.querySelectorAll('input[type=checkbox]').forEach(c=>{c.checked=false;c.indeterminate=false;}); update(); onChange(); });
   update();
 }
 
@@ -5335,13 +5363,16 @@ const FRX_RING={
 // são taxas de entrega de veículo cobradas por cada um, por isso caem
 // todas no ícone de caminhão/entrega.
 const FRX_ICON_PATHS={
-  key:'<circle cx="8" cy="9" r="3.3"/><line x1="10.4" y1="11.4" x2="19" y2="20"/><line x1="14.6" y1="15.6" x2="17.1" y2="13.1"/><line x1="17.2" y1="18.2" x2="19.4" y2="16"/>',
+  // Locação: carro (é locação de veículo) — silhueta simples com rodas.
+  car:'<path d="M4.2 15.8 5.6 11a1.9 1.9 0 0 1 1.8-1.4h9.2a1.9 1.9 0 0 1 1.8 1.4l1.4 4.8"/><rect x="3" y="15.8" width="18" height="4" rx="1.6"/><circle cx="7.3" cy="19.8" r="1.5"/><circle cx="16.7" cy="19.8" r="1.5"/><line x1="4.6" y1="12.7" x2="19.4" y2="12.7"/>',
+  // Avarias: chave de boca (batida/manutenção do veículo).
   wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 4.6L4 16.2V20h3.8l5.3-5.3a4 4 0 0 0 4.6-5.4l-2.9 2.9-2-2 2.9-2.9Z"/>',
   droplet:'<path d="M12 3.5c3 4 6 7.4 6 10.8a6 6 0 0 1-12 0c0-3.4 3-6.8 6-10.8Z"/>',
   alert:'<path d="M12 4 3 20H21L12 4Z"/><line x1="12" y1="10.5" x2="12" y2="15"/><circle cx="12" cy="17.6" r="0.9" fill="currentColor" stroke="none"/>',
   truck:'<rect x="2.3" y="7.5" width="11.4" height="8.5" rx="1.2"/><path d="M13.7 10.5H17l3.2 3.2V16h-2.5"/><circle cx="7" cy="18" r="1.7"/><circle cx="17.3" cy="18" r="1.7"/>',
   toll:'<rect x="3" y="7" width="18" height="10" rx="2"/><line x1="9" y1="7" x2="9" y2="17" stroke-dasharray="2.2 2.2"/>',
-  percent:'<line x1="5" y1="19" x2="19" y2="5"/><circle cx="7.5" cy="7.5" r="2.4"/><circle cx="16.5" cy="16.5" r="2.4"/>',
+  // Franquia: escudo (franquia de seguro).
+  shield:'<path d="M12 3.2 19 6.1v5.6c0 4.9-3 8.2-7 9.5-4-1.3-7-4.6-7-9.5V6.1l7-2.9Z"/><path d="M9.2 12.1 11.2 14l3.6-4"/>',
   tag:'<path d="M12.6 3H5a2 2 0 0 0-2 2v7.6a2 2 0 0 0 .6 1.4l9 9a2 2 0 0 0 2.8 0l6-6a2 2 0 0 0 0-2.8l-9-9a2 2 0 0 0-1.4-.6Z"/><circle cx="8.4" cy="8.4" r="1.3" fill="currentColor" stroke="none"/>',
   dots:'<circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.5" fill="currentColor" stroke="none"/>',
 };
@@ -5350,18 +5381,22 @@ function frxNorm(s){
 }
 function frxTypeIcon(key){
   const k=frxNorm(key);
-  if(k.includes('loca'))return 'key';
+  if(k.includes('loca'))return 'car';
   if(k.includes('avaria'))return 'wrench';
   if(k.includes('lavagem'))return 'droplet';
   if(k.includes('multa'))return 'alert';
   if(k.includes('pedagio'))return 'toll';
-  if(k.includes('franquia'))return 'percent';
+  if(k.includes('franquia'))return 'shield';
   if(k.includes('taxa'))return 'truck';
   if(k.includes('outro'))return 'dots';
   return 'tag';
 }
+// Sempre duas letras: iniciais de nome+sobrenome, ou as duas primeiras
+// letras quando é um nome só (ex. "Silvio" → "SI", não só "S").
 function frxInitials(name){
-  return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const words=String(name).trim().split(/\s+/).filter(Boolean);
+  if(words.length>=2)return (words[0][0]+words[1][0]).toUpperCase();
+  return (words[0]||'').slice(0,2).toUpperCase();
 }
 function frxPolar(r,angDeg){
   const a=(angDeg-90)*Math.PI/180;
@@ -5480,7 +5515,7 @@ function frxRenderRing(cfg){
     } else {
       if(s.key!=='Outros'){
         const ap=frxPolar(cfg.markR, s.mid);
-        rec.markG.innerHTML=`<circle cx="${ap.x}" cy="${ap.y}" r="15"></circle><text x="${ap.x}" y="${ap.y+0.5}">${frxInitials(s.key)}</text>`;
+        rec.markG.innerHTML=`<text x="${ap.x}" y="${ap.y+0.5}">${frxInitials(s.key)}</text>`;
       } else rec.markG.innerHTML='';
       const op=frxPolar((cfg.rOut+cfg.rIn)/2, s.mid);
       rec.g.style.transformOrigin=`${op.x}px ${op.y}px`;
