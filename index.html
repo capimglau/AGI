@@ -5316,25 +5316,15 @@ function frDrawArcLabel(ctx,cx,cy,radius,aMid,maxAngleSpan,text,fontPx){
   return true;
 }
 
-// Ângulo ideal pro rótulo dentro do arco preenchido [a0,a1]: tenta
-// centralizar embaixo (6h, o ponto mais longe do vão) — o mesmo ponto
-// fixo pra todo mundo, como no infográfico de referência do usuário,
-// onde os nomes ficam todos alinhados numa faixa embaixo em vez de
-// espalhados no meio de cada fatia. Só usa esse ponto quando o arco
-// realmente passa por ali (e o texto cabe); anéis curtos demais (que
-// não chegam embaixo) colam o nome coladinho no início da barra
-// (ponto fixo/âncora, a1) em vez de ficar perdido no meiozinho do
-// pedacinho preenchido.
+// Ângulo ideal pro rótulo dentro do arco preenchido [a0,a1]: sempre
+// coladinho no início da barra (ponto fixo/âncora, a1), pra todos os
+// anéis por igual — inclusive o dono dominante (ex.: Silvio), que
+// antes ficava centralizado embaixo (6h) enquanto os outros ficavam
+// no início da barra, dando uma leitura inconsistente entre eles.
 function frdLabelAngle(ctx,radius,a0,a1,fontPx,text){
   ctx.font='700 '+fontPx+'px "DM Sans", system-ui, -apple-system, sans-serif';
   const totalWidth=text.split('').reduce((s,c)=>s+ctx.measureText(c).width,0);
   const totalAngle=totalWidth/radius;
-  let bottom=Math.PI/2;
-  while(bottom<a0)bottom+=Math.PI*2;
-  while(bottom>a1)bottom-=Math.PI*2;
-  if(bottom>=a0&&bottom<=a1&&(a1-a0)>=totalAngle){
-    return Math.min(Math.max(bottom,a0+totalAngle/2),a1-totalAngle/2);
-  }
   return a1-totalAngle/2;
 }
 
@@ -5474,7 +5464,12 @@ function frdDrawRings(){
     // mantendo a ordem e a proporção relativa entre eles. Piso mínimo
     // (0.5%) só pra garantir que quem arredonda pra 0,0% ainda apareça
     // como uma pontinha arredondada, em vez de sumir.
-    const frac=Math.pow(Math.max(seg.pct,0.5)/100,0.3);
+    let frac=Math.pow(Math.max(seg.pct,0.5)/100,0.3);
+    // +50% no arco de todo mundo, MENOS o dono dominante (rank 0, ex.:
+    // Silvio) — que já é o maior e não precisa crescer mais. Sem isso,
+    // vários anéis pequenos ficavam curtos demais até pro próprio nome
+    // caber dentro (ficavam sem rótulo nenhum).
+    if(seg.rank!==0)frac=Math.min(frac*1.5,0.95);
     const a0=anchor-FRD_SWEEP*frac, a1=anchor;
     frdCtx.beginPath();
     frdCtx.lineWidth=FRD_THICK; frdCtx.lineCap='round'; frdCtx.strokeStyle=col;
@@ -5491,10 +5486,13 @@ function frdDrawRings(){
       // onde o gráfico já nasce no tamanho mínimo) o "k" é necessário.
       const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
       const labelTxt=seg.key+' · '+valTxt;
-      const fontPx=Math.round(FRD_THICK*0.7);
-      // Tenta centralizar o rótulo embaixo (6h), igual pra todos os
-      // anéis; se o arco preenchido não chegar lá, gruda no início da
-      // barra (ponto fixo). O vão disponível é o próprio arco (a1-a0).
+      // Fonte proporcional ao raio (com teto e piso) — nos anéis mais
+      // internos (menor raio, arco mais curto em pixels mesmo com o
+      // mesmo ângulo) uma fonte menor cabe melhor; nos de fora usa o
+      // tamanho cheio de sempre.
+      const fontPx=Math.max(14,Math.min(Math.round(FRD_THICK*0.7),Math.round(R*0.15)));
+      // Sempre coladinho no início da barra (ponto fixo/âncora). O vão
+      // disponível é o próprio arco preenchido (a1-a0).
       const aMid=frdLabelAngle(frdCtx,R,a0,a1,fontPx,labelTxt);
       frDrawArcLabel(frdCtx,cx,cy,R,aMid,(a1-a0)*0.85,labelTxt,fontPx);
       // Percentual bem no cantinho final da barra (na parte sem
