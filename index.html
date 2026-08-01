@@ -2491,7 +2491,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
    Proprietário expande crescendo e ganhando um halo no próprio lugar,
    pra não perder a leitura do anel com muitos donos. */
 .frx-stage { position: relative; width: 100%; max-width: 420px; aspect-ratio: 1 / 1; margin: 8px auto 4px; }
-.frx-stage svg { width: 100%; height: 100%; overflow: visible; }
+.frx-stage > svg { width: 100%; height: 100%; overflow: visible; }
 .frx-slice { cursor: pointer; transform-box: fill-box; }
 .frx-slice.tipo { transition: transform .38s cubic-bezier(.2,.85,.3,1); }
 .frx-slice.dono { transition: transform .32s cubic-bezier(.25,.9,.35,1); }
@@ -5315,28 +5315,50 @@ function frBreakdown(dim,rows,grand){
 // em FRT, o mesmo cross-filter que já existia; clicar no cartão
 // flutuante abre o detalhamento (mostrarLancCategoria).
 const FRX_CX=320, FRX_CY=320;
+// power<1 suaviza a diferença de tamanho das fatias — a maior (Locação
+// no anel de Tipo, Silvio no de Proprietário) segue sendo bem maior que
+// as outras (o valor real de cada uma continua exibido sem alteração no
+// cartão/legenda), só a fatia ANGULAR fica menos esmagadora, deixando
+// as categorias/donos menores com espaço suficiente pro ícone/iniciais
+// aparecerem — sem isso, Locação toma quase o anel inteiro (>95% do
+// faturamento) e as demais viram lascas invisíveis.
 const FRX_RING={
-  tipo:{dim:'tipo', cls:'tipo', mode:'icon', rIn:95, rOut:168, markR:131, gap:2.2, labelR:256, explode:16,
+  tipo:{dim:'tipo', cls:'tipo', mode:'icon', rIn:95, rOut:168, markR:131, gap:2.2, labelR:256, explode:16, power:0.38,
         groupId:'frxSlicesTipo', legendId:'frxLegendTipo'},
-  dono:{dim:'dono', cls:'dono', mode:'grow', rIn:182, rOut:246, markR:214, gap:1.8, labelR:290, grow:16,
+  dono:{dim:'dono', cls:'dono', mode:'grow', rIn:182, rOut:246, markR:214, gap:1.8, labelR:290, grow:16, power:0.72,
         groupId:'frxSlicesDono', legendId:'frxLegendDono'},
 };
 // Ícones (mesmo traço fino já usado no resto do app: viewBox 24, stroke
-// currentColor, stroke-width 1.8) por tipo de lançamento. Tipos fora
-// desta lista (cadastro livre na planilha) caem no ícone genérico.
-const FRX_TYPE_ICON_BY_KEY={'Locação':'key','Avarias':'wrench','Lavagem':'droplet','Multas':'alert'};
+// currentColor, stroke-width 1.8) por tipo de lançamento — por palavra-chave
+// (não por igualdade exata), já que "Tipo" é texto livre na planilha e
+// pode vir com variações (plural, acento, etc.). Taxa Mario/Alfredo/Bruno
+// são taxas de entrega de veículo cobradas por cada um, por isso caem
+// todas no ícone de caminhão/entrega.
 const FRX_ICON_PATHS={
   key:'<circle cx="8" cy="9" r="3.3"/><line x1="10.4" y1="11.4" x2="19" y2="20"/><line x1="14.6" y1="15.6" x2="17.1" y2="13.1"/><line x1="17.2" y1="18.2" x2="19.4" y2="16"/>',
   wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 4.6L4 16.2V20h3.8l5.3-5.3a4 4 0 0 0 4.6-5.4l-2.9 2.9-2-2 2.9-2.9Z"/>',
   droplet:'<path d="M12 3.5c3 4 6 7.4 6 10.8a6 6 0 0 1-12 0c0-3.4 3-6.8 6-10.8Z"/>',
   alert:'<path d="M12 4 3 20H21L12 4Z"/><line x1="12" y1="10.5" x2="12" y2="15"/><circle cx="12" cy="17.6" r="0.9" fill="currentColor" stroke="none"/>',
-  receipt:'<path d="M6.3 3H17.7V21L15.5 19.6 13.3 21 11 19.6 8.8 21 6.3 19.6V3Z"/><line x1="8.7" y1="8" x2="15.3" y2="8"/><line x1="8.7" y1="12.2" x2="15.3" y2="12.2"/>',
+  truck:'<rect x="2.3" y="7.5" width="11.4" height="8.5" rx="1.2"/><path d="M13.7 10.5H17l3.2 3.2V16h-2.5"/><circle cx="7" cy="18" r="1.7"/><circle cx="17.3" cy="18" r="1.7"/>',
+  toll:'<rect x="3" y="7" width="18" height="10" rx="2"/><line x1="9" y1="7" x2="9" y2="17" stroke-dasharray="2.2 2.2"/>',
+  percent:'<line x1="5" y1="19" x2="19" y2="5"/><circle cx="7.5" cy="7.5" r="2.4"/><circle cx="16.5" cy="16.5" r="2.4"/>',
+  tag:'<path d="M12.6 3H5a2 2 0 0 0-2 2v7.6a2 2 0 0 0 .6 1.4l9 9a2 2 0 0 0 2.8 0l6-6a2 2 0 0 0 0-2.8l-9-9a2 2 0 0 0-1.4-.6Z"/><circle cx="8.4" cy="8.4" r="1.3" fill="currentColor" stroke="none"/>',
   dots:'<circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.5" fill="currentColor" stroke="none"/>',
 };
+function frxNorm(s){
+  return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+}
 function frxTypeIcon(key){
-  if(FRX_TYPE_ICON_BY_KEY[key])return FRX_TYPE_ICON_BY_KEY[key];
-  if(/^taxa/i.test(key))return 'receipt';
-  return 'dots';
+  const k=frxNorm(key);
+  if(k.includes('loca'))return 'key';
+  if(k.includes('avaria'))return 'wrench';
+  if(k.includes('lavagem'))return 'droplet';
+  if(k.includes('multa'))return 'alert';
+  if(k.includes('pedagio'))return 'toll';
+  if(k.includes('franquia'))return 'percent';
+  if(k.includes('taxa'))return 'truck';
+  if(k.includes('outro'))return 'dots';
+  return 'tag';
 }
 function frxInitials(name){
   return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
@@ -5357,13 +5379,20 @@ function frxEl(tag,cls){const e=document.createElementNS(SVGNS,tag); if(cls)e.se
 // Fatias em ângulo proporcional ao valor (pizza), maior pro menor —
 // reaproveita frRowsForRing/frBreakdown, que já cuidam do cross-filter
 // (o anel nunca aplica o próprio filtro nele mesmo) e do bucket "Outros".
-function frxComputeSegs(dim,gap){
+// power<1 comprime a fatia angular dos maiores e infla a dos menores
+// (value^power antes de normalizar) — só a ÁREA no anel fica mais
+// equilibrada; seg.value/seg.pct (usados no cartão/legenda) continuam
+// fiéis ao valor real, sem essa suavização.
+function frxComputeSegs(dim,gap,power){
   const rows=frRowsForRing(dim);
   const grand=frSum(rows);
   const list=grand>0?frBreakdown(dim,rows,grand):[];
+  const p=power||1;
+  const weights=list.map(seg=>Math.pow(Math.max(seg.value,0),p));
+  const wSum=weights.reduce((a,b)=>a+b,0)||1;
   let acc=0;
-  return list.map(seg=>{
-    const frac=Math.max(seg.pct,0.4)/100;
+  return list.map((seg,i)=>{
+    const frac=Math.max(weights[i]/wSum,0.004);
     const startA=acc*360, endA=(acc+frac)*360;
     acc+=frac;
     const mid=(startA+endA)/2;
@@ -5383,7 +5412,7 @@ function frxToggle(dim,key){
   frRenderData();
 }
 function frxRenderRing(cfg){
-  const segs=frxComputeSegs(cfg.dim,cfg.gap);
+  const segs=frxComputeSegs(cfg.dim,cfg.gap,cfg.power);
   const keySig=segs.map(s=>s.key).join('|');
   const group=document.getElementById(cfg.groupId), legendEl=document.getElementById(cfg.legendId);
   const haloG=document.getElementById('frxHalos'), connG=document.getElementById('frxConnectors'), cardsLayer=document.getElementById('frxCardsLayer');
