@@ -304,11 +304,12 @@
       rec.rim.setAttribute('stroke', s.color);
       rec.g.classList.toggle('is-selected', !!s.selected);
 
-      // Área de clique recuada (~17% da espessura em cada borda,
+      // Área de clique bem recuada (~28% da espessura em cada borda,
       // centralizada) — bem menor que a fatia pintada, pra sobrar uma
-      // faixa "morta" entre os dois anéis onde nenhum dos dois responde
-      // ao toque, em vez do dedo grudar sempre no anel vizinho.
-      const inset = (cfg.rOut - cfg.rIn) * 0.17;
+      // faixa "morta" bem mais folgada entre os dois anéis onde nenhum
+      // dos dois responde ao toque, em vez do dedo grudar sempre no
+      // anel vizinho (17% não bastou no teste real em celular).
+      const inset = (cfg.rOut - cfg.rIn) * 0.28;
       rec.hit.setAttribute('d', this.ringPath(cfg.rOut - inset, cfg.rIn + inset, s.startA, s.endA));
 
       const lf = this.lightFactor(s.mid);
