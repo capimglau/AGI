@@ -5483,16 +5483,20 @@ function frxRenderRing(cfg){
       line.dataset.dim=cfg.dim; line.dataset.key=s.key;
       connG.appendChild(line);
 
+      // Legenda (texto abaixo do gráfico): abre o detalhamento dos
+      // lançamentos daquela categoria — não mexe na seleção/expansão.
       const li=document.createElement('li');
       li.dataset.dim=cfg.dim; li.dataset.key=s.key;
       li.innerHTML='<span class="dot"></span><span class="nm"></span><span class="val"></span>';
-      if(s.key!=='Outros')li.addEventListener('click', ()=>frxToggle(cfg.dim,s.key));
+      if(s.key!=='Outros')li.addEventListener('click', ()=>mostrarLancCategoria(cfg.dim,s.key));
       legendEl.appendChild(li);
 
+      // Fatia do gráfico e o cartão flutuante que ela abre: só
+      // expandem/recolhem e mostram o valor — não abrem detalhamento.
       const tag=document.createElement('div');
       tag.className='frx-tag'; tag.dataset.dim=cfg.dim; tag.dataset.key=s.key;
       tag.innerHTML='<span class="frx-tag-dot"></span><span class="frx-tag-txt"><span class="frx-tag-name"></span><span class="frx-tag-val"></span></span>';
-      tag.addEventListener('click', ()=>mostrarLancCategoria(cfg.dim,s.key));
+      if(s.key!=='Outros')tag.addEventListener('click', ()=>frxToggle(cfg.dim,s.key));
       cardsLayer.appendChild(tag);
 
       rec={g,path,markG,halo,line,li,tag};
