@@ -5337,7 +5337,7 @@ function frdLabelAngle(ctx,radius,a0,a1,fontPx,text){
 // flutuante perto do topo de cada anel. Reage ao filtro de Tipo
 // (cross-filter): selecionar Locação recalcula a fatia de cada
 // proprietário só daquele tipo.
-const FRD_HUB_R=58, FRD_THICK=54, FRD_GAP=9;
+const FRD_HUB_R=58, FRD_THICK=65, FRD_GAP=9;
 const FRD_GAP_ANGLE=75*Math.PI/180;
 const FRD_SWEEP=Math.PI*2-FRD_GAP_ANGLE;
 const FRD_START=-Math.PI/2+FRD_GAP_ANGLE/2;
@@ -5360,7 +5360,11 @@ function frdBuildSpecs(){
 function frdBoxFor(specs){
   if(!specs.length)return FRD_HUB_R*2+40;
   const outerEdge=specs[0].R+FRD_THICK/2;
-  return Math.round((outerEdge+34)*2);
+  // Buffer maior (90, era 34): todos os percentuais agora moram do
+  // lado de fora do anel mais externo (outerEdge+24, +22 alternado)
+  // mais a largura do próprio texto, então precisa de bem mais margem
+  // pra não cortar.
+  return Math.round((outerEdge+90)*2);
 }
 function frdSizeCanvas(box){
   frdCanvas=document.getElementById('frdCanvas');
@@ -5438,22 +5442,31 @@ function frdDrawRings(){
   if(!frdCtx)return;
   const cx=box/2, cy=box/2;
   frdCtx.clearRect(0,0,box,box);
-  const trackCol=isDark()?'rgba(255,255,255,.12)':'rgba(10,12,20,.07)';
   const haloCol=isDark()?'#ffffff':'#0c0c0f';
   // Ponto fixo de onde todo mundo "nasce" — do lado ESQUERDO do vão
   // (em vez do direito) — e cresce em sentido horário a partir dali,
   // atravessando 9h→6h→3h até chegar perto do outro lado do vão em
   // 100%. Só inverte de qual lado o anel nasce; o vão continua no topo.
   const anchor=FRD_START+FRD_SWEEP;
-  specs.forEach(seg=>{
+  // Raio fixo pra todos os percentuais (fora do anel mais externo de
+  // todos) — como todo mundo nasce do mesmo ponto, o anel maior sempre
+  // "contém" o ângulo onde os menores terminam, então colocar o
+  // percentual só um pouquinho pra fora do próprio anel deixava o
+  // texto colado em cima da faixa colorida de outro anel maior.
+  const outerR=specs.length?specs[0].R+FRD_THICK/2:0;
+  specs.forEach((seg,segIdx)=>{
     const R=seg.R;
+    const isOutros=seg.key==='Outros';
+    const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
+    // O resto do anel (sem preenchimento) não tem mais fundo cinza
+    // sólido — só uma linha fina na própria cor daquele anel, igual ao
+    // infográfico de referência do usuário. O trecho preenchido (mais
+    // à frente) desenha por cima, bem mais grosso.
     frdCtx.beginPath();
-    frdCtx.lineWidth=FRD_THICK; frdCtx.strokeStyle=trackCol;
+    frdCtx.lineWidth=1.5; frdCtx.strokeStyle=col;
     frdCtx.arc(cx,cy,R,0,Math.PI*2);
     frdCtx.stroke();
 
-    const isOutros=seg.key==='Outros';
-    const col=isOutros?FR_OUTROS:FR_PALETTE[seg.rank%FR_PALETTE.length];
     // Preenchimento do anel proporcional ao % de cada pessoa — antes
     // todo mundo ocupava o mesmo arco (só o raio indicava a ordem); com
     // isso o próprio comprimento do arco já mostra o peso de cada um no
@@ -5495,32 +5508,20 @@ function frdDrawRings(){
       // disponível é o próprio arco preenchido (a1-a0).
       const aMid=frdLabelAngle(frdCtx,R,a0,a1,fontPx,labelTxt);
       frDrawArcLabel(frdCtx,cx,cy,R,aMid,(a1-a0)*0.85,labelTxt,fontPx);
-      // Percentual bem no cantinho final da barra (na parte sem
-      // preenchimento, coladinho na ponta do anel, do lado do ponto
-      // fixo — que agora é o esquerdo).
-      const pctAngle=anchor+FRD_GAP_ANGLE*0.4;
-      const px=cx+R*Math.cos(pctAngle), py=cy+R*Math.sin(pctAngle);
+      // Percentual do lado de fora de TODOS os anéis, na ponta final
+      // da barra (a0, onde o preenchimento realmente termina) — sem
+      // chip nem borda, só o número na cor do anel, igual ao
+      // infográfico de referência do usuário. Alterna a distância por
+      // posição (par/ímpar) pra não empilhar dois percentuais iguais
+      // (ex.: dois donos empatados na mesma %) exatamente em cima um
+      // do outro.
+      const pctR=outerR+24+(segIdx%2===0?0:22);
+      const px=cx+pctR*Math.cos(a0), py=cy+pctR*Math.sin(a0);
       frdCtx.save();
       frdCtx.font='800 26px "DM Sans", system-ui, -apple-system, sans-serif';
       frdCtx.textAlign='center'; frdCtx.textBaseline='middle';
-      const pctTxt=frPct(seg.pct);
-      // Chip (pílula) atrás do percentual — sem fundo sólido, o número
-      // colorido em cima do card claro (ou de um anel de cor parecida)
-      // ficava fraco demais pra ler. O fundo do card + borda na cor do
-      // anel garante contraste em qualquer tema/posição.
-      const padX=8, padY=4;
-      const tw=frdCtx.measureText(pctTxt).width;
-      const chipW=tw+padX*2, chipH=26+padY*2;
-      frdCtx.shadowColor=isDark()?'rgba(0,0,0,.5)':'rgba(0,0,0,.15)'; frdCtx.shadowBlur=4;
-      frdCtx.fillStyle=isDark()?'#1c2130':'#ffffff';
-      frdCtx.beginPath();
-      frdCtx.roundRect(px-chipW/2,py-chipH/2,chipW,chipH,chipH/2);
-      frdCtx.fill();
-      frdCtx.shadowColor='transparent'; frdCtx.shadowBlur=0;
-      frdCtx.lineWidth=1.5; frdCtx.strokeStyle=col;
-      frdCtx.stroke();
       frdCtx.fillStyle=col;
-      frdCtx.fillText(pctTxt, px, py+1);
+      frdCtx.fillText(frPct(seg.pct), px, py);
       frdCtx.restore();
     }
   });
