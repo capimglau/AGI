@@ -5460,27 +5460,29 @@ function frdDrawRings(){
   // atravessando 9h→6h→3h até chegar perto do outro lado do vão em
   // 100%. Só inverte de qual lado o anel nasce; o vão continua no topo.
   const anchor=FRD_START+FRD_SWEEP;
-  // Cada anel usa o MAIOR tamanho de fonte que cabe no vão dele —
-  // deixamos de igualar todo mundo pelo anel mais apertado (Lucélia),
-  // porque isso arrastava até o anel do Silvio (que sobra bastante
-  // espaço) pro mesmo tamanho minúsculo dela. O tela real do celular
-  // ainda encolhe tudo por CSS (a resolução interna do canvas é bem
-  // maior que o espaço exibido), então cada anel aproveitando seu
-  // próprio máximo é o que garante o maior texto possível na tela de
-  // verdade — só os 1-2 anéis mais internos (valor quase zero) ficam
-  // pequenos, porque literalmente não sobra circunferência pra mais.
+  // Todos os anéis no MESMO tamanho de fonte — 40% maior que o tamanho
+  // único anterior (calibrado pelo anel mais apertado, o da Lucélia).
+  // Nesse tamanho maior, o rótulo completo ("Nome · R$ valor") não cabe
+  // mais no vão dos 1-2 anéis mais internos (participação quase zero);
+  // em vez de simplesmente não desenhar nada, esses caem pro nome
+  // sozinho (sem o valor) — mais curto o suficiente pra caber no mesmo
+  // tamanho de todo mundo, sem nunca sumir.
   const maxSpan=FRD_GAP_ANGLE*0.90;
   const fitInfo=specs.filter(seg=>seg.key!=='Outros').map(seg=>{
     const valTxt=window.innerWidth>=900?fR(seg.value):frAbbrevR(seg.value);
     // Capitalização natural do nome (só a primeira letra maiúscula) —
     // sem forçar caixa alta, que o usuário achou pior de ler.
-    const labelTxt=seg.key+' · '+valTxt;
+    const fullTxt=seg.key+' · '+valTxt;
     frdCtx.font='800 100px "Poppins","DM Sans",system-ui,-apple-system,sans-serif';
-    const refWidth=labelTxt.split('').reduce((s,c)=>s+frdCtx.measureText(c).width,0);
-    const refAngle=refWidth/seg.R;
-    const fitPx=Math.max(9,Math.floor(100*maxSpan/refAngle));
-    return {seg,labelTxt,fitPx};
+    const fitPxFor=text=>{
+      const refWidth=text.split('').reduce((s,c)=>s+frdCtx.measureText(c).width,0);
+      const refAngle=refWidth/seg.R;
+      return Math.max(9,Math.floor(100*maxSpan/refAngle));
+    };
+    return {seg,fullTxt,fitFull:fitPxFor(fullTxt),fitName:fitPxFor(seg.key)};
   });
+  const baselineFontPx=Math.min(...fitInfo.map(f=>f.fitFull));
+  const uniformFontPx=Math.round(baselineFontPx*1.4);
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
     const isOutros=seg.key==='Outros';
@@ -5527,7 +5529,8 @@ function frdDrawRings(){
       // ponta arredondada do preenchimento) e cresce pro lado do vão.
       const capClearance=Math.max((FRD_THICK/2)/R*2.2, 0.06);
       const info=fitInfo.find(f=>f.seg===seg);
-      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,info.labelTxt,info.fitPx,false,col);
+      const labelTxt=uniformFontPx<=info.fitFull?info.fullTxt:seg.key;
+      frDrawArcSegment(frdCtx,cx,cy,R,anchor+capClearance,1,maxSpan,labelTxt,uniformFontPx,false,col);
     }
   });
 }
