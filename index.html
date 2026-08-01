@@ -5360,11 +5360,10 @@ function frdBuildSpecs(){
 function frdBoxFor(specs){
   if(!specs.length)return FRD_HUB_R*2+40;
   const outerEdge=specs[0].R+FRD_THICK/2;
-  // Buffer maior (90, era 34): todos os percentuais agora moram do
-  // lado de fora do anel mais externo (outerEdge+24, +22 alternado)
-  // mais a largura do próprio texto, então precisa de bem mais margem
-  // pra não cortar.
-  return Math.round((outerEdge+90)*2);
+  // Buffer (64): dá espaço pro percentual do anel mais externo, que
+  // fica logo depois dele (R+THICK/2+12, +10 alternado) mais a
+  // largura do próprio texto.
+  return Math.round((outerEdge+64)*2);
 }
 function frdSizeCanvas(box){
   frdCanvas=document.getElementById('frdCanvas');
@@ -5448,12 +5447,6 @@ function frdDrawRings(){
   // atravessando 9h→6h→3h até chegar perto do outro lado do vão em
   // 100%. Só inverte de qual lado o anel nasce; o vão continua no topo.
   const anchor=FRD_START+FRD_SWEEP;
-  // Raio fixo pra todos os percentuais (fora do anel mais externo de
-  // todos) — como todo mundo nasce do mesmo ponto, o anel maior sempre
-  // "contém" o ângulo onde os menores terminam, então colocar o
-  // percentual só um pouquinho pra fora do próprio anel deixava o
-  // texto colado em cima da faixa colorida de outro anel maior.
-  const outerR=specs.length?specs[0].R+FRD_THICK/2:0;
   specs.forEach((seg,segIdx)=>{
     const R=seg.R;
     const isOutros=seg.key==='Outros';
@@ -5508,14 +5501,15 @@ function frdDrawRings(){
       // disponível é o próprio arco preenchido (a1-a0).
       const aMid=frdLabelAngle(frdCtx,R,a0,a1,fontPx,labelTxt);
       frDrawArcLabel(frdCtx,cx,cy,R,aMid,(a1-a0)*0.85,labelTxt,fontPx);
-      // Percentual do lado de fora de TODOS os anéis, na ponta final
-      // da barra (a0, onde o preenchimento realmente termina) — sem
-      // chip nem borda, só o número na cor do anel, igual ao
-      // infográfico de referência do usuário. Alterna a distância por
-      // posição (par/ímpar) pra não empilhar dois percentuais iguais
-      // (ex.: dois donos empatados na mesma %) exatamente em cima um
-      // do outro.
-      const pctR=outerR+24+(segIdx%2===0?0:22);
+      // Percentual na ponta final da própria barra (a0, onde o
+      // preenchimento termina), logo depois do próprio anel — sem chip
+      // nem borda, só o número na cor do anel, igual ao infográfico de
+      // referência do usuário. Fica dentro do gráfico (perto do seu
+      // próprio anel), não lá fora de tudo. Alterna um pouco a
+      // distância por posição (par/ímpar) só pra não empilhar dois
+      // percentuais iguais (donos empatados na mesma %) exatamente um
+      // em cima do outro.
+      const pctR=R+FRD_THICK/2+12+(segIdx%2===0?0:10);
       const px=cx+pctR*Math.cos(a0), py=cy+pctR*Math.sin(a0);
       frdCtx.save();
       frdCtx.font='800 26px "DM Sans", system-ui, -apple-system, sans-serif';
