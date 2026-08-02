@@ -412,6 +412,7 @@ body::before {
   color: var(--ink3);
   margin-bottom: 7px;
 }
+.mc-label .mes { font-size: calc(1em + 1px); color: var(--red); }
 .mc-value {
   font-size: 24px;
   font-weight: 700;
@@ -1177,15 +1178,20 @@ body.tip-pinned::before {
 /* Emitido sai de cena: linha inteira esmaecida — traço, valor e visto junto. */
 .rb-bol.bol-feito { opacity: .42; }
 .rb-bol.bol-feito:hover { opacity: .72; }
-.bol-l { width: 168px; font-size: 12.5px; }
+.bol-l { width: 200px; font-size: 12.5px; }
 .bol-l small { display: block; color: var(--ink3); font-size: 10.5px; text-decoration: none; }
 .rb-bol-leg { color: var(--ink3); font-weight: 500; font-size: 10.5px; }
-.bol-toggle { margin-left: 10px; background: none; border: 0; padding: 0; cursor: pointer;
+/* Vencimento a 20 dias ou menos (e ainda não emitido): pisca em vermelho pra
+   chamar atenção — animação simples de opacidade, sem exagerar no efeito. */
+.bol-venc-blink { color: var(--red); font-weight: 800; animation: bolBlink 1s step-start infinite; }
+@keyframes bolBlink { 50% { opacity: .25; } }
+.bol-toggle, .bol-vermais { margin-left: 10px; background: none; border: 0; padding: 0; cursor: pointer;
   color: var(--blue); font-weight: 700; font-size: 12px; font-family: inherit; }
-.bol-toggle:hover { text-decoration: underline; }
+.bol-toggle:hover, .bol-vermais:hover { text-decoration: underline; }
+.bol-vermais-row { text-align: center; padding: 8px 0 2px; }
 .bol-rodape { margin-top: 9px; font-size: 12px; font-weight: 700; color: var(--red); }
 .bol-rodape.ok { color: var(--green); }
-@media (max-width: 560px) { .bol-l { width: 108px; } }
+@media (max-width: 560px) { .bol-l { width: 140px; } }
 /* Resumo compacto do painel de boletos: dois números, some na lista só ao expandir. */
 .bol-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; cursor: pointer; padding: 2px; border-radius: 14px; }
 .bol-resumo-stat { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 12px 16px; border-radius: 14px; background: var(--surface); }
@@ -1898,7 +1904,7 @@ details[open] summary::before { transform: rotate(90deg); }
   .perfil-btn { margin-left: 6px; }
   .header-right {
     display: flex; flex-basis: 100%; margin-left: 0; justify-content: center;
-    gap: 6px; order: 5;
+    align-items: center; gap: 6px; order: 5;
   }
   .header-right .stat-pill {
     display: flex; align-items: baseline; gap: 4px; flex-shrink: 0;
@@ -1907,33 +1913,6 @@ details[open] summary::before { transform: rotate(90deg); }
   .header-right .stat-pill .lbl { font-size: 9px; }
   .header-right .stat-pill .val { font-size: 11.5px; line-height: 1; }
   .mn-label { min-width: 50px; font-size: 11.5px; }
-
-  /* Ao rolar para baixo, o header entra em modo compacto: mês, tema e
-     sair encolhem a zero e os valores (Previsto/Pendente/Recebido) sobem
-     pra 1ª linha, ao lado da logo, no lugar deles — economiza espaço
-     vertical sem esconder os números. Volta ao normal ao rolar pra cima
-     (mesmo gatilho de scroll que já esconde/mostra o dock). */
-  .header .month-nav, .header .theme-toggle, .header .perfil-btn {
-    transition: max-width .22s ease, opacity .18s ease, margin .22s ease;
-    max-width: 200px;
-    overflow: hidden;
-  }
-  .header.hdr-compact .month-nav,
-  .header.hdr-compact .theme-toggle,
-  .header.hdr-compact .perfil-btn {
-    max-width: 0;
-    opacity: 0;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    pointer-events: none;
-  }
-  .header.hdr-compact .header-right {
-    flex-basis: auto;
-    order: 2;
-    margin-left: auto;
-    justify-content: flex-end;
-    transition: none;
-  }
 
   /* Abas viram barra de navegação fixa embaixo (estilo app) */
   .nav-tabs {
@@ -5241,17 +5220,30 @@ function rbDuplo(itens,{rank=false,top=0,label=k=>k}={}){
 // desce para a lista linha a linha quando o usuário clica para expandir.
 let bolExpandido=false;  // mostra a lista de boletos, um a um
 let bolFiltro='afazer';  // qual lista mostrar: 'afazer' | 'feitos' | 'todos'
+let bolVerMais=false;  // "ver mais" dentro da lista (que começa mostrando só 5)
+// Garante que o auto-expand (boleto a emitir vencendo em ≤20 dias) só acontece
+// uma vez — depois disso o usuário controla a seta normalmente, sem o painel
+// forçar reabertura toda vez que algo é re-renderizado.
+let bolAutoInit=false;
 let clientesExpandido=false;  // "Ver mais" do painel Top 10 clientes
 function toggleClientesExpand(){clientesExpandido=!clientesExpandido;renderResumo();}
-function toggleBoletosExpand(){bolExpandido=!bolExpandido;renderResumo();}
+function toggleBoletosExpand(){bolExpandido=!bolExpandido;bolVerMais=false;renderResumo();}
 // Clicar em "a emitir" ou "emitidos" abre a lista já filtrada só por aquele
 // grupo; clicar de novo no mesmo grupo (já aberto) fecha. O botão "Ver
 // todos" (no rodapé) junta os dois de novo.
 function verBoletosFiltro(f){
   bolExpandido=!(bolExpandido&&bolFiltro===f);
   bolFiltro=f;
+  bolVerMais=false;
   renderResumo();
 }
+function verBoletosMais(){ bolVerMais=true; renderResumo(); }
+// Dias corridos até o vencimento (negativo = já vencido).
+function diasAteVenc(d){
+  if(!d)return Infinity;
+  return Math.round((new Date(d+'T12:00:00')-new Date(td()+'T12:00:00'))/86400000);
+}
+function ddmm(d){ if(!d)return null; const[,mm,dd]=d.split('-'); return dd+'/'+mm; }
 function renderBoletosPainel(rows){
   const el=document.getElementById('resBoletos');
   if(!el)return;
@@ -5267,6 +5259,11 @@ function renderBoletosPainel(rows){
   const feitos=feitosRows.length, afazer=afazerRows.length;
   const totFeitos=feitosRows.reduce((a,r)=>a+liq(r),0), totFazer=afazerRows.reduce((a,r)=>a+liq(r),0);
   if(hd)hd.textContent=`Boletos do mês — ${feitos} de ${bol.length} emitidos`;
+
+  // Boleto a emitir vencendo em 20 dias ou menos (ou já vencido): abre a
+  // lista sozinho na primeira vez que aparece, pra não passar batido.
+  const temUrgente=afazerRows.some(r=>diasAteVenc(r.prev_pgto)<=20);
+  if(!bolAutoInit&&temUrgente){bolExpandido=true;bolFiltro='afazer';bolAutoInit=true;}
 
   const resumo=`<div class="bol-resumo" role="button" tabindex="0">
     <div class="bol-resumo-stat afazer" onclick="event.stopPropagation();verBoletosFiltro('afazer')" title="Ver só os boletos a emitir">
@@ -5284,9 +5281,10 @@ function renderBoletosPainel(rows){
 
   if(!bolExpandido){ el.innerHTML=resumo; return; }
 
-  const mostra=bolFiltro==='feitos'?feitosRows:bolFiltro==='todos'?bol:afazerRows;
+  const mostraTodos=bolFiltro==='feitos'?feitosRows:bolFiltro==='todos'?bol:afazerRows;
+  const mostra=bolVerMais?mostraTodos:mostraTodos.slice(0,5);
   const alterna=bolFiltro!=='todos'
-    ? `<button class="bol-toggle" onclick="event.stopPropagation();bolFiltro='todos';renderResumo()">Ver todos (${bol.length})</button>`
+    ? `<button class="bol-toggle" onclick="event.stopPropagation();bolFiltro='todos';bolVerMais=false;renderResumo()">Ver todos (${bol.length})</button>`
     : '';
   const leg=`<div class="rb rb-cab"><div class="rb-l"></div><div class="rb-bg rb-bg-vazio"></div>
     <div class="rb-v rb-v2"><span class="rb-bol-leg">clique para marcar como emitido</span></div></div>`;
@@ -5296,15 +5294,20 @@ function renderBoletosPainel(rows){
     // traço: verde já recebido · vermelho vencido em aberto · amarelo a vencer
     const cls=pago?'rb-f-rec':venc?'rb-f-atr':'rb-f-prev';
     const situacao=pago?'recebido':venc?'vencido':'a vencer';
-    const [,mm,dd]=(r.prev_pgto||'--- - -').split('-');
+    const vencTxt=ddmm(r.prev_pgto)||'—';
+    const periodo=r.saida?`${ddmm(r.saida)}–${ddmm(r.retorno)||'?'}`:'—';
+    const urgente=!r.boleto_feito&&diasAteVenc(r.prev_pgto)<=20;
     return`<div class="rb rb-bol${r.boleto_feito?' bol-feito':''}" onclick="toggleBoletoFeito(${i})"
-        title="${esc(r.cliente||'—')} · ${esc(r.placa||'')} · vence ${r.prev_pgto?dd+'/'+mm:'—'} · ${situacao}${r.boleto_feito?' · boleto emitido':' · boleto a emitir'}">
+        title="${esc(r.cliente||'—')} · ${esc(r.placa||'')} · locação ${periodo} · vence ${vencTxt} · ${situacao}${r.boleto_feito?' · boleto emitido':' · boleto a emitir'}">
       <span class="bol-ck">${r.boleto_feito?'✓':''}</span>
-      <div class="rb-l bol-l">${esc(r.cliente||'—')}<small>${esc(r.placa||'')} · ${r.prev_pgto?dd+'/'+mm:'—'}</small></div>
+      <div class="rb-l bol-l">${esc(r.cliente||'—')}<small>${esc(r.placa||'')} · loc. ${periodo} · vence <span class="${urgente?'bol-venc-blink':''}">${vencTxt}</span></small></div>
       <div class="rb-bg rb-bg2"><div class="rb-f ${cls}" style="left:0;width:100%"></div></div>
       <div class="rb-v rb-v2"><span class="rb-prev">${vDuplo(pago?r.valor_pago:r.saldo)}</span></div>
     </div>`;
   }).join('');
+  const vermais=(!bolVerMais&&mostraTodos.length>5)
+    ?`<div class="bol-vermais-row"><button class="bol-vermais" onclick="event.stopPropagation();verBoletosMais()">Ver mais (${mostraTodos.length-5})</button></div>`
+    :'';
   let rodape;
   if(bolFiltro==='feitos'){
     rodape=feitos>0
@@ -5314,7 +5317,7 @@ function renderBoletosPainel(rows){
     rodape=totFazer>0?`<div class="bol-rodape">Faltam emitir ${afazer} boleto(s) · ${fR(totFazer)}${alterna}</div>`:
       `<div class="bol-rodape ok">Todos os boletos do mês já foram emitidos ✓${alterna}</div>`;
   }
-  el.innerHTML=resumo+`<div class="bol-lista">${leg}${linhas}${rodape}</div>`;
+  el.innerHTML=resumo+`<div class="bol-lista">${leg}${linhas}${vermais}${rodape}</div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -5579,8 +5582,8 @@ function renderResumo(){
   let deltaBadge='';
   if(prevV>0){const dp=(prevLiq-prevV)/prevV*100;const up=dp>=0;deltaBadge=` · <span class="mc-delta ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(dp).toFixed(0)}%</span>`;}
   document.getElementById('res-m').innerHTML=`
-    <div class="mc blue" role="button" tabindex="0" onclick="irLancMetric('')" title="Ver todos os lançamentos do mês"><div class="mc-label">Total previsto · ${mLabel(curMes)}</div><div class="mc-value">${fR(prevLiq)}</div><div class="mc-sub">${nL} lançamentos${deltaBadge}</div></div>
-    <div class="mc green" role="button" tabindex="0" onclick="irLancMetric('pago')" title="Ver só os recebidos"><div class="mc-label">Total recebido · ${mLabel(curMes)}</div><div class="mc-value">${fR(totP)}</div><div class="mc-sub">${prevLiq>0?((totP/prevLiq)*100).toFixed(1):'0'}% do previsto</div></div>
+    <div class="mc blue" role="button" tabindex="0" onclick="irLancMetric('')" title="Ver todos os lançamentos do mês"><div class="mc-label">Total previsto · <span class="mes">${mLabel(curMes)}</span></div><div class="mc-value">${fR(prevLiq)}</div><div class="mc-sub">${nL} lançamentos${deltaBadge}</div></div>
+    <div class="mc green" role="button" tabindex="0" onclick="irLancMetric('pago')" title="Ver só os recebidos"><div class="mc-label">Total recebido · <span class="mes">${mLabel(curMes)}</span></div><div class="mc-value">${fR(totP)}</div><div class="mc-sub">${prevLiq>0?((totP/prevLiq)*100).toFixed(1):'0'}% do previsto</div></div>
     <div class="mc amber" role="button" tabindex="0" onclick="irLancMetric('pend')" title="Ver só os pendentes"><div class="mc-label">A receber</div><div class="mc-value">${fR(totS)}</div><div class="mc-sub">${nPend} pendentes</div></div>
     <div class="mc red" role="button" tabindex="0" onclick="irLancMetric('venc')" title="Ver só os vencidos"><div class="mc-label">Inadimplência</div><div class="mc-value">${inad.toFixed(1)}%</div><div class="mc-sub">${fR(vencVal)} vencido</div></div>
   `;
@@ -7510,22 +7513,14 @@ function setDockHidden(hidden){
   clearTimeout(dock._dockAnimT);
   dock._dockAnimT=setTimeout(()=>dock.classList.remove('dock-anim'),260);
 }
-// Mesma ideia do dock: ao rolar pra baixo, o header entra em modo compacto
-// (mês/tema/sair encolhem e os valores sobem pra linha da logo); ao rolar
-// pra cima ou voltar ao topo, desfaz.
-function setHeaderCompact(hidden){
-  const hdr=document.querySelector('.header');
-  if(!hdr)return;
-  hdr.classList.toggle('hdr-compact',hidden);
-}
 (function(){
   let lastY=window.scrollY,ticking=false;
   function onScroll(){
     ticking=false;
     if(window.innerWidth>760)return;
     const y=window.scrollY;
-    if(y<=8){setDockHidden(false);setHeaderCompact(false);lastY=y;return;}
-    if(Math.abs(y-lastY)>4){setDockHidden(y>lastY);setHeaderCompact(y>lastY);lastY=y;}
+    if(y<=8){setDockHidden(false);lastY=y;return;}
+    if(Math.abs(y-lastY)>4){setDockHidden(y>lastY);lastY=y;}
   }
   window.addEventListener('scroll',()=>{
     if(!ticking){ticking=true;requestAnimationFrame(onScroll);}
