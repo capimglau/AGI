@@ -46,7 +46,13 @@
   --card-shadow: 0 2px 12px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.05);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { overflow-x: hidden; }
+/* overflow-x: clip (não hidden!) — hidden força o overflow-y "invisível"
+   pra auto/hidden também (regra da spec), transformando html/body em
+   scroll containers próprios, separados do scroll real da página; isso
+   quebra o position:sticky de filhos (ver .header) porque a rolagem que
+   de fato acontece deixa de "tocar" o container que o sticky observa.
+   clip barra o vazamento horizontal sem esse efeito colateral. */
+html { overflow-x: clip; }
 body {
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: #eef0f6;
@@ -57,7 +63,12 @@ body {
      flutuante de uma fatia selecionada pode acabar bem na quina — sem
      isso, esse caso pontual empurrava a página inteira pra rolar na
      horizontal. */
-  overflow-x: hidden;
+  /* overflow-x: clip (não hidden) — mesmo motivo do html acima: hidden
+     transformaria o body num scroll container próprio (overflow-y vira
+     auto/hidden sozinho), quebrando o position:sticky do .header (que é
+     filho direto do body) porque o scroll real da página passa a
+     acontecer só no html, fora do que o sticky do header está "vendo". */
+  overflow-x: clip;
   /* Sem isso, um arraste vertical dentro de um modal curto (ex.: apagar o
      valor/observação de um pagamento) pode "vazar" pro body e disparar o
      puxar-pra-atualizar do navegador — que recarrega a página e parece que
@@ -1864,23 +1875,36 @@ details[open] summary::before { transform: rotate(90deg); }
 @media (max-width: 760px) {
   body { font-size: 15px; -webkit-text-size-adjust: 100%; padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
 
-  /* Header: logo (esq) · mês (dir) */
+  /* Header: logo + mês + botões numa linha; Previsto/Pendente/Recebido
+     numa segunda linha logo abaixo (dedicada, centralizada) — não cabe
+     tudo numa linha só (fiz as contas: sobra ~40px ao lado da logo/mês/
+     botões, os 3 chips por si só já precisam de mais de 100px mesmo
+     abreviados) sem espremer a ponto de ficar ilegível ou depender de
+     rolagem horizontal escondida. */
   .header {
     height: auto;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     padding: 10px 14px;
     gap: 8px;
   }
-  .logo { margin: 0; font-size: 17px; }
-  .month-nav { position: static; transform: none; margin-left: auto; }
-  .header-right { display: none; }
+  .logo { margin: 0 6px 0 0; font-size: 17px; }
+  .logo-img { height: 22px; }
+  .month-nav { position: static; transform: none; margin-left: 0; flex-shrink: 0; }
   /* reset sidebar offsets */
   .header { left: 0 !important; width: 100% !important; }
   .page { margin-left: 0 !important; }
   body { padding-left: 0 !important; }
-  /* Cartões Pendente/Recebido são duplicata dos painéis — escondidos no mobile */
-  .header-right .stat-pill { display: none; }
-  .mn-label { min-width: 92px; }
+  .header-right {
+    display: flex; flex-basis: 100%; margin-left: 0; justify-content: center;
+    gap: 6px; order: 5;
+  }
+  .header-right .stat-pill {
+    display: flex; align-items: baseline; gap: 4px; flex-shrink: 0;
+    padding: 4px 9px; border-radius: 8px;
+  }
+  .header-right .stat-pill .lbl { font-size: 9px; }
+  .header-right .stat-pill .val { font-size: 11.5px; line-height: 1; }
+  .mn-label { min-width: 50px; font-size: 11.5px; }
 
   /* Abas viram barra de navegação fixa embaixo (estilo app) */
   .nav-tabs {
@@ -2275,8 +2299,11 @@ details[open] summary::before { transform: rotate(90deg); }
 }
 
 @media (max-width: 420px) {
-  .header-right { flex-wrap: wrap; }
-  .header-right .stat-pill { font-size: 12px; padding: 6px 8px; }
+  /* .header-right tinha flex-wrap:wrap + fonte/padding maiores aqui — de
+     quando os chips ficavam escondidos em qualquer mobile (só reapareciam,
+     quebrados, em telas bem estreitas por engano). Removido: os chips
+     ficam visíveis desde 760px pra baixo agora, com o layout compacto de
+     lá (ver acima) — sem precisar de outra regra conflitante aqui. */
   .mrow, #res-m { grid-template-columns: 1fr 1fr; gap: 8px; }
   .mc-value { font-size: 18px; }
 }
@@ -2578,6 +2605,10 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
   </div>
 
   <div class="header-right">
+    <div class="stat-pill">
+      <span class="lbl">Previsto</span>
+      <span class="val" id="hPrev">—</span>
+    </div>
     <div class="stat-pill">
       <span class="lbl">Pendente</span>
       <span class="val r" id="hPend">—</span>
@@ -4426,7 +4457,10 @@ function irLancMetric(status){
 }
 function updateMesLabel(){
   const [y,m]=curMes.split('-');
-  document.getElementById('mnLabel').textContent=`${MF[parseInt(m)-1]} ${y.slice(2)}`;
+  // Mobile: mês abreviado (3 letras) — mesmo motivo dos chips abreviados,
+  // sobra espaço pro cabeçalho inteiro caber numa linha só.
+  const nome=window.innerWidth<=760?MF[parseInt(m)-1].slice(0,3):MF[parseInt(m)-1];
+  document.getElementById('mnLabel').textContent=`${nome} ${y.slice(2)}`;
 }
 
 // ── FILTER ──
@@ -4545,8 +4579,15 @@ function updateHeader(){
   // Both chips filtered by curMes
   const pendMes=all.filter(r=>isPend(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'').startsWith(curMes));
   const recMes=all.filter(r=>isPago(r)&&(!selDono||r.dono===selDono)&&(r.prev_pgto||'').startsWith(curMes));
-  document.getElementById('hPend').textContent=fR(pendMes.reduce((a,r)=>a+fN(r.saldo),0));
-  document.getElementById('hRec').textContent=fR(recMes.reduce((a,r)=>a+fN(r.valor_pago),0));
+  const pendV=pendMes.reduce((a,r)=>a+fN(r.saldo),0);
+  const recV=recMes.reduce((a,r)=>a+fN(r.valor_pago),0);
+  // Mobile: valores abreviados (R$ 1,2k) — mesmo na segunda linha
+  // dedicada, o nome completo ("R$ 107.240,53") não caberia nos 3 chips
+  // lado a lado; no desktop, formato completo de sempre.
+  const fmt=window.innerWidth<=760?frAbbrevR:fR;
+  document.getElementById('hPrev').textContent=fmt(pendV+recV);
+  document.getElementById('hPend').textContent=fmt(pendV);
+  document.getElementById('hRec').textContent=fmt(recV);
 }
 
 // ── OWNER PILLS ──
