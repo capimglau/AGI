@@ -358,8 +358,12 @@ body::before {
   .nt-ico { display: flex; align-items: center; flex-shrink: 0; }
   .nt-ico svg { width: 20px; height: 20px; }
   .nt-short { display: block; font-size: 13px; font-weight: 500; overflow: hidden; }
-  /* Sidebar fixa: header e pages ficam deslocados via body padding-left */
-  .header { left: 60px; width: calc(100% - 60px); }
+  /* Sidebar fixa: header e pages ficam deslocados via body padding-left —
+     só isso já resolve (mesmo princípio do .page logo abaixo). O left:60px
+     que existia aqui deslocava o header DE NOVO, em cima do padding do
+     body, deixando um vão vazio de 60px entre a sidebar e o início da
+     barra do cabeçalho. */
+  .header { left: auto; width: auto; }
   .page { margin-left: 0; }
   /* Separador entre grupos */
   .sidebar-sep { display: block; height: 1px; background: rgba(0,0,0,.07); margin: 6px 12px; width: calc(100% - 24px); }
