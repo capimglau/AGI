@@ -106,11 +106,22 @@
       // inteiro — quem chama decide qual é (cfg.big:true), já que é o
       // único que sabe a ordem visual pretendida dos anéis.
       this._ringGroups = {};
+      this._sideLayers = {};
       this.rings.forEach(cfg => {
         const g = el('g', 'sb3d-ring' + (cfg.big ? ' sb3d-ring-outer' : ''));
         g.dataset.ring = cfg.id;
         svg.appendChild(g);
+        // Camada única com TODAS as "laterais" (paredes falsas de
+        // profundidade) do anel, sempre a primeira filha do grupo — ou
+        // seja, sempre atrás de TODAS as fatias, mesmo as vizinhas. Sem
+        // isso, cada fatia era seu próprio grupo empilhado na ordem do
+        // círculo, e a lateral (deslocada por transform) de uma fatia
+        // podia ser pintada por cima da face da fatia anterior, criando
+        // a "parede" torta que vazava pro lado errado.
+        const sideLayer = el('g', 'sb3d-sides');
+        g.appendChild(sideLayer);
         this._ringGroups[cfg.id] = g;
+        this._sideLayers[cfg.id] = sideLayer;
         this._els[cfg.id] = {};
       });
 
@@ -202,6 +213,7 @@
       if (this._prevSig[cfg.id] !== sig) {
         // mantém a <path class="sb3d-sheen"> (última filha), só limpa fatias
         Array.from(group.querySelectorAll(':scope > g.sb3d-slice')).forEach(n => n.remove());
+        Array.from(this._sideLayers[cfg.id].children).forEach(n => n.remove());
         this._haloG.querySelectorAll(`[data-ring="${cfg.id}"]`).forEach(n => n.remove());
         this._connG.querySelectorAll(`[data-ring="${cfg.id}"]`).forEach(n => n.remove());
         this._cards.querySelectorAll(`[data-ring="${cfg.id}"]`).forEach(n => n.remove());
@@ -220,6 +232,7 @@
           group.insertBefore(rec.g, sheen);
         }
         rec.g.classList.toggle('dimmed', anySelected && !s.selected);
+        rec.sideG.classList.toggle('dimmed', anySelected && !s.selected);
         this._updateSlice(cfg, rec, s);
         if (isNew) {
           rec.g.classList.add('sb3d-entering');
@@ -232,9 +245,16 @@
       const g = el('g', `sb3d-slice mode-${cfg.mode}`);
       g.dataset.ring = cfg.id; g.dataset.key = s.key;
 
+      // A lateral vive na camada compartilhada do anel (this._sideLayers),
+      // não dentro do próprio grupo da fatia — ver comentário em _build().
+      // Mesmas classes do grupo principal pra herdar exatamente as mesmas
+      // regras de CSS (transição, opacity ao "dimmed" etc.).
+      const sideG = el('g', `sb3d-slice mode-${cfg.mode} sb3d-slice-side`);
+      sideG.dataset.ring = cfg.id; sideG.dataset.key = s.key;
       const side = el('path', 'side'); side.setAttribute('pointer-events', 'none');
       side.setAttribute('transform', 'translate(5,11)');
-      g.appendChild(side);
+      sideG.appendChild(side);
+      this._sideLayers[cfg.id].appendChild(sideG);
 
       const path = el('path', 'main'); path.setAttribute('pointer-events', 'none');
       g.appendChild(path);
@@ -289,7 +309,7 @@
       tag.addEventListener('click', () => { if (!s.locked) this.onToggle(cfg.id, s.key); });
       this._cards.appendChild(tag);
 
-      return { g, path, side, hi, inHi, rim, hit, markG, grad, halo, line, tag, hover: false };
+      return { g, sideG, path, side, hi, inHi, rim, hit, markG, grad, halo, line, tag, hover: false };
     }
 
     _hoverTag(cfg, key, on) {
@@ -357,6 +377,7 @@
         const scale = s.selected ? 2.25 : 1.7;
         rec.markG.setAttribute('transform', `translate(${ip.x - 12 * scale} ${ip.y - 12 * scale}) scale(${scale})`);
         rec.g.style.transform = s.selected ? `translate(${s.dir.x * (cfg.explode || 18)}px, ${s.dir.y * (cfg.explode || 18)}px)` : '';
+        rec.sideG.style.transform = rec.g.style.transform;
       } else {
         // Nome completo do proprietário direto na fatia, numa fonte que
         // encolhe pra caber na corda da fatia (2·R·sen(ângulo/2)) — fatia
@@ -372,6 +393,8 @@
         const op = this.polar((cfg.rOut + cfg.rIn) / 2, s.mid);
         rec.g.style.transformOrigin = `${op.x}px ${op.y}px`;
         rec.g.style.transform = s.selected ? 'scale(1.045)' : '';
+        rec.sideG.style.transformOrigin = rec.g.style.transformOrigin;
+        rec.sideG.style.transform = rec.g.style.transform;
         if (rec.halo) {
           const grow = cfg.grow || 14;
           rec.halo.setAttribute('d', this.ringPath(cfg.rOut + grow, Math.max(cfg.rIn - grow * 0.4, 0), s.startA, s.endA));
