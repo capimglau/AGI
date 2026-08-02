@@ -6,25 +6,20 @@
 .sb3d-stage { position: relative; width: 100%; max-width: 486px; aspect-ratio: 1 / 1; margin: 8px auto 4px; flex: none; }
 .sb3d-body { display: flex; flex-direction: column; }
 @media (min-width: 920px) {
-  /* -10% quatro vezes (546 -> 491 -> ~442 -> ~398 -> ~358) e depois +10%
-     de volta (~394px), ficou pequeno demais. A legenda volta a esticar até
-     a borda do card (flex:1 1 0) — capar a largura tinha deixado um vão
-     vazio grande do lado direito, com a legenda "encostada" no gráfico por
-     comparação. O gap do gráfico até a legenda usa o MESMO valor do
-     padding horizontal do próprio .card (22px, ver index.html) — daí a
-     legenda fica com espaçamento simétrico dos dois lados. */
-  .sb3d-body { flex-direction: row; align-items: center; gap: 22px; }
-  .sb3d-stage { margin: 8px 0; flex: 0 0 394px; }
-  .sb3d-legends { flex: 1 1 0; flex-direction: column; margin-top: 0; min-width: 0; gap: 16px; }
-  /* Fontes/espaçamento da legenda menores, acompanhando o gráfico —
-     mais um passo além da base (que já reduziu ~1px/font). */
+  /* Só no desktop: gráfico +10% (394 -> 433px) e legenda mais compacta e
+     um pouco mais afastada dele (gap 22 -> 32px, "joga" o texto pra
+     direita) — fontes/espaçamento reduzidos de novo (estavam grandes
+     demais, competindo com o gráfico maior por espaço/atenção). */
+  .sb3d-body { flex-direction: row; align-items: center; gap: 32px; }
+  .sb3d-stage { margin: 8px 0; flex: 0 0 433px; }
+  .sb3d-legends { flex: 1 1 0; flex-direction: column; margin-top: 0; min-width: 0; gap: 12px; }
   .sb3d-legend-block { flex-basis: 180px; min-width: 160px; }
-  .sb3d-legend-title { font-size: 9.5px; margin-bottom: 5px; }
-  .sb3d-legend { gap: 1px; }
-  .sb3d-legend li { padding: 4px 6px; font-size: 10.5px; column-gap: 6px; }
-  .sb3d-legend-val { font-size: 10.3px; }
-  .sb3d-legend-pct { font-size: 9px; min-width: 25px; }
-  .sb3d-legend-bar-wrap { height: 3.5px; margin-top: 2.5px; }
+  .sb3d-legend-title { font-size: 8.5px; margin-bottom: 4px; }
+  .sb3d-legend { gap: 0px; }
+  .sb3d-legend li { padding: 3px 6px; font-size: 9.5px; column-gap: 6px; }
+  .sb3d-legend-val { font-size: 9.3px; }
+  .sb3d-legend-pct { font-size: 8px; min-width: 25px; }
+  .sb3d-legend-bar-wrap { height: 3px; margin-top: 2px; }
   .sb3d-legend-sq { width: 5px; height: 5px; }
   /* Teste: nomes de proprietário com uma fonte "de vitrine" (a mesma
      família nativa do sistema, SF Pro no Mac/iOS) em vez da fonte
