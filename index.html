@@ -5291,20 +5291,13 @@ function renderBoletosPainel(rows){
 // mesmo tempo — percentual e valor aparecem direto no gráfico.
 // ═══════════════════════════════════════════════════════════════════════
 const FR_ORDER=['dono','tipo'];
-// Paleta categórica fixa (não segue o tema) — são os mesmos 8 tons do modo
-// escuro do design system, usados também no claro a pedido (ficam mais
-// vivos que a paleta clara do resto do app). Uma cor por categoria, na
-// ordem validada por validate_palette.js: pares adjacentes E o par de
-// wraparound (última cor encostando na primeira, já que o anel é
-// circular) passam o piso de visão normal (ΔE≥15) nos dois temas.
-// Azul da Locação trocado pro tom pedido (#2D7DFF) — os demais já
-// batiam com a referência (verde, ouro, magenta, roxo) e continuam os
-// mesmos, já validados (ver comentário abaixo).
-// Paleta pedida pelo usuário — extraída (amostrada pixel a pixel) de um
-// print de outro sistema dele: tons "joia fosca" (teal, roxo, oliva,
-// vinho, mostarda, verde escuro, terracota, azul acinzentado).
-const FR_PALETTE=['#4A9DA6','#6C5A97','#93B65C','#9C4455','#C99A35','#5B8C5A','#B0673F','#5C7A99'];
-const FR_OUTROS='#A9A0A8';
+// Paleta categórica fixa (não segue o tema) — mesmo esquema de cores do
+// gráfico "Receita por cliente × Despesa por categoria" do AutoGuest
+// (paleta "Freepik Flat": teal, dourado, carmesim, verde-limão, roxo,
+// terracota, azul-marinho, oliva). "Outros" usa o mesmo tom acastanhado
+// daquele gráfico.
+const FR_PALETTE=['#009DA0','#D9A000','#A32B45','#7FAF3A','#5A3D8C','#B54A1E','#2E5F9A','#916A1F'];
+const FR_OUTROS='#8b7a86';
 const FRT=newFilterState();
 let frBasis='comp'; // 'comp' previsto | 'caixa' recebido
 
