@@ -4365,6 +4365,21 @@ const fDM = d => (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d.slice(8,10)+'/'+d.slic
 function addD(d,n){const dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);}
 function proxUtil(d){const dt=new Date(d+'T12:00:00');const wd=dt.getDay();if(wd===6)dt.setDate(dt.getDate()+2);else if(wd===0)dt.setDate(dt.getDate()+1);return dt.toISOString().slice(0,10);}
 function addDUtil(d,n){return proxUtil(addD(d,n));}
+// Correção retroativa: lançamentos pendentes já cadastrados com vencimento
+// em sábado/domingo (de importações ou dados antigos, de antes da regra de
+// empurrar pra segunda existir) são corrigidos uma vez no carregamento.
+// Novos lançamentos/edições já nascem corretos via proxUtil() em cada
+// ponto de gravação (addN, addFromCam, saveEdit, importação de planilha).
+async function fixWeekendVencimentos(){
+  if(!SB) return;
+  const alvos=DATA.filter(r=>isPend(r)&&r.prev_pgto&&proxUtil(r.prev_pgto)!==r.prev_pgto);
+  if(!alvos.length) return;
+  for(const r of alvos){
+    r.prev_pgto=proxUtil(r.prev_pgto);
+    await dbUpdate(r);
+  }
+  console.log(`AGI Locadora · ${alvos.length} vencimento(s) em fim de semana corrigido(s) para segunda-feira.`);
+}
 function allD(){return[...DATA,...NOVOS];}
 
 // Baseado no SALDO, não no valor_pago: um recebimento parcial tem valor_pago>0
@@ -7305,6 +7320,7 @@ async function boot(){
   showSkeleton();
   let rows = await dbLoad();
   DATA = rows.map(r=>({...r}));
+  await fixWeekendVencimentos();
   // Restaura mês alvo salvo pela última importação
   const mesSalvo=localStorage.getItem('agi_mes_import');
   if(mesSalvo){curMes=mesSalvo;localStorage.removeItem('agi_mes_import');}
