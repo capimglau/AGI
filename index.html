@@ -1914,6 +1914,33 @@ details[open] summary::before { transform: rotate(90deg); }
   .header-right .stat-pill .val { font-size: 11.5px; line-height: 1; }
   .mn-label { min-width: 50px; font-size: 11.5px; }
 
+  /* Ao rolar para baixo, o header entra em modo compacto: mês, tema e
+     sair encolhem a zero e os valores (Previsto/Pendente/Recebido) sobem
+     pra 1ª linha, ao lado da logo, no lugar deles — economiza espaço
+     vertical sem esconder os números. Volta ao normal ao rolar pra cima
+     (mesmo gatilho de scroll que já esconde/mostra o dock). */
+  .header .month-nav, .header .theme-toggle, .header .perfil-btn {
+    transition: max-width .22s ease, opacity .18s ease, margin .22s ease;
+    max-width: 200px;
+    overflow: hidden;
+  }
+  .header.hdr-compact .month-nav,
+  .header.hdr-compact .theme-toggle,
+  .header.hdr-compact .perfil-btn {
+    max-width: 0;
+    opacity: 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    pointer-events: none;
+  }
+  .header.hdr-compact .header-right {
+    flex-basis: auto;
+    order: 2;
+    margin-left: auto;
+    justify-content: flex-end;
+    transition: none;
+  }
+
   /* Abas viram barra de navegação fixa embaixo (estilo app) */
   .nav-tabs {
     position: fixed;
@@ -7513,14 +7540,22 @@ function setDockHidden(hidden){
   clearTimeout(dock._dockAnimT);
   dock._dockAnimT=setTimeout(()=>dock.classList.remove('dock-anim'),260);
 }
+// Mesma ideia do dock: ao rolar pra baixo, o header entra em modo compacto
+// (mês/tema/sair encolhem e os valores sobem pra linha da logo); ao rolar
+// pra cima ou voltar ao topo, desfaz.
+function setHeaderCompact(hidden){
+  const hdr=document.querySelector('.header');
+  if(!hdr)return;
+  hdr.classList.toggle('hdr-compact',hidden);
+}
 (function(){
   let lastY=window.scrollY,ticking=false;
   function onScroll(){
     ticking=false;
     if(window.innerWidth>760)return;
     const y=window.scrollY;
-    if(y<=8){setDockHidden(false);lastY=y;return;}
-    if(Math.abs(y-lastY)>4){setDockHidden(y>lastY);lastY=y;}
+    if(y<=8){setDockHidden(false);setHeaderCompact(false);lastY=y;return;}
+    if(Math.abs(y-lastY)>4){setDockHidden(y>lastY);setHeaderCompact(y>lastY);lastY=y;}
   }
   window.addEventListener('scroll',()=>{
     if(!ticking){ticking=true;requestAnimationFrame(onScroll);}
