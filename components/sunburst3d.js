@@ -82,7 +82,7 @@
     // nada em vez de estourar/sobrepor a fatia vizinha.
     fitLabel(radius, spanDeg, full, short) {
       const chord = 2 * radius * Math.sin(Math.min(spanDeg, 170) * Math.PI / 360) * 0.82;
-      const maxFs = 15, minFs = 7.5, avgCharW = 0.58;
+      const maxFs = 16, minFs = 8.5, avgCharW = 0.58;
       const tryFit = text => {
         if (!text) return null;
         const fs = Math.min(maxFs, chord / (text.length * avgCharW));
@@ -354,7 +354,7 @@
         if (icon) rec.markG.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`;
         else rec.markG.innerHTML = '';
         rec.markG.style.color = mc;
-        const scale = s.selected ? 2.15 : 1.6;
+        const scale = s.selected ? 2.25 : 1.7;
         rec.markG.setAttribute('transform', `translate(${ip.x - 12 * scale} ${ip.y - 12 * scale}) scale(${scale})`);
         rec.g.style.transform = s.selected ? `translate(${s.dir.x * (cfg.explode || 18)}px, ${s.dir.y * (cfg.explode || 18)}px)` : '';
       } else {
