@@ -142,6 +142,10 @@
   border-radius: 50%;
   box-shadow: 0 1px 1px rgba(255,255,255,.6) inset, 0 -6px 14px rgba(0,0,0,.06) inset, 0 10px 28px rgba(12,18,30,.16);
   transition: transform .18s cubic-bezier(.2,.85,.3,1), box-shadow .18s;
+  /* Trava de segurança: com o hub menor (rIn do anel interno reduzido) e
+     fonte maior, o valor pode não caber numa linha só — sem isso ele
+     vazaria pra fora do círculo em vez de só cortar/comprimir. */
+  overflow: hidden;
 }
 .sb3d-hub:hover { transform: translate(-50%,-50%) scale(1.03); }
 .sb3d-hub:active { transform: translate(-50%,-50%) scale(.98); }
@@ -151,7 +155,7 @@
   box-shadow: 0 1px 1px rgba(255,255,255,.08) inset, 0 -6px 14px rgba(0,0,0,.35) inset, 0 10px 30px rgba(0,0,0,.45), 0 0 24px rgba(80,120,255,.12);
 }
 .sb3d-hub-label { font-size: 11.5px; font-weight: 700; color: var(--ink3); letter-spacing: .05em; text-transform: uppercase; max-width: 88%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sb3d-hub-value { font-size: 20px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; margin-top: 2px; }
+.sb3d-hub-value { font-size: 19px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; margin-top: 2px; max-width: 92%; }
 .sb3d-hub-sub { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: #16a34a; margin-top: 3px; }
 :root[data-theme="dark"] .sb3d-hub-sub { color: #4ade80; }
 .sb3d-hub-sub2 { font-size: 11px; color: var(--ink3); font-weight: 600; margin-top: 1px; }
