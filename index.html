@@ -5294,8 +5294,12 @@ function frBreakdown(dim,rows,grand){
 // Vão entre os dois anéis recuado pra 14 (tinha ido longe demais pra
 // 26) e a espessura de cada anel volta a crescer com o espaço que
 // sobrou — mantém a separação visível sem afinar demais as fatias.
+// rIn do anel tipo puxado pra dentro (104 -> 85) só pra encolher o vão
+// branco do hub central, que tinha sobrado grande demais — o anel fica
+// mais grosso (mesmo rOut) e o hub (2x o rIn do anel mais interno)
+// encolhe junto. markR reajustado pro novo meio do anel.
 const FRX_RING={
-  tipo:{id:'tipo', mode:'icon',   rIn:104, rOut:194, markR:149, gapDeg:0.9, labelR:249, explode:18, power:0.3},
+  tipo:{id:'tipo', mode:'icon',   rIn:97, rOut:194, markR:146, gapDeg:0.9, labelR:249, explode:18, power:0.3},
   dono:{id:'dono', mode:'avatar', rIn:208, rOut:308, markR:258, gapDeg:0.7, labelR:316, grow:14,    power:0.5, big:true},
 };
 // Ícones (mesmo traço fino já usado no resto do app: viewBox 24, stroke
