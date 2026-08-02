@@ -5216,8 +5216,13 @@ let clientesExpandido=false;  // "Ver mais" do painel Top 10 clientes
 function toggleClientesExpand(){clientesExpandido=!clientesExpandido;renderResumo();}
 function toggleBoletosExpand(){bolExpandido=!bolExpandido;renderResumo();}
 // Clicar em "a emitir" ou "emitidos" abre a lista já filtrada só por aquele
-// grupo; o botão "Ver todos" (no rodapé) junta os dois de novo.
-function verBoletosFiltro(f){bolExpandido=true;bolFiltro=f;renderResumo();}
+// grupo; clicar de novo no mesmo grupo (já aberto) fecha. O botão "Ver
+// todos" (no rodapé) junta os dois de novo.
+function verBoletosFiltro(f){
+  bolExpandido=!(bolExpandido&&bolFiltro===f);
+  bolFiltro=f;
+  renderResumo();
+}
 function renderBoletosPainel(rows){
   const el=document.getElementById('resBoletos');
   if(!el)return;
@@ -7454,6 +7459,13 @@ document.addEventListener('click',e=>{
     return panel?panel.contains(e.target):false;
   });
   if(!insideAny)rfCloseAllOpen();
+},true);
+// Boletos do mês: clicar fora da lista expandida fecha, igual clicar de novo.
+document.addEventListener('click',e=>{
+  if(!bolExpandido)return;
+  if(e.target.closest&&e.target.closest('#resBoletos'))return;
+  bolExpandido=false;
+  renderResumo();
 },true);
 
 // Dock mobile: some deslizando pra baixo enquanto o usuário rola a página
