@@ -7300,7 +7300,7 @@ function scrollBaixasParaHoje(){
   alvo.scrollIntoView({block:'center',behavior:'auto'});
 }
 
-['mEdit','mLote','mParcial','mCam','mSearch','mDono'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
+['mEdit','mLote','mParcial','mCam','mSearch','mDono','mAlterarSenha','mXls','mPerfil'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
 
 // ── BOOT ──
 async function boot(){
