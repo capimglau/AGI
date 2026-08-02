@@ -3,10 +3,10 @@
    Visual apenas — nenhuma regra aqui conhece dados de negócio.
    ═══════════════════════════════════════════════════════════════════ */
 
-.sb3d-stage { position: relative; width: 100%; max-width: 491px; aspect-ratio: 1 / 1; margin: 8px auto 4px; flex: none; }
+.sb3d-stage { position: relative; width: 100%; max-width: 442px; aspect-ratio: 1 / 1; margin: 8px auto 4px; flex: none; }
 .sb3d-body { display: flex; flex-direction: column; }
 @media (min-width: 920px) {
-  /* -10% + -10% + -10% pedidos: 546px -> 491px -> ~442px -> ~398px. A
+  /* -10% quatro vezes: 546px -> 491px -> ~442px -> ~398px -> ~358px. A
      legenda volta a esticar até a borda do card (flex:1 1 0) — capar a
      largura tinha deixado um vão vazio grande do lado direito, com a
      legenda "encostada" no gráfico por comparação. O gap do gráfico até a
@@ -14,7 +14,7 @@
      (22px, ver index.html) — daí a legenda fica com espaçamento
      simétrico dos dois lados. */
   .sb3d-body { flex-direction: row; align-items: center; gap: 22px; }
-  .sb3d-stage { margin: 8px 0; flex: 0 0 398px; }
+  .sb3d-stage { margin: 8px 0; flex: 0 0 358px; }
   .sb3d-legends { flex: 1 1 0; flex-direction: column; margin-top: 0; min-width: 0; gap: 16px; }
   /* Fontes/espaçamento da legenda menores, acompanhando o gráfico —
      mais um passo além da base (que já reduziu ~1px/font). */
@@ -35,11 +35,10 @@
   }
 }
 @media (max-width: 760px) {
-  /* Mesmo -10% pedido, aplicado na fórmula do sangramento mobile: era
-     100%+44px (transbordava 22px de cada lado do card); escalando os dois
-     termos por 0,9 o círculo renderizado fica exatamente 10% menor em
-     qualquer largura de tela, ainda centralizado. */
-  .sb3d-stage { max-width: none; width: calc(90% + 40px); margin-left: calc(5% - 20px); margin-right: calc(5% - 20px); }
+  /* Mesma redução aplicada de novo em cima da fórmula anterior (90%+40px):
+     escalando os dois termos por 0,9 mais uma vez o círculo fica mais 10%
+     menor, ainda centralizado em qualquer largura de tela. */
+  .sb3d-stage { max-width: none; width: calc(81% + 36px); margin-left: calc(9.5% - 18px); margin-right: calc(9.5% - 18px); }
 }
 
 /* (Chegou a ter um leve rotateX/rotateY de perspectiva aqui — tirado:
