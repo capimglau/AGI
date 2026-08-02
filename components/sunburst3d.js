@@ -82,7 +82,7 @@
     // nada em vez de estourar/sobrepor a fatia vizinha.
     fitLabel(radius, spanDeg, full, short) {
       const chord = 2 * radius * Math.sin(Math.min(spanDeg, 170) * Math.PI / 360) * 0.82;
-      const maxFs = 16, minFs = 8.5, avgCharW = 0.58;
+      const maxFs = 18, minFs = 10.5, avgCharW = 0.58;
       const tryFit = text => {
         if (!text) return null;
         const fs = Math.min(maxFs, chord / (text.length * avgCharW));
