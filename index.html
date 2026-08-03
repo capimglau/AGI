@@ -1165,8 +1165,14 @@ body.tip-pinned::before {
   .rb-tip-hd { font-size: 16px; }
   .pcard.rb-tip-l { grid-template-columns: 56px 1fr auto; font-size: 14px; }
 }
-/* Boletos do mês: mesma anatomia das outras linhas + marcador de emitido. */
-.rb-bol { cursor: pointer; padding: 2px 4px; border-radius: 8px; transition: background .12s; }
+/* Boletos do mês: mesma anatomia das outras linhas + marcador de emitido.
+   Duas linhas por boleto: em cima o nome do cliente por extenso (sem
+   truncar) + valor; embaixo placa, período de locação e vencimento —
+   tudo na mesma linha quando cabe, quebrando só se precisar. */
+.rb-bol {
+  cursor: pointer; padding: 6px 4px; border-radius: 8px; transition: background .12s;
+  display: flex; flex-direction: column; align-items: stretch; gap: 2px;
+}
 .rb-bol:hover { background: var(--surface); }
 .bol-ck {
   width: 17px; height: 17px; flex-shrink: 0; border-radius: 5px; border: 1.5px solid var(--line);
@@ -1178,16 +1184,19 @@ body.tip-pinned::before {
 /* Emitido sai de cena: linha inteira esmaecida — traço, valor e visto junto. */
 .rb-bol.bol-feito { opacity: .42; }
 .rb-bol.bol-feito:hover { opacity: .72; }
-.bol-l { width: 130px; font-size: 12.5px; }
-.bol-l small { display: block; color: var(--ink3); font-size: 10.5px; text-decoration: none; }
+.bol-row1 { display: flex; align-items: center; gap: 8px; }
+.rb-l.bol-l { flex: 1; min-width: 0; width: auto; max-width: none; font-size: 12.5px; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
 .rb-bol-leg { color: var(--ink3); font-weight: 500; font-size: 10.5px; }
-/* Período de locação + vencimento — ocupa o espaço onde antes tinha a
-   barrinha de progresso (removida: aqui ela não representava nada útil,
+/* Placa, período de locação e vencimento — ocupa o espaço onde antes tinha
+   a barrinha de progresso (removida: aqui ela não representava nada útil,
    já que o "cheio" era sempre 100%). */
-.bol-datas { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start;
-  gap: 1px; font-size: 11px; padding: 0 8px; }
-.bol-periodo { color: var(--ink3); white-space: nowrap; }
-.bol-venc { font-weight: 700; white-space: nowrap; }
+.bol-row2 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  font-size: 11px; padding-left: 25px; color: var(--ink3); }
+.bol-placa { flex-shrink: 0; }
+.bol-periodo { flex-shrink: 0; }
+.bol-venc { font-weight: 700; flex-shrink: 0; }
+.bol-valor { margin-left: auto; font-weight: 700; color: var(--amber); white-space: nowrap; flex-shrink: 0; }
+.bol-feito .bol-valor { color: var(--ink3); }
 /* Vencimento a 20 dias ou menos (e ainda não emitido): pisca em vermelho pra
    chamar atenção — animação simples de opacidade, sem exagerar no efeito. */
 .bol-venc-blink { color: var(--red); font-weight: 800; animation: bolBlink 1s step-start infinite; }
@@ -1198,7 +1207,7 @@ body.tip-pinned::before {
 .bol-vermais-row { text-align: center; padding: 8px 0 2px; }
 .bol-rodape { margin-top: 9px; font-size: 12px; font-weight: 700; color: var(--red); }
 .bol-rodape.ok { color: var(--green); }
-@media (max-width: 560px) { .bol-l { width: 96px; } .bol-datas { font-size: 10px; padding: 0 4px; } }
+@media (max-width: 560px) { .bol-row2 { font-size: 10px; padding-left: 25px; } }
 /* Resumo compacto do painel de boletos: dois números, some na lista só ao expandir. */
 .bol-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; cursor: pointer; padding: 2px; border-radius: 14px; }
 .bol-resumo-stat { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 12px 16px; border-radius: 14px; background: var(--surface); }
@@ -5319,8 +5328,10 @@ function renderBoletosPainel(rows){
   const alterna=bolFiltro!=='todos'
     ? `<button class="bol-toggle" onclick="event.stopPropagation();bolFiltro='todos';bolVerMais=false;renderResumo()">Ver todos (${bol.length})</button>`
     : '';
-  const leg=`<div class="rb rb-cab"><span class="bol-ck" style="visibility:hidden"></span><div class="rb-l"></div><div class="bol-datas"></div>
-    <div class="rb-v rb-v2"><span class="rb-bol-leg">clique para marcar como emitido</span></div></div>`;
+  const leg=`<div class="rb rb-cab" style="display:flex;align-items:center;gap:6px">
+    <span class="bol-ck" style="visibility:hidden"></span>
+    <span class="rb-bol-leg" style="flex:1">clique para marcar como emitido</span>
+  </div>`;
   const linhas=mostra.map(r=>{
     const i=allD().indexOf(r);
     const pago=isPago(r), venc=isVenc(r);
@@ -5330,13 +5341,16 @@ function renderBoletosPainel(rows){
     const urgente=!r.boleto_feito&&diasAteVenc(r.prev_pgto)<=20;
     return`<div class="rb rb-bol${r.boleto_feito?' bol-feito':''}" onclick="toggleBoletoFeito(${i})"
         title="${esc(r.cliente||'—')} · ${esc(r.placa||'')} · locação ${periodo} · vence ${vencTxt} · ${situacao}${r.boleto_feito?' · boleto emitido':' · boleto a emitir'}">
-      <span class="bol-ck">${r.boleto_feito?'✓':''}</span>
-      <div class="rb-l bol-l">${esc(r.cliente||'—')}<small>${esc(r.placa||'')}</small></div>
-      <div class="bol-datas">
+      <div class="bol-row1">
+        <span class="bol-ck">${r.boleto_feito?'✓':''}</span>
+        <div class="rb-l bol-l">${esc(r.cliente||'—')}</div>
+      </div>
+      <div class="bol-row2">
+        <span class="bol-placa">${esc(r.placa||'')}</span>
         <span class="bol-periodo">${periodo}</span>
         <span class="bol-venc${urgente?' bol-venc-blink':''}">vence ${vencTxt}</span>
+        <span class="bol-valor">${fRk(pago?r.valor_pago:r.saldo)}</span>
       </div>
-      <div class="rb-v rb-v2"><span class="rb-prev">${vDuplo(pago?r.valor_pago:r.saldo)}</span></div>
     </div>`;
   }).join('');
   const vermais=(!bolVerMais&&mostraTodos.length>5)
