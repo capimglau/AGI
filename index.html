@@ -1178,9 +1178,16 @@ body.tip-pinned::before {
 /* Emitido sai de cena: linha inteira esmaecida — traço, valor e visto junto. */
 .rb-bol.bol-feito { opacity: .42; }
 .rb-bol.bol-feito:hover { opacity: .72; }
-.bol-l { width: 200px; font-size: 12.5px; }
+.bol-l { width: 130px; font-size: 12.5px; }
 .bol-l small { display: block; color: var(--ink3); font-size: 10.5px; text-decoration: none; }
 .rb-bol-leg { color: var(--ink3); font-weight: 500; font-size: 10.5px; }
+/* Período de locação + vencimento — ocupa o espaço onde antes tinha a
+   barrinha de progresso (removida: aqui ela não representava nada útil,
+   já que o "cheio" era sempre 100%). */
+.bol-datas { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 1px; font-size: 11px; padding: 0 8px; }
+.bol-periodo { color: var(--ink3); white-space: nowrap; }
+.bol-venc { font-weight: 700; white-space: nowrap; }
 /* Vencimento a 20 dias ou menos (e ainda não emitido): pisca em vermelho pra
    chamar atenção — animação simples de opacidade, sem exagerar no efeito. */
 .bol-venc-blink { color: var(--red); font-weight: 800; animation: bolBlink 1s step-start infinite; }
@@ -1191,7 +1198,7 @@ body.tip-pinned::before {
 .bol-vermais-row { text-align: center; padding: 8px 0 2px; }
 .bol-rodape { margin-top: 9px; font-size: 12px; font-weight: 700; color: var(--red); }
 .bol-rodape.ok { color: var(--green); }
-@media (max-width: 560px) { .bol-l { width: 140px; } }
+@media (max-width: 560px) { .bol-l { width: 96px; } .bol-datas { font-size: 10px; padding: 0 4px; } }
 /* Resumo compacto do painel de boletos: dois números, some na lista só ao expandir. */
 .bol-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; cursor: pointer; padding: 2px; border-radius: 14px; }
 .bol-resumo-stat { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 12px 16px; border-radius: 14px; background: var(--surface); }
@@ -5312,13 +5319,11 @@ function renderBoletosPainel(rows){
   const alterna=bolFiltro!=='todos'
     ? `<button class="bol-toggle" onclick="event.stopPropagation();bolFiltro='todos';bolVerMais=false;renderResumo()">Ver todos (${bol.length})</button>`
     : '';
-  const leg=`<div class="rb rb-cab"><div class="rb-l"></div><div class="rb-bg rb-bg-vazio"></div>
+  const leg=`<div class="rb rb-cab"><span class="bol-ck" style="visibility:hidden"></span><div class="rb-l"></div><div class="bol-datas"></div>
     <div class="rb-v rb-v2"><span class="rb-bol-leg">clique para marcar como emitido</span></div></div>`;
   const linhas=mostra.map(r=>{
     const i=allD().indexOf(r);
     const pago=isPago(r), venc=isVenc(r);
-    // traço: verde já recebido · vermelho vencido em aberto · amarelo a vencer
-    const cls=pago?'rb-f-rec':venc?'rb-f-atr':'rb-f-prev';
     const situacao=pago?'recebido':venc?'vencido':'a vencer';
     const vencTxt=ddmm(r.prev_pgto)||'—';
     const periodo=r.saida?`${ddmm(r.saida)}–${ddmm(r.retorno)||'?'}`:'—';
@@ -5326,8 +5331,11 @@ function renderBoletosPainel(rows){
     return`<div class="rb rb-bol${r.boleto_feito?' bol-feito':''}" onclick="toggleBoletoFeito(${i})"
         title="${esc(r.cliente||'—')} · ${esc(r.placa||'')} · locação ${periodo} · vence ${vencTxt} · ${situacao}${r.boleto_feito?' · boleto emitido':' · boleto a emitir'}">
       <span class="bol-ck">${r.boleto_feito?'✓':''}</span>
-      <div class="rb-l bol-l">${esc(r.cliente||'—')}<small>${esc(r.placa||'')} · loc. ${periodo} · vence <span class="${urgente?'bol-venc-blink':''}">${vencTxt}</span></small></div>
-      <div class="rb-bg rb-bg2"><div class="rb-f ${cls}" style="left:0;width:100%"></div></div>
+      <div class="rb-l bol-l">${esc(r.cliente||'—')}<small>${esc(r.placa||'')}</small></div>
+      <div class="bol-datas">
+        <span class="bol-periodo">${periodo}</span>
+        <span class="bol-venc${urgente?' bol-venc-blink':''}">vence ${vencTxt}</span>
+      </div>
       <div class="rb-v rb-v2"><span class="rb-prev">${vDuplo(pago?r.valor_pago:r.saldo)}</span></div>
     </div>`;
   }).join('');
