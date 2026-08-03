@@ -1894,7 +1894,10 @@ details[open] summary::before { transform: rotate(90deg); }
     gap: 8px;
   }
   .logo { margin: 0 6px 0 0; font-size: 17px; }
-  .logo-img { height: 22px; }
+  .logo-img { height: 22px; flex-shrink: 0; }
+  /* Modo compacto: corta a logo pra mostrar só o "a" (marca), sem o texto
+     "AGI Locadora" — abre mais espaço garantido pros valores ao lado. */
+  .header.hdr-compact .logo { width: 27px; overflow: hidden; }
   .month-nav { position: static; transform: none; margin-left: 0; flex-shrink: 0; }
   /* reset sidebar offsets */
   .header { left: 0 !important; width: 100% !important; }
