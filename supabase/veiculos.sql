@@ -35,7 +35,7 @@ create policy "anon full access veiculos"
   using (true)
   with check (true);
 
--- ─── Carga inicial da frota (placa → proprietário) ───
+-- ─── Carga inicial da frota (185 veículos: placa → proprietário) ───
 insert into public.veiculos (placa, dono) values
   ('FFI7481', 'Arnaldo'),
   ('FYA6667', 'Arnaldo'),
@@ -220,5 +220,6 @@ insert into public.veiculos (placa, dono) values
   ('TKE2F18', 'Eliana'),
   ('UGE4E68', 'Eliana'),
   ('TKAS', 'Silvio 2'),
-  ('UDOS', 'Silvio 2')
+  ('UDOS', 'Silvio 2'),
+  ('UQS1I95', 'Silvio')
 on conflict (placa) do nothing;
