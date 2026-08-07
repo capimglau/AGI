@@ -3218,7 +3218,7 @@ html[data-theme="dark"] .swipe.open .pcard { background: var(--card); }
         <div class="fp"><label>Proprietário</label><select id="e-d"></select></div>
         <div class="fp s2"><label>Cliente</label><input type="text" id="e-c"></div>
         <div class="fp"><label>Tipo</label>
-          <select id="e-t"><option>Locação</option><option>Avarias</option><option>Lavagem</option><option>Multas</option><option>Taxa Mario</option><option>Taxa Alfredo</option><option>Taxa Bruno</option><option>Outros</option></select></div>
+          <select id="e-t"><option>Locação</option><option>Avarias</option><option>Lavagem</option><option>Multas</option><option>Pedágio</option><option>Franquia</option><option>Taxa Mario</option><option>Taxa Alfredo</option><option>Taxa Bruno</option><option>Outros</option></select></div>
         <div class="fp"><label>Forma</label>
           <select id="e-f"><option>Crédito</option><option>Crédito 3x</option><option>Crédito 2x</option><option>Débito</option><option>Boleto</option><option>Depósito</option><option>Dinheiro</option></select></div>
         <div class="fp"><label>Saída</label><input type="date" id="e-s"></div>
@@ -4435,6 +4435,19 @@ function allD(){return[...DATA,...NOVOS];}
 // saldo zerar. Com valor_pago>0 como critério de "pago", um único centavo
 // recebido escondia o resto da dívida de toda a dashboard.
 const isPago = r => fN(r.saldo) <= 0.005;
+// Põe um valor num <select> de lista fixa sem perdê-lo quando ele não está
+// entre as opções. Sem isso, abrir a edição de um lançamento cujo tipo ou
+// forma veio da planilha e não consta da lista (ex.: "Pedágio") deixava o
+// campo vazio, e salvar trocava o valor original em silêncio.
+function selVal(id,val){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const v=val==null?'':String(val);
+  if(v&&![...el.options].some(o=>o.value===v)){
+    const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);
+  }
+  el.value=v;
+}
 const isPend = r => fN(r.saldo) > 0.005;
 const isVenc = r => isPend(r) && r.prev_pgto && r.prev_pgto < td();
 const isParcial = r => isPend(r) && fN(r.valor_pago) > 0;
@@ -6064,8 +6077,8 @@ function openEdit(idx){
   document.getElementById('e-p').value=r.placa||'';
   document.getElementById('e-d').value=r.dono||'';
   document.getElementById('e-c').value=r.cliente||'';
-  document.getElementById('e-t').value=r.tipo||'Locação';
-  document.getElementById('e-f').value=r.forma||'Crédito';
+  selVal('e-t',r.tipo||'Locação');
+  selVal('e-f',r.forma||'Crédito');
   document.getElementById('e-s').value=r.saida||'';
   document.getElementById('e-r').value=r.retorno||'';
   document.getElementById('e-pp').value=r.prev_pgto||'';
