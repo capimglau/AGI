@@ -1,6 +1,17 @@
 -- AutoGest Pro · inclusão de novos lançamentos (18 registros)
 -- Execute no SQL Editor do Supabase, após schema.sql já estar aplicado.
 -- Este script apenas INSERE (não faz truncate da tabela).
+--
+-- ⚠ HISTÓRICO — NÃO RODE JUNTO COM A CARGA ATUAL.
+-- A carga de `seed.sql`/`setup.sql` vem da planilha rentabilidade_IA.xlsx
+-- (753 lançamentos). Confrontando os 18 registros abaixo com essa planilha:
+--   • 4 já estão nela (TKE2F18 25/07, SVT5H94 21/08, UES3H77 10/07 x2)
+--     → rodar este script agora criaria esses 4 em duplicidade;
+--   • 14 não estão nela (inclusive a placa UEG3D32, que não aparece na
+--     planilha nem na frota) → só valem se forem lançamentos digitados
+--     direto no sistema e nunca devolvidos à planilha.
+-- Se forem legítimos, o certo é acrescentá-los à planilha e regerar o seed.
+-- Mantido no repositório apenas como registro do que foi incluído em 28/07.
 
 insert into public.lancamentos (placa, dono, saida, retorno, cliente, tipo, valor, forma, prev_pgto, valor_pago, saldo, obs) values
   ('SVA9G97', 'Silvio', '2026-07-28', '2026-08-27', 'CD Mantem', 'Locação', 2409.6, 'Boleto', '2026-09-08', NULL, 2409.6, NULL),
