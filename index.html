@@ -5632,6 +5632,20 @@ function frxItemsFor(dim){
   });
 }
 
+// Sequência que o miolo percorre numa dimensão: a lista COMPLETA do mês,
+// ignorando os filtros. Tem que ser a lista cheia (frBaseRows, não
+// frRowsForRing) porque o passeio cruza as duas dimensões: parado num
+// proprietário, a lista de tipos filtrada teria só os tipos daquele dono,
+// e a sequência mudaria de tamanho debaixo do dedo do usuário a cada
+// clique. "Outros" fica de fora — é um agrupamento, não dá pra filtrar
+// por ele.
+function frxSeqKeys(dim){
+  const rows=frBaseRows();
+  const grand=frSum(rows);
+  if(grand<=0)return [];
+  return frBreakdown(dim,rows,grand).filter(it=>it.key!=='Outros').map(it=>it.key);
+}
+
 function frxToggle(dim,key){
   const set=FRT[dim];
   if(set.has(key))set.delete(key); else set.add(key);
@@ -5651,21 +5665,24 @@ function frxEnsureChart(){
     onOpen:(ringId,key)=>mostrarLancCategoria(ringId,key),
   });
   // O total no centro do anel já aparece fora, acima do gráfico — em vez
-  // de só repetir a informação, o miolo percorre os proprietários: cada
-  // clique passa pro dono seguinte (filtrando o gráfico nele e mostrando
-  // o valor dele no centro) e, depois do último, volta ao total do mês.
-  // A ordem é a mesma do anel — do dono que mais fatura pro que menos —
-  // e não muda ao selecionar um deles, porque frRowsForRing('dono')
-  // nunca aplica o filtro da própria dimensão.
+  // de só repetir a informação, o miolo percorre um item de cada vez:
+  // total do mês → cada proprietário → cada tipo de receita → volta ao
+  // total. Cada parada filtra o gráfico naquele item e mostra o valor
+  // dele no centro.
   frxChart.onHubClick(()=>{
-    const donos=frxItemsFor('dono').filter(it=>!it.locked).map(it=>it.key);
-    if(!donos.length)return;
-    // Só continua a volta se houver exatamente um dono selecionado;
-    // nenhum (ou vários, escolhidos nos filtros) recomeça do primeiro.
-    const atual=FRT.dono.size===1?donos.indexOf([...FRT.dono][0]):-1;
+    const passos=[
+      ...frxSeqKeys('dono').map(key=>({dim:'dono',key})),
+      ...frxSeqKeys('tipo').map(key=>({dim:'tipo',key})),
+    ];
+    if(!passos.length)return;
+    // Onde a volta está: exatamente UM item selecionado, numa única
+    // dimensão. Qualquer outra coisa (nada, ou vários itens escolhidos
+    // nos filtros ao lado) recomeça do primeiro passo.
+    const sel=FR_ORDER.flatMap(d=>[...FRT[d]].map(key=>({dim:d,key})));
+    const atual=sel.length===1?passos.findIndex(p=>p.dim===sel[0].dim&&p.key===sel[0].key):-1;
     const prox=atual+1;
-    FRT.dono.clear();
-    if(prox<donos.length)FRT.dono.add(donos[prox]);
+    FR_ORDER.forEach(d=>FRT[d].clear());
+    if(prox<passos.length)FRT[passos[prox].dim].add(passos[prox].key);
     buildFatRingFilters();
     frRenderData();
   });
