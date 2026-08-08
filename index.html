@@ -658,8 +658,40 @@ html[data-theme="dark"] .boletos-banner { background: linear-gradient(135deg, rg
   white-space: nowrap;
   flex-shrink: 0;
 }
+/* O somatório do dia é um botão: abre o resumo por forma de pagamento
+   daquela data. Ocupa exatamente o mesmo espaço do texto que era antes (sem
+   padding nem borda que empurrem o "›" de recolher pra fora da tela) — a
+   pista de que dá pra clicar é o tracejado embaixo do valor. */
+button.day-total {
+  background: none;
+  border: none;
+  border-bottom: 1px dashed currentColor;
+  border-radius: 0;
+  font-family: inherit;
+  padding: 0 0 1px;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+button.day-total:hover, button.day-total:focus-visible { opacity: .65; outline: none; }
+button.day-total:active { opacity: .45; }
 .day-total.pend { color: var(--amber); }
 .day-total.done { color: var(--green); font-size: 12px; }
+/* Lançamentos: o somatório é o líquido do dia (pago + saldo) — neutro, ou
+   verde quando o dia inteiro já foi baixado. */
+.day-total.liq { color: var(--ink); font-size: 15px; }
+.day-total.liq.ok { color: var(--green); }
+/* Dias que já passaram ficam levemente esmaecidos — só o bastante pro olho
+   ir direto no que é de hoje em diante. Volta ao normal ao passar o mouse
+   (ou ao focar algo dentro, no teclado).
+   O esmaecido vai no cabeçalho e nos itens, não no .day-group: o grupo tem
+   `animation: fadeIn … both`, e o opacity:1 do último keyframe fica valendo
+   sobre qualquer opacity declarado no próprio elemento. */
+.day-group.passado > .day-header,
+.day-group.passado > .day-items { opacity: .72; transition: opacity .18s; }
+.day-group.passado:hover > .day-header,
+.day-group.passado:hover > .day-items,
+.day-group.passado:focus-within > .day-header,
+.day-group.passado:focus-within > .day-items { opacity: 1; }
 .day-chevron {
   font-size: 12px;
   color: var(--ink3);
@@ -1331,6 +1363,22 @@ html[data-theme="dark"] .rb-f-rec { box-shadow: 0 0 8px 2px rgba(54,211,153,.22)
    item pesquisado por competência (prev_pgto), do mais recente pro mais antigo. */
 .srow-mes { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--ink3); padding: 12px 4px 4px; }
 .srow-mes:first-child { padding-top: 2px; }
+
+/* Resumo por forma de pagamento de um dia (clique no somatório do dia) */
+.rfd { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+.rfd-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.rfd-row:last-child { border-bottom: none; }
+.rfd-forma { font-size: 13.5px; font-weight: 700; color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rfd-n { font-size: 11.5px; color: var(--ink3); background: var(--surface); padding: 2px 9px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+.rfd-vals { text-align: right; flex-shrink: 0; }
+.rfd-vals b { display: block; font-size: 14.5px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+.rfd-vals small { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; }
+.rfd-vals .rfd-pago { color: var(--green); }
+.rfd-vals .rfd-saldo { color: var(--amber); }
+.rfd-tot { background: var(--surface); }
+.rfd-tot .rfd-forma { text-transform: uppercase; font-size: 11.5px; letter-spacing: .04em; color: var(--ink2); }
+.rfd-tot .rfd-vals b { color: var(--blue); font-size: 16px; }
+.rfd-hint { font-size: 11.5px; color: var(--ink3); padding: 0 4px 10px; }
 
 /* Toast (confirmação com desfazer) */
 .toast {
@@ -4736,6 +4784,43 @@ function buildMiniSummary(){
   `;
 }
 
+// ── DIVISÃO POR DIA (Recebimentos e Lançamentos usam a mesma) ──
+// Guarda o que está na tela em cada aba, agrupado por dia. O resumo por
+// forma de pagamento lê daqui, então ele bate exatamente com o que o
+// usuário está vendo — mesmos filtros de status, proprietário e busca.
+const DIA_ROWS={baixas:{},lancamentos:{}};
+const WD=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+// Ordena as chaves de dia em ordem crescente, com "Sem data" sempre no fim.
+function ordenaDias(chaves){
+  return chaves.sort((a,b)=>a==='Sem data'?1:b==='Sem data'?-1:a.localeCompare(b));
+}
+// O somatório do dia é um botão: clicar abre o resumo por forma de pagamento
+// daquela data. stopPropagation porque o cabeçalho inteiro já tem um clique
+// (recolher/expandir o dia) — sem isso um clique faria as duas coisas.
+function dayTotalHtml(dia,origem,cls,inner){
+  if(dia==='Sem data') return `<span class="day-total ${cls}">${inner}</span>`;
+  return `<button type="button" class="day-total ${cls}" title="Ver resumo por forma de pagamento"
+    onclick="event.stopPropagation();resumoFormasDia('${dia}','${origem}')">${inner}</button>`;
+}
+// Cabeçalho de um dia: dia da semana, data, etiqueta HOJE/VENCIDO, quantos
+// lançamentos e o somatório. Compartilhado pelas duas telas pra que a
+// divisão por data se leia igual nas duas.
+function dayHeaderHtml(dia,n,totalHtml){
+  const hoje=td();
+  const semData=dia==='Sem data';
+  const isHoje=dia===hoje, isVencDia=!semData&&dia<hoje;
+  const titCls=isHoje?'hoje':isVencDia?'venc':'';
+  const tag=isHoje?`<span class="day-tag hoje">HOJE</span>`:isVencDia?`<span class="day-tag venc">VENCIDO</span>`:'';
+  return `<div class="day-header" onclick="toggleDay(this)">
+      <div class="day-weekday">${semData?'':WD[new Date(dia+'T12:00:00').getDay()]}</div>
+      <div class="day-title ${titCls}">${semData?'Sem data':dia.slice(8)+'/'+dia.slice(5,7)}</div>
+      ${tag}
+      <span class="day-count">${n}</span>
+      ${totalHtml}
+      <span class="day-chevron">›</span>
+    </div>`;
+}
+
 // ── BAIXAS ──
 function renderBaixas(){
   const status=document.getElementById('bf-status').value;
@@ -4803,11 +4888,8 @@ function renderBaixas(){
     byDay[d].push(r);
   });
 
-  const diaKeys=Object.keys(byDay).sort((a,b)=>{
-    if(a==='Sem data')return 1;
-    if(b==='Sem data')return -1;
-    return a.localeCompare(b);
-  });
+  DIA_ROWS.baixas=byDay;
+  const diaKeys=ordenaDias(Object.keys(byDay));
   diaKeys.forEach((dia,gi)=>{
     const items=byDay[dia];
     const totDia=items.filter(r=>isPend(r)).reduce((a,r)=>a+fN(r.saldo),0);
@@ -4817,25 +4899,15 @@ function renderBaixas(){
     const allDone=items.every(r=>isPago(r));
 
     const grp=document.createElement('div');
-    grp.className='day-group';
+    // .passado esmaece de leve os dias que já ficaram pra trás.
+    grp.className='day-group'+(isVencDia?' passado':'');
     grp.dataset.dia=dia;
     grp.style.animationDelay=`${gi*0.04}s`;
 
-    const titCls=isHoje?'hoje':isVencDia?'venc':'';
-    const tag=isHoje?`<span class="day-tag hoje">HOJE</span>`:isVencDia?`<span class="day-tag venc">VENCIDO</span>`:'';
-    const totalStr=allDone
-      ?`<span class="day-total done">✓ ${fR(recDia)} recebido</span>`
-      :`<span class="day-total pend">${fR(totDia)}</span>`;
+    const totalStr=dayTotalHtml(dia,'baixas',allDone?'done':'pend',
+      allDone?`✓ ${fR(recDia)} recebido`:fR(totDia));
 
-    grp.innerHTML=`
-      <div class="day-header" onclick="toggleDay(this)">
-        <div class="day-weekday">${dia!=='Sem data'?['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(dia+'T12:00:00').getDay()]:''}</div>
-        <div class="day-title ${titCls}">${dia==='Sem data'?'Sem data':dia.slice(8)+'/'+dia.slice(5,7)}</div>
-        ${tag}
-        <span class="day-count">${items.length}</span>
-        ${totalStr}
-        <span class="day-chevron">›</span>
-      </div>
+    grp.innerHTML=dayHeaderHtml(dia,items.length,totalStr)+`
       <div class="day-items"></div>`;
 
     const dayItems=grp.querySelector('.day-items');
@@ -4924,8 +4996,30 @@ function renderLanc(){
     return;
   }
   const all=allD();
-  const items=rows.map(r=>({r,i:all.indexOf(r)}));
-  body.innerHTML=lancListHtml(items,false);
+  body.innerHTML=lancDiasHtml(rows,all);
+}
+// Lançamentos divididos por data de vencimento, com o somatório do dia no
+// cabeçalho — mesma divisão visual dos Recebimentos, pra as duas telas se
+// lerem igual. O somatório aqui é o líquido do dia (pago + saldo).
+function lancDiasHtml(rows,all){
+  const hoje=td();
+  const byDay={};
+  rows.forEach(r=>{
+    const d=r.prev_pgto||'Sem data';
+    (byDay[d]||(byDay[d]=[])).push(r);
+  });
+  DIA_ROWS.lancamentos=byDay;
+  return ordenaDias(Object.keys(byDay)).map(dia=>{
+    const items=byDay[dia];
+    const totDia=items.reduce((a,r)=>a+liq(r),0);
+    const allDone=items.every(r=>isPago(r));
+    const passado=dia!=='Sem data'&&dia<hoje;
+    const totalStr=dayTotalHtml(dia,'lancamentos','liq'+(allDone?' ok':''),fR(totDia));
+    return `<div class="day-group${passado?' passado':''}" data-dia="${dia}">
+      ${dayHeaderHtml(dia,items.length,totalStr)}
+      <div class="day-items">${items.map(r=>lcCardHtml(r,all.indexOf(r),false)).join('')}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── RESUMO ──
@@ -6421,6 +6515,54 @@ function mostrarLancDia(dia){
   </div></div>`;
   box.innerHTML=totHtml+lancListHtml(items,true);
 }
+// Clique no somatório de um dia (Recebimentos ou Lançamentos): resumo por
+// forma de pagamento daquela data — quanto tem em cada forma, quanto já foi
+// recebido e quanto ainda falta. Usa DIA_ROWS, então mostra exatamente o que
+// está na tela (mesmos filtros). Abaixo do resumo vêm os lançamentos do dia,
+// pra dar pra baixar/editar sem sair dali.
+function resumoFormasDia(dia,origem){
+  const rows=(DIA_ROWS[origem]||{})[dia]||[];
+  if(!rows.length)return;
+  const porForma={};
+  rows.forEach(r=>{
+    const k=fFormaLabel(r.forma)||'—';
+    const o=porForma[k]||(porForma[k]={n:0,pago:0,saldo:0});
+    o.n++; o.pago+=fN(r.valor_pago); o.saldo+=fN(r.saldo);
+  });
+  // Da forma que mais pesa no dia pra que menos pesa.
+  const lista=Object.entries(porForma).sort((a,b)=>(b[1].pago+b[1].saldo)-(a[1].pago+a[1].saldo));
+  const totPago=rows.reduce((a,r)=>a+fN(r.valor_pago),0);
+  const totSaldo=rows.reduce((a,r)=>a+fN(r.saldo),0);
+
+  const subVals=(pago,saldo)=>[
+    pago>0.005?`<span class="rfd-pago">recebido ${fR(pago)}</span>`:'',
+    saldo>0.005?`<span class="rfd-saldo">a receber ${fR(saldo)}</span>`:'',
+  ].filter(Boolean).join(' · ');
+
+  const linhas=lista.map(([forma,o])=>`
+    <div class="rfd-row">
+      <span class="rfd-forma">${esc(forma)}</span>
+      <span class="rfd-n">${o.n}</span>
+      <span class="rfd-vals"><b>${fR(o.pago+o.saldo)}</b><small>${subVals(o.pago,o.saldo)||'—'}</small></span>
+    </div>`).join('');
+  const totalRow=`
+    <div class="rfd-row rfd-tot">
+      <span class="rfd-forma">Total do dia</span>
+      <span class="rfd-n">${rows.length}</span>
+      <span class="rfd-vals"><b>${fR(totPago+totSaldo)}</b><small>${subVals(totPago,totSaldo)||'—'}</small></span>
+    </div>`;
+
+  const all=allD();
+  const items=rows.map(r=>({r,i:all.indexOf(r)}));
+  document.getElementById('mSearch').classList.add('on');
+  const input=document.getElementById('searchInput'); if(input)input.style.display='none';
+  const tit=document.getElementById('searchModalTit');
+  if(tit) tit.textContent=dia==='Sem data'?'Sem data — por forma de pagamento':`${fDM(dia)} — por forma de pagamento`;
+  document.getElementById('searchResults').innerHTML=
+    `<div class="rfd">${linhas}${totalRow}</div>`+
+    `<div class="rfd-hint">Lançamentos do dia</div>`+
+    items.map(({r,i})=>lcCardHtml(r,i,true)).join('');
+}
 // Clique num dia do Fluxo de Caixa Diário: mostra TODOS os lançamentos
 // daquele dia (recebidos e pendentes, não só os pendentes como em
 // mostrarLancDia) — mesmo modal/cartões da busca global, com
@@ -7406,7 +7548,7 @@ function scrollListaParaHoje(containerId,seletor){
   window.scrollTo(0,Math.max(0,y));
 }
 function scrollBaixasParaHoje(){ scrollListaParaHoje('baixasContainer','.day-group[data-dia]'); }
-function scrollLancParaHoje(){ scrollListaParaHoje('lancBody','.swipe[data-dia]'); }
+function scrollLancParaHoje(){ scrollListaParaHoje('lancBody','.day-group[data-dia]'); }
 
 ['mEdit','mLote','mParcial','mCam','mSearch','mDono','mAlterarSenha','mXls','mPerfil'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('on');}));
 
