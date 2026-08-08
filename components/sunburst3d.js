@@ -128,8 +128,20 @@
     onHubClick(fn) { this._hubClick = fn; }
 
     setHub({ label, value, sub, sub2 }) {
-      this._hub.querySelector('.sb3d-hub-label').textContent = label || '';
-      this._hub.querySelector('.sb3d-hub-value').textContent = value || '';
+      const lblEl = this._hub.querySelector('.sb3d-hub-label');
+      const valEl = this._hub.querySelector('.sb3d-hub-value');
+      const mudou = lblEl.textContent !== (label || '') || valEl.textContent !== (value || '');
+      lblEl.textContent = label || '';
+      valEl.textContent = value || '';
+      // Troca de conteúdo entra com um fade curto. Tirar a classe e ler
+      // offsetWidth força o reflow — sem isso o navegador não reinicia
+      // uma animação que já está aplicada, e da segunda troca em diante
+      // o texto trocaria seco.
+      if (mudou) {
+        this._hub.classList.remove('sb3d-hub-troca');
+        void this._hub.offsetWidth;
+        this._hub.classList.add('sb3d-hub-troca');
+      }
       const subEl = this._hub.querySelector('.sb3d-hub-sub');
       if (sub) { subEl.style.display = ''; subEl.textContent = sub; } else subEl.style.display = 'none';
       const sub2El = this._hub.querySelector('.sb3d-hub-sub2');
