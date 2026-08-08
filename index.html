@@ -849,10 +849,14 @@ button.day-total:active { opacity: .45; }
 
 /* ── SWIPE (deslizar revela os botões; tocar executa) ── */
 .swipe { position: relative; overflow: hidden; }
-.swipe .pcard { position: relative; z-index: 2; background: var(--card); will-change: transform; transition: transform .26s cubic-bezier(.25,.85,.3,1); }
+/* will-change só enquanto o dedo arrasta. Fixo, ele promovia TODO cartão da
+   lista a uma camada de composição própria — e, junto com o backdrop-filter
+   do tema de vidro, é o que borrava/deformava os cartões (e o texto deles)
+   ao rolar a lista. */
+.swipe .pcard { position: relative; z-index: 2; background: var(--card); transition: transform .26s cubic-bezier(.25,.85,.3,1); }
 /* pan-y também nos filhos: senão o Safari engole o gesto horizontal */
 .swipe .pcard, .swipe .pcard * { touch-action: pan-y; }
-.swipe.dragging .pcard { transition: none; }
+.swipe.dragging .pcard { transition: none; will-change: transform; }
 .swipe-actions { position: absolute; top: 0; right: 0; bottom: 0; display: flex; z-index: 1; }
 .swipe-act {
   border: none; color: #fff; cursor: pointer;
@@ -2479,7 +2483,16 @@ details[open] summary::before { transform: rotate(90deg); }
   margin: 0;
   transition: transform .26s cubic-bezier(.25,.85,.3,1), background .1s .3s;
 }
-/* durante o swipe o card vira solido para cobrir os botoes atras dele */
+/* durante o swipe o card vira solido para cobrir os botoes atras dele.
+   O backdrop-filter sai junto: um vidro que desfoca o fundo enquanto ele
+   proprio desliza por cima dos botoes e o que produzia o arrastado/
+   deformado que se via no gesto — e, com o card ja opaco, nao sobra nada
+   pra desfocar. */
+.swipe.dragging .pcard,
+.swipe.open .pcard {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
 .swipe.dragging .pcard { background: var(--card); }
 .swipe.open .pcard {
   background: var(--card);
@@ -6665,10 +6678,26 @@ function showSkeleton(){
 
 // ── SWIPE (deslizar revela os botões; tocar executa) ──
 let SW=null, openRow=null;
-function swSet(wrap,px){const c=wrap.querySelector('.pcard');c.style.transform=px?`translateX(${px}px)`:'';}
+// SW_MIN  — quanto o dedo precisa andar antes de o gesto valer como gesto.
+// SW_RATIO— quão mais horizontal que vertical ele precisa ser pra virar
+//           swipe em vez de rolagem (1.5 = bem mais horizontal que vertical).
+// SW_TAP  — acima disso o toque virou "apertar e segurar", e não abre a linha.
+const SW_MIN=12, SW_RATIO=1.5, SW_TAP=500;
+// Pixel inteiro e translate3d: valor fracionário deixa o texto do cartão
+// borrado enquanto ele desliza.
+function swSet(wrap,px){const c=wrap.querySelector('.pcard');c.style.transform=px?`translate3d(${Math.round(px)}px,0,0)`:'';}
 function closeRow(except){
   if(openRow&&openRow!==except&&openRow.isConnected){openRow.classList.remove('open');swSet(openRow,0);}
   if(openRow!==except)openRow=null;
+}
+// Devolve UMA linha à posição fechada. closeRow() sozinho não serve pra
+// isso: ele só mexe na linha registrada como aberta (openRow). Uma linha
+// arrastada e solta antes da metade nunca chegou a ficar "aberta", então
+// ficava travada fora do lugar, com um pedaço dos botões aparecendo atrás.
+function fecharLinha(wrap){
+  wrap.classList.remove('open');
+  swSet(wrap,0);
+  if(openRow===wrap)openRow=null;
 }
 function openRowEl(wrap,pw){closeRow(wrap);wrap.classList.add('open');swSet(wrap,-pw);openRow=wrap;}
 function panelW(wrap){const n=wrap.querySelectorAll('.swipe-act').length;return (n||1)*76;}
@@ -6681,35 +6710,44 @@ function swStart(e){
   if(e.target.closest('.pcard-chk'))return;
   const wrap=card.closest('.swipe'); if(!wrap)return;
   const p=swXY(e), pw=panelW(wrap);
-  SW={card,wrap,pw,x0:p.x,y0:p.y,base:wrap.classList.contains('open')?-pw:0,dx:0,decided:false,horiz:false};
+  SW={card,wrap,pw,x0:p.x,y0:p.y,base:wrap.classList.contains('open')?-pw:0,dx:0,decided:false,t0:Date.now()};
   if(e.type==='mousedown'){document.addEventListener('mousemove',swMove);document.addEventListener('mouseup',swEnd);}
 }
 function swMove(e){
   if(!SW)return;
   const p=swXY(e), dx=p.x-SW.x0, dy=p.y-SW.y0;
   if(!SW.decided){
-    if(Math.abs(dx)<6&&Math.abs(dy)<6)return;
-    SW.decided=true; SW.horiz=Math.abs(dx)>Math.abs(dy);
-    if(SW.horiz){SW.wrap.classList.add('dragging'); closeRow(SW.wrap);}
+    const ax=Math.abs(dx), ay=Math.abs(dy);
+    if(ax<SW_MIN&&ay<SW_MIN)return;                   // ainda não dá pra saber a intenção
+    // Só vira swipe com intenção horizontal clara. Se o dedo foi mais pra
+    // cima/baixo — ou se o navegador já assumiu a rolagem (evento não
+    // cancelável) — o gesto é de rolar: abandona de vez, pra não virar
+    // swipe no meio do caminho nem abrir a linha ao soltar.
+    if(ax<ay*SW_RATIO||e.cancelable===false){SW=null;return;}
+    SW.decided=true;
+    SW.wrap.classList.add('dragging');
+    closeRow(SW.wrap);
   }
-  if(!SW.horiz)return;
   if(e.cancelable)e.preventDefault();
-  let d=Math.max(-SW.pw,Math.min(0,SW.base+dx));
-  SW.dx=d; SW.card.style.transform=`translateX(${d}px)`;
+  const d=Math.max(-SW.pw,Math.min(0,SW.base+dx));
+  SW.dx=d; SW.card.style.transform=`translate3d(${Math.round(d)}px,0,0)`;
 }
 function swEnd(e){
+  // Fora do if: numa rolagem o gesto é abandonado (SW=null) ainda no move,
+  // e sem isso os listeners de mouse ficavam pendurados no document.
+  document.removeEventListener('mousemove',swMove);document.removeEventListener('mouseup',swEnd);
   if(!SW)return;
   const s=SW; SW=null;
-  document.removeEventListener('mousemove',swMove);document.removeEventListener('mouseup',swEnd);
-  s.card.style.transition='';
   s.wrap.classList.remove('dragging');
   if(!s.decided){                                     // toque simples: alterna abrir/fechar
-    if(s.wrap.classList.contains('open'))closeRow();
+    // Só toque curto conta. Apertar e segurar (ou encostar o dedo enquanto
+    // lê) não abre mais os botões sozinho.
+    if(Date.now()-s.t0>SW_TAP)return;
+    if(s.wrap.classList.contains('open'))fecharLinha(s.wrap);
     else openRowEl(s.wrap,s.pw);
     return;
   }
-  if(!s.horiz)return;
-  if(s.dx<=-s.pw/2)openRowEl(s.wrap,s.pw); else closeRow();
+  if(s.dx<=-s.pw/2)openRowEl(s.wrap,s.pw); else fecharLinha(s.wrap);
 }
 
 // ── TEMA (claro/escuro) ──
