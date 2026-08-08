@@ -1,6 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Sunburst3D — componente de anéis concêntricos premium (SVG puro)
-   Visual apenas — nenhuma regra aqui conhece dados de negócio.
+   Sunburst3D — componente de anéis concêntricos (SVG puro), desenho
+   PLANO. Visual apenas — nenhuma regra aqui conhece dados de negócio.
+
+   Regra de ouro daqui pra frente: nada de filter/drop-shadow/blur em
+   cima do SVG. Cada um desses obriga o navegador a rasterizar aquele
+   trecho do desenho num bitmap intermediário — é o que engordava o
+   gráfico e o que tirava a nitidez dele. Realce de hover/seleção sai
+   por opacidade e contorno, que continuam vetoriais.
    ═══════════════════════════════════════════════════════════════════ */
 
 .sb3d-stage { position: relative; width: 100%; max-width: 486px; aspect-ratio: 1 / 1; margin: 8px auto 4px; flex: none; }
@@ -36,31 +42,24 @@
   .sb3d-stage { max-width: none; width: calc(89.1% + 39.6px); margin-left: calc(5.45% - 19.8px); margin-right: calc(5.45% - 19.8px); }
 }
 
-/* (Chegou a ter um leve rotateX/rotateY de perspectiva aqui — tirado:
-   um transform 3D no SVG força o navegador a reamostrar o desenho
-   inteiro através da matriz de perspectiva, e em tela não-retina isso
-   deixa tudo (traços finos, texto) visivelmente borrado. O relevo
-   das fatias (extrusão/gradiente/sombra) já dá a sensação de 3D sem
-   esse custo.) */
-.sb3d-stage > svg { width: 100%; height: 100%; overflow: visible; }
+/* geometricPrecision: pede o traçado exato das curvas em vez do
+   caminho rápido/aproximado — junto com a ausência de filtros, é o que
+   deixa os arcos com a borda limpa em qualquer densidade de tela. */
+.sb3d-stage > svg { width: 100%; height: 100%; overflow: visible; shape-rendering: geometricPrecision; }
 
 .sb3d-slice { cursor: pointer; transform-box: fill-box; transform-origin: center; transition: opacity .22s ease; }
 .sb3d-slice.mode-icon { transition: transform .38s cubic-bezier(.2,.85,.3,1), opacity .22s ease; }
 .sb3d-slice.mode-avatar { transition: transform .32s cubic-bezier(.25,.9,.35,1), opacity .22s ease; }
-.sb3d-slice path.main { transition: filter .2s; stroke: rgba(6,10,20,.32); stroke-width: 1; stroke-linejoin: round; }
-.sb3d-slice path.side { transition: filter .2s; }
-.sb3d-sheen { transition: opacity .2s; }
-/* Com alguma fatia selecionada no anel, o resto esmaece. Só reduzir a
-   opacidade não bastou (uma cor viva tipo o azul do Silvio ainda lê
-   forte a 40% em cima de fundo escuro) — dessatura também, então o
-   contraste com a fatia selecionada (cor cheia) fica óbvio, e no
-   hover volta quase ao normal pra continuar dando pra explorar. */
-.sb3d-slice.dimmed { opacity: .3; }
-.sb3d-slice.dimmed path.main { filter: grayscale(.65) drop-shadow(1px 2px 3px rgba(12,18,30,.16)) !important; }
-:root[data-theme="dark"] .sb3d-slice.dimmed path.main { filter: grayscale(.65) drop-shadow(1px 2px 3px rgba(0,0,0,.3)) !important; }
-.sb3d-slice.dimmed:hover { opacity: .7; }
-.sb3d-slice.dimmed:hover path.main { filter: grayscale(.25) drop-shadow(1px 2px 3px rgba(12,18,30,.16)) !important; }
-:root[data-theme="dark"] .sb3d-slice.dimmed:hover path.main { filter: grayscale(.25) drop-shadow(1px 2px 3px rgba(0,0,0,.3)) !important; }
+/* Fatia plana: cor chapada + um fio de separação entre vizinhas. */
+.sb3d-slice path.main { transition: opacity .2s, stroke-width .15s; stroke: rgba(255,255,255,.9); stroke-width: 1; stroke-linejoin: round; }
+:root[data-theme="dark"] .sb3d-slice path.main { stroke: rgba(0,0,0,.45); }
+/* Hover e seleção sem filtro: opacidade e contorno. */
+.sb3d-slice:hover path.main { opacity: .86; }
+.sb3d-slice.is-selected path.main { stroke: var(--ink); stroke-width: 2; opacity: 1; }
+/* Com alguma fatia selecionada, o resto esmaece — e no hover volta
+   quase ao normal, pra continuar dando pra explorar. */
+.sb3d-slice.dimmed { opacity: .32; }
+.sb3d-slice.dimmed:hover { opacity: .72; }
 
 /* Entrada: cada fatia nasce do centro (spring simplificado, 600ms). */
 @keyframes sb3d-enter {
@@ -71,100 +70,62 @@
 }
 .sb3d-slice.sb3d-entering { animation: sb3d-enter .6s cubic-bezier(.22,1,.36,1) both; }
 
-/* Sombra em duas camadas (contato + elevação), deslocada pra
-   baixo-direita — a luz do componente vem de cima-esquerda. */
-.sb3d-ring-outer { filter: drop-shadow(6px 16px 26px rgba(12,18,30,.18)); }
-.sb3d-slice.mode-icon path.main { filter: drop-shadow(1px 2px 3px rgba(12,18,30,.26)) drop-shadow(4px 9px 16px rgba(12,18,30,.18)); }
-.sb3d-slice.mode-icon:hover path.main { filter: drop-shadow(2px 3px 5px rgba(12,18,30,.3)) drop-shadow(5px 11px 20px rgba(12,18,30,.22)) brightness(1.06); }
-.sb3d-slice.mode-avatar path.main { filter: drop-shadow(1px 2px 3px rgba(12,18,30,.18)); }
-.sb3d-slice.mode-avatar:hover path.main { filter: drop-shadow(2px 3px 5px rgba(12,18,30,.24)) brightness(1.05); }
-/* Clique: sobe levemente + ~5% maior + brilho — já coberto pelo scale
-   no JS (translate/scale) + esta sombra mais forte + saturação. */
-.sb3d-slice.mode-avatar.is-selected path.main { filter: drop-shadow(3px 6px 12px rgba(12,18,30,.28)) brightness(1.1) saturate(1.08); }
-.sb3d-slice.mode-icon.is-selected path.main { filter: drop-shadow(3px 7px 14px rgba(12,18,30,.3)) brightness(1.08) saturate(1.06); }
-
-/* Modo escuro: brilho neon com a própria cor da fatia (--sc), por cima
-   do relevo/extrusão — efeito de vidro sob luz de neon. */
-:root[data-theme="dark"] .sb3d-slice.mode-icon path.main { filter: drop-shadow(1px 2px 3px rgba(0,0,0,.5)) drop-shadow(4px 9px 16px rgba(0,0,0,.35)) drop-shadow(0 0 14px var(--sc)) drop-shadow(0 0 3px var(--sc)); }
-:root[data-theme="dark"] .sb3d-slice.mode-icon:hover path.main { filter: drop-shadow(2px 3px 5px rgba(0,0,0,.55)) drop-shadow(5px 11px 20px rgba(0,0,0,.4)) drop-shadow(0 0 18px var(--sc)) drop-shadow(0 0 4px var(--sc)) brightness(1.08); }
-:root[data-theme="dark"] .sb3d-slice.mode-avatar path.main { filter: drop-shadow(1px 2px 3px rgba(0,0,0,.4)) drop-shadow(0 0 12px var(--sc)) drop-shadow(0 0 3px var(--sc)); }
-:root[data-theme="dark"] .sb3d-slice.mode-avatar:hover path.main { filter: drop-shadow(2px 3px 5px rgba(0,0,0,.45)) drop-shadow(0 0 16px var(--sc)) drop-shadow(0 0 4px var(--sc)) brightness(1.06); }
-:root[data-theme="dark"] .sb3d-slice.is-selected path.main { filter: drop-shadow(3px 6px 12px rgba(0,0,0,.5)) drop-shadow(0 0 22px var(--sc)) drop-shadow(0 0 6px var(--sc)) brightness(1.12) saturate(1.1); }
-:root[data-theme="dark"] .sb3d-slice path.main { stroke: rgba(0,0,0,.5); }
-:root[data-theme="dark"] .sb3d-slice .hi { mix-blend-mode: screen; }
-/* Esmaecida: sem o friso/especular nem o glow neon do escuro (a cor +
-   grayscale já resolvem lá em cima — filter de novo aqui ia por cima
-   dessas regras e desfazer o grayscale). */
-.sb3d-slice.dimmed .hi,
-.sb3d-slice.dimmed .inhi,
-.sb3d-slice.dimmed .sb3d-rim { opacity: 0 !important; }
-/* Friso neon no contorno inteiro (as 4 bordas da fatia) — diferente do
-   drop-shadow ambiente acima (que só borra ao redor), isso traça uma
-   linha fina e nítida em cima do próprio contorno, tipo tubo de neon,
-   igual à referência. Só no escuro; no claro fica invisível (stroke
-   none). */
-.sb3d-rim { stroke-width: 0; opacity: 0; }
-:root[data-theme="dark"] .sb3d-rim {
-  stroke-width: 1.8; opacity: .85; mix-blend-mode: screen;
-  filter: drop-shadow(0 0 3px var(--sc)) drop-shadow(0 0 7px var(--sc));
-}
+/* Fundo suave só no escuro, pro anel não flutuar no vazio. É um
+   gradiente do próprio elemento (não um filtro), então não custa
+   rasterização nem borra o SVG que fica por cima. */
 :root[data-theme="dark"] .sb3d-stage::before {
   content: ''; position: absolute; inset: -12%; z-index: 0; pointer-events: none;
-  background: radial-gradient(circle at 50% 46%, rgba(61,125,255,.22), rgba(120,90,255,.10) 45%, transparent 70%);
-  filter: blur(6px);
+  background: radial-gradient(circle at 50% 46%, rgba(61,125,255,.16), rgba(120,90,255,.07) 45%, transparent 70%);
 }
 :root[data-theme="dark"] .sb3d-stage > svg { position: relative; z-index: 1; }
 :root[data-theme="dark"] .sb3d-cards { z-index: 1; }
 
-.sb3d-halo { fill: none; opacity: 0; transition: opacity .32s ease; pointer-events: none; }
-.sb3d-halo.on { opacity: .55; }
-.sb3d-icon { pointer-events: none; color: #fff; opacity: .98; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.3)); transition: transform .25s cubic-bezier(.2,.85,.3,1); }
-/* font-size vem inline por fatia (Sunburst3D.fitLabel) — o valor aqui é
+.sb3d-icon { pointer-events: none; color: #fff; transition: transform .25s cubic-bezier(.2,.85,.3,1); }
+/* Sem contorno atrás do texto (era o que "engrossava" e embaçava os
+   nomes) — o contraste vem da cor do texto, que o componente já escolhe
+   clara ou escura conforme a luminância da fatia.
+   font-size vem inline por fatia (Sunburst3D.fitLabel); o valor aqui é
    só um teto de segurança caso algum consumidor não passe a fonte. */
-.sb3d-avatar text { pointer-events: none; fill: #fff; font-size: 15px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-family: inherit; paint-order: stroke; stroke: rgba(0,0,0,.42); stroke-width: 3px; stroke-linejoin: round; }
+.sb3d-avatar text {
+  pointer-events: none; fill: #fff; font-size: 15px; font-weight: 700;
+  text-anchor: middle; dominant-baseline: central; font-family: inherit;
+  text-rendering: geometricPrecision;
+}
 .sb3d-connector { stroke: var(--ink3); stroke-width: 1; opacity: 0; fill: none; transition: opacity .25s; }
 
-/* ─── Hub: cartão glass (glassmorphism de verdade — HTML+backdrop-filter,
-   não dá pra simular direito só com SVG) ─── */
+/* ─── Hub: disco chapado no miolo. Era um cartão de vidro
+   (backdrop-filter: blur), tirado junto com o resto — desfoque é o
+   oposto de alta definição, e ele custa uma camada composta que fica
+   sendo recalculada a cada rolagem. ─── */
 .sb3d-hub {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; cursor: pointer; z-index: 2; user-select: none;
-  background: color-mix(in srgb, var(--card) 62%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
-  backdrop-filter: blur(18px) saturate(160%);
-  border: 1px solid color-mix(in srgb, #fff 55%, transparent);
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 50%;
-  box-shadow: 0 1px 1px rgba(255,255,255,.6) inset, 0 -6px 14px rgba(0,0,0,.06) inset, 0 10px 28px rgba(12,18,30,.16);
-  transition: transform .18s cubic-bezier(.2,.85,.3,1), box-shadow .18s;
+  transition: transform .18s cubic-bezier(.2,.85,.3,1), border-color .18s;
   /* Trava de segurança: com o hub menor (rIn do anel interno reduzido) e
      fonte maior, o valor pode não caber numa linha só — sem isso ele
      vazaria pra fora do círculo em vez de só cortar/comprimir. */
   overflow: hidden;
 }
-.sb3d-hub:hover { transform: translate(-50%,-50%) scale(1.03); }
+.sb3d-hub:hover { transform: translate(-50%,-50%) scale(1.03); border-color: var(--ink3); }
 .sb3d-hub:active { transform: translate(-50%,-50%) scale(.98); }
-:root[data-theme="dark"] .sb3d-hub {
-  background: color-mix(in srgb, var(--card) 55%, transparent);
-  border-color: color-mix(in srgb, #fff 18%, transparent);
-  box-shadow: 0 1px 1px rgba(255,255,255,.08) inset, 0 -6px 14px rgba(0,0,0,.35) inset, 0 10px 30px rgba(0,0,0,.45), 0 0 24px rgba(80,120,255,.12);
-}
 .sb3d-hub-label { font-size: 8.5px; font-weight: 700; color: var(--ink3); letter-spacing: .04em; text-transform: uppercase; max-width: 88%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb3d-hub-value { font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; margin-top: 2px; max-width: 92%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb3d-hub-sub { display: flex; align-items: center; gap: 4px; font-size: 9.5px; font-weight: 700; color: #16a34a; margin-top: 3px; }
 :root[data-theme="dark"] .sb3d-hub-sub { color: #4ade80; }
 .sb3d-hub-sub2 { font-size: 8.5px; color: var(--ink3); font-weight: 600; margin-top: 1px; }
 
-/* ─── Tag flutuante / tooltip glass (fatia selecionada ou em hover) ─── */
+/* ─── Tag flutuante / tooltip (fatia selecionada ou em hover) ─── */
 .sb3d-cards { position: absolute; inset: 0; pointer-events: none; }
 .sb3d-tag {
   position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 7px;
-  background: color-mix(in srgb, var(--card) 78%, transparent);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  backdrop-filter: blur(10px) saturate(160%);
-  border: 1px solid color-mix(in srgb, #fff 40%, var(--line));
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 11px; padding: 6px 9px;
-  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
   cursor: pointer; transform: translate(var(--tx,-50%),-50%) scale(.9); opacity: 0;
   transition: transform .3s cubic-bezier(.2,.85,.3,1), opacity .25s; max-width: 160px; z-index: 2;
 }
@@ -202,5 +163,5 @@
 
 @media (max-width: 760px) { .sb3d-legends { flex-direction: column; gap: 8px; } }
 @media (prefers-reduced-motion: reduce) {
-  .sb3d-slice, .sb3d-tag, .sb3d-connector, .sb3d-halo, .sb3d-legend-bar { transition: none !important; animation: none !important; }
+  .sb3d-slice, .sb3d-tag, .sb3d-connector, .sb3d-legend-bar { transition: none !important; animation: none !important; }
 }

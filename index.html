@@ -5569,7 +5569,7 @@ function frBreakdown(dim,rows,grand){
 // encolhe junto. markR reajustado pro novo meio do anel.
 const FRX_RING={
   tipo:{id:'tipo', mode:'icon',   rIn:97, rOut:194, markR:146, gapDeg:0.9, labelR:249, explode:18, power:0.3},
-  dono:{id:'dono', mode:'avatar', rIn:208, rOut:308, markR:258, gapDeg:0.7, labelR:316, grow:14,    power:0.5, big:true},
+  dono:{id:'dono', mode:'avatar', rIn:208, rOut:308, markR:258, gapDeg:0.7, labelR:316, power:0.5, big:true},
 };
 // Ícones (mesmo traço fino já usado no resto do app: viewBox 24, stroke
 // currentColor, stroke-width 1.8) por tipo de lançamento — por palavra-chave
@@ -5650,14 +5650,22 @@ function frxEnsureChart(){
     onToggle:(ringId,key)=>frxToggle(ringId,key),
     onOpen:(ringId,key)=>mostrarLancCategoria(ringId,key),
   });
-  // O total no centro do anel já aparece fora, acima do gráfico — em
-  // vez de só repetir a informação, o miolo alterna entre o total geral
-  // (padrão) e só o valor de Locação: clica uma vez pra filtrar por
-  // Locação, clica de novo pra voltar ao total.
+  // O total no centro do anel já aparece fora, acima do gráfico — em vez
+  // de só repetir a informação, o miolo percorre os proprietários: cada
+  // clique passa pro dono seguinte (filtrando o gráfico nele e mostrando
+  // o valor dele no centro) e, depois do último, volta ao total do mês.
+  // A ordem é a mesma do anel — do dono que mais fatura pro que menos —
+  // e não muda ao selecionar um deles, porque frRowsForRing('dono')
+  // nunca aplica o filtro da própria dimensão.
   frxChart.onHubClick(()=>{
-    const isLocOnly=FRT.tipo.size===1&&FRT.tipo.has('Locação');
-    FRT.tipo.clear();
-    if(!isLocOnly)FRT.tipo.add('Locação');
+    const donos=frxItemsFor('dono').filter(it=>!it.locked).map(it=>it.key);
+    if(!donos.length)return;
+    // Só continua a volta se houver exatamente um dono selecionado;
+    // nenhum (ou vários, escolhidos nos filtros) recomeça do primeiro.
+    const atual=FRT.dono.size===1?donos.indexOf([...FRT.dono][0]):-1;
+    const prox=atual+1;
+    FRT.dono.clear();
+    if(prox<donos.length)FRT.dono.add(donos[prox]);
     buildFatRingFilters();
     frRenderData();
   });
