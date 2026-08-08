@@ -1,8 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════════
-   Sunburst3D — anéis concêntricos premium em SVG puro (sem libs, sem
-   Canvas). Componente genérico: não conhece nada do domínio (não sabe
-   o que é "Locação" ou "proprietário") — só recebe, por anel, uma
-   lista de {key,value,color,selected?,locked?} e desenha.
+   Sunburst3D — anéis concêntricos em SVG puro (sem libs, sem Canvas).
+   Componente genérico: não conhece nada do domínio (não sabe o que é
+   "Locação" ou "proprietário") — só recebe, por anel, uma lista de
+   {key,value,color,selected?,locked?} e desenha.
+
+   O desenho é PLANO (o nome ficou por compatibilidade). Saíram a
+   extrusão lateral, o gradiente de iluminação, o brilho especular, o
+   sheen e todas as drop-shadow das fatias: cada fatia é uma cor chapada
+   com um contorno fino. Além de mais leve, isso é o que devolve a
+   definição — todo drop-shadow/blur força o navegador a rasterizar o
+   trecho do SVG num bitmap, e era daí que vinha o aspecto borrado; sem
+   eles o desenho continua vetorial e nítido em qualquer densidade de
+   tela.
 
    Uso:
      const chart = new Sunburst3D(containerEl, {
@@ -24,13 +33,6 @@
   const SVGNS = 'http://www.w3.org/2000/svg';
   const el = (tag, cls) => { const e = document.createElementNS(SVGNS, tag); if (cls) e.setAttribute('class', cls); return e; };
 
-  function mix(hex, target, amt) {
-    const h = hex.replace('#', ''), t = target.replace('#', '');
-    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
-    const tr = parseInt(t.slice(0, 2), 16), tg = parseInt(t.slice(2, 4), 16), tb = parseInt(t.slice(4, 6), 16);
-    const mr = Math.round(r + (tr - r) * amt), mg = Math.round(g + (tg - g) * amt), mb = Math.round(b + (tb - b) * amt);
-    return '#' + [mr, mg, mb].map(x => x.toString(16).padStart(2, '0')).join('');
-  }
   function luminance(hex) {
     const h = hex.replace('#', '');
     const [r, g, b] = [0, 2, 4].map(i => {
@@ -48,7 +50,6 @@
       this.container = container;
       this.size = opts.size || 640;
       this.cx = this.size / 2; this.cy = this.size / 2;
-      this.lightAngle = opts.light != null ? opts.light : 315;
       this.rings = opts.rings || [];
       this.getIcon = opts.getIcon || (() => null);
       this.getLabel = opts.getLabel || (() => null);
@@ -62,7 +63,7 @@
       this._build();
     }
 
-    // ─── ângulo -> ponto, luz -> fator 0..1 ───
+    // ─── ângulo -> ponto ───
     polar(r, angDeg) {
       const a = (angDeg - 90) * Math.PI / 180;
       return { x: this.cx + r * Math.cos(a), y: this.cy + r * Math.sin(a) };
@@ -72,10 +73,6 @@
       const p3 = this.polar(rIn, a1), p4 = this.polar(rIn, a0);
       const large = a1 - a0 > 180 ? 1 : 0;
       return `M${p1.x} ${p1.y} A${rOut} ${rOut} 0 ${large} 1 ${p2.x} ${p2.y} L${p3.x} ${p3.y} A${rIn} ${rIn} 0 ${large} 0 ${p4.x} ${p4.y} Z`;
-    }
-    lightFactor(midDeg) {
-      const d = (midDeg - this.lightAngle) * Math.PI / 180;
-      return (1 + Math.cos(d)) / 2;
     }
     // Maior fonte (até maxFs) que cabe na corda da fatia nesse raio, sem
     // passar de minFs; se nem o rótulo curto cabe no mínimo, não mostra
@@ -96,32 +93,18 @@
       c.classList.add('sb3d-stage');
       c.innerHTML = '';
       const svg = el('svg'); svg.setAttribute('viewBox', `0 0 ${this.size} ${this.size}`); svg.setAttribute('aria-hidden', 'true');
-      const defs = el('defs'); defs.setAttribute('id', `sb3d-defs-${this.uid}`);
-      svg.appendChild(defs);
-      const haloG = el('g'); const connG = el('g');
-      svg.appendChild(haloG); svg.appendChild(connG);
-      this._svg = svg; this._defs = defs; this._haloG = haloG; this._connG = connG;
+      // Sem <defs>: com as fatias chapadas não há mais gradiente nenhum
+      // pra declarar.
+      const connG = el('g');
+      svg.appendChild(connG);
+      this._svg = svg; this._connG = connG;
 
-      // O anel maior (rOut) recebe a sombra de elevação do conjunto
-      // inteiro — quem chama decide qual é (cfg.big:true), já que é o
-      // único que sabe a ordem visual pretendida dos anéis.
       this._ringGroups = {};
-      this._sideLayers = {};
       this.rings.forEach(cfg => {
         const g = el('g', 'sb3d-ring' + (cfg.big ? ' sb3d-ring-outer' : ''));
         g.dataset.ring = cfg.id;
         svg.appendChild(g);
-        // Camada única com TODAS as "laterais" (paredes falsas de
-        // profundidade) do anel, sempre a primeira filha do grupo — ou
-        // seja, sempre atrás de TODAS as fatias, mesmo as vizinhas. Sem
-        // isso, cada fatia era seu próprio grupo empilhado na ordem do
-        // círculo, e a lateral (deslocada por transform) de uma fatia
-        // podia ser pintada por cima da face da fatia anterior, criando
-        // a "parede" torta que vazava pro lado errado.
-        const sideLayer = el('g', 'sb3d-sides');
-        g.appendChild(sideLayer);
         this._ringGroups[cfg.id] = g;
-        this._sideLayers[cfg.id] = sideLayer;
         this._els[cfg.id] = {};
       });
 
@@ -133,7 +116,7 @@
       const hub = document.createElement('div'); hub.className = 'sb3d-hub';
       hub.innerHTML = '<div class="sb3d-hub-label"></div><div class="sb3d-hub-value"></div><div class="sb3d-hub-sub" style="display:none"></div><div class="sb3d-hub-sub2" style="display:none"></div>';
       hub.addEventListener('click', () => this._hubClick && this._hubClick());
-      // O cartão glass preenche o vão livre no meio do anel mais interno
+      // O disco do miolo preenche o vão livre no meio do anel mais interno
       // (2× o rIn dele, em % do stage) — nasce do próprio config, não é
       // um número fixo solto no CSS.
       const innerMost = Math.min(...this.rings.map(r => r.rIn));
@@ -151,21 +134,6 @@
       if (sub) { subEl.style.display = ''; subEl.textContent = sub; } else subEl.style.display = 'none';
       const sub2El = this._hub.querySelector('.sb3d-hub-sub2');
       if (sub2) { sub2El.style.display = ''; sub2El.textContent = sub2; } else sub2El.style.display = 'none';
-    }
-
-    _ensureSheen(cfg) {
-      if (cfg._sheenDone) return;
-      cfg._sheenDone = true;
-      const gradId = `sb3d-sheen-${this.uid}-${cfg.id}`;
-      const grad = el('linearGradient'); grad.setAttribute('id', gradId);
-      grad.setAttribute('x1', '0%'); grad.setAttribute('y1', '0%'); grad.setAttribute('x2', '0%'); grad.setAttribute('y2', '100%');
-      grad.innerHTML = '<stop offset="0%" stop-color="#ffffff" stop-opacity=".18"/><stop offset="40%" stop-color="#ffffff" stop-opacity="0"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>';
-      this._defs.appendChild(grad);
-      const sheen = el('path', 'sb3d-sheen');
-      sheen.setAttribute('d', this.ringPath(cfg.rOut, cfg.rIn, 0, 359.9));
-      sheen.setAttribute('fill', `url(#${gradId})`);
-      sheen.setAttribute('pointer-events', 'none');
-      this._ringGroups[cfg.id].appendChild(sheen);
     }
 
     // ─── calcula ângulos a partir dos valores (proporcional, com
@@ -205,22 +173,16 @@
     }
 
     _renderRing(cfg, items, anySelected) {
-      this._ensureSheen(cfg);
       const segs = this._computeSegs(cfg, items);
       const sig = segs.map(s => s.key).join('|');
       const group = this._ringGroups[cfg.id];
-      const store = this._els[cfg.id];
       if (this._prevSig[cfg.id] !== sig) {
-        // mantém a <path class="sb3d-sheen"> (última filha), só limpa fatias
         Array.from(group.querySelectorAll(':scope > g.sb3d-slice')).forEach(n => n.remove());
-        Array.from(this._sideLayers[cfg.id].children).forEach(n => n.remove());
-        this._haloG.querySelectorAll(`[data-ring="${cfg.id}"]`).forEach(n => n.remove());
         this._connG.querySelectorAll(`[data-ring="${cfg.id}"]`).forEach(n => n.remove());
         this._cards.querySelectorAll(`[data-ring="${cfg.id}"]`).forEach(n => n.remove());
         this._els[cfg.id] = {};
         this._prevSig[cfg.id] = sig;
       }
-      const sheen = group.querySelector('.sb3d-sheen');
 
       segs.forEach(s => {
         let rec = this._els[cfg.id][s.key];
@@ -229,10 +191,9 @@
           isNew = true;
           rec = this._createSlice(cfg, s);
           this._els[cfg.id][s.key] = rec;
-          group.insertBefore(rec.g, sheen);
+          group.appendChild(rec.g);
         }
         rec.g.classList.toggle('dimmed', anySelected && !s.selected);
-        rec.sideG.classList.toggle('dimmed', anySelected && !s.selected);
         this._updateSlice(cfg, rec, s);
         if (isNew) {
           rec.g.classList.add('sb3d-entering');
@@ -245,39 +206,11 @@
       const g = el('g', `sb3d-slice mode-${cfg.mode}`);
       g.dataset.ring = cfg.id; g.dataset.key = s.key;
 
-      // A lateral vive na camada compartilhada do anel (this._sideLayers),
-      // não dentro do próprio grupo da fatia — ver comentário em _build().
-      // Mesmas classes do grupo principal pra herdar exatamente as mesmas
-      // regras de CSS (transição, opacity ao "dimmed" etc.).
-      const sideG = el('g', `sb3d-slice mode-${cfg.mode} sb3d-slice-side`);
-      sideG.dataset.ring = cfg.id; sideG.dataset.key = s.key;
-      const side = el('path', 'side'); side.setAttribute('pointer-events', 'none');
-      side.setAttribute('transform', 'translate(5,11)');
-      sideG.appendChild(side);
-      this._sideLayers[cfg.id].appendChild(sideG);
-
+      // Cor chapada, sem gradiente: além de ser o que dá o aspecto plano,
+      // é o que mantém a fatia 100% vetorial (nada aqui obriga o
+      // navegador a rasterizar).
       const path = el('path', 'main'); path.setAttribute('pointer-events', 'none');
       g.appendChild(path);
-      const gradId = `sb3d-grad-${this.uid}-${cfg.id}-${Math.random().toString(36).slice(2, 8)}`;
-      const grad = el('linearGradient'); grad.setAttribute('id', gradId); grad.setAttribute('gradientUnits', 'userSpaceOnUse');
-      grad.innerHTML = '<stop class="s0" offset="0%"/><stop class="s1" offset="52%"/><stop class="s2" offset="100%"/>';
-      this._defs.appendChild(grad);
-      path.setAttribute('fill', `url(#${gradId})`);
-
-      const hi = el('path', 'hi'); hi.setAttribute('fill', 'none'); hi.setAttribute('stroke', '#fff');
-      hi.setAttribute('stroke-width', 1.6); hi.setAttribute('stroke-linecap', 'round'); hi.setAttribute('pointer-events', 'none');
-      g.appendChild(hi);
-      const inHi = el('path', 'inhi'); inHi.setAttribute('fill', 'none'); inHi.setAttribute('stroke', '#fff');
-      inHi.setAttribute('stroke-width', 1.4); inHi.setAttribute('stroke-linecap', 'round'); inHi.setAttribute('pointer-events', 'none');
-      g.appendChild(inHi);
-      // Friso neon no CONTORNO INTEIRO da fatia (as 4 bordas: arco de
-      // fora, arco de dentro e os 2 lados retos) — só aparece no modo
-      // escuro (.sb3d-rim na CSS). O hi/inHi acima só cobrem o lado
-      // virado pra luz; isso aqui é o brilho parelho em toda a borda,
-      // igual à referência.
-      const rim = el('path', 'sb3d-rim'); rim.setAttribute('fill', 'none');
-      rim.setAttribute('stroke-linejoin', 'round'); rim.setAttribute('pointer-events', 'none');
-      g.appendChild(rim);
 
       const markG = el('g', cfg.mode === 'icon' ? 'sb3d-icon' : 'sb3d-avatar');
       g.appendChild(markG);
@@ -294,12 +227,6 @@
       hit.addEventListener('pointerenter', () => this._hoverTag(cfg, s.key, true));
       hit.addEventListener('pointerleave', () => this._hoverTag(cfg, s.key, false));
 
-      let halo = null;
-      if (cfg.mode === 'avatar') {
-        halo = el('path', 'sb3d-halo'); halo.dataset.ring = cfg.id; halo.dataset.key = s.key;
-        halo.setAttribute('stroke-width', 3);
-        this._haloG.appendChild(halo);
-      }
       const line = el('line', 'sb3d-connector'); line.dataset.ring = cfg.id; line.dataset.key = s.key;
       this._connG.appendChild(line);
 
@@ -309,7 +236,7 @@
       tag.addEventListener('click', () => { if (!s.locked) this.onToggle(cfg.id, s.key); });
       this._cards.appendChild(tag);
 
-      return { g, sideG, path, side, hi, inHi, rim, hit, markG, grad, halo, line, tag, hover: false };
+      return { g, path, hit, markG, line, tag, hover: false };
     }
 
     _hoverTag(cfg, key, on) {
@@ -327,9 +254,7 @@
     _updateSlice(cfg, rec, s) {
       const d = this.ringPath(cfg.rOut, cfg.rIn, s.startA, s.endA);
       rec.path.setAttribute('d', d);
-      rec.side.setAttribute('d', d);
-      rec.rim.setAttribute('d', d);
-      rec.rim.setAttribute('stroke', s.color);
+      rec.path.setAttribute('fill', s.color);
       rec.g.classList.toggle('is-selected', !!s.selected);
 
       // Área de clique bem recuada (~28% da espessura em cada borda,
@@ -339,33 +264,6 @@
       // anel vizinho (17% não bastou no teste real em celular).
       const inset = (cfg.rOut - cfg.rIn) * 0.28;
       rec.hit.setAttribute('d', this.ringPath(cfg.rOut - inset, cfg.rIn + inset, s.startA, s.endA));
-
-      const lf = this.lightFactor(s.mid);
-      rec.side.setAttribute('fill', mix(s.color, '#000000', 0.56 - lf * 0.16));
-      // No próprio grupo (não só no path) pra hi/inHi/rim, todos irmãos
-      // do path, também poderem usar var(--sc) — custom property só
-      // desce pra descendentes, não pra irmãos.
-      rec.g.style.setProperty('--sc', s.color);
-
-      const gp1 = this.polar(cfg.rOut + 8, s.mid), gp2 = this.polar(cfg.rIn - 8, s.mid);
-      rec.grad.setAttribute('x1', gp1.x); rec.grad.setAttribute('y1', gp1.y);
-      rec.grad.setAttribute('x2', gp2.x); rec.grad.setAttribute('y2', gp2.y);
-      rec.grad.querySelector('.s0').setAttribute('stop-color', mix(s.color, '#ffffff', 0.20 + lf * 0.24));
-      rec.grad.querySelector('.s1').setAttribute('stop-color', s.color);
-      rec.grad.querySelector('.s2').setAttribute('stop-color', mix(s.color, '#000000', 0.30 - lf * 0.08));
-
-      if (s.endA - s.startA > 13) {
-        const hiSpan = Math.min(s.endA - s.startA - 4, 26);
-        const a0 = s.mid - hiSpan / 2, a1 = s.mid + hiSpan / 2;
-        const hp1 = this.polar(cfg.rOut - 2, a0), hp2 = this.polar(cfg.rOut - 2, a1);
-        rec.hi.setAttribute('d', `M${hp1.x} ${hp1.y} A${cfg.rOut - 2} ${cfg.rOut - 2} 0 0 1 ${hp2.x} ${hp2.y}`);
-        rec.hi.setAttribute('opacity', (0.12 + lf * 0.36).toFixed(2));
-        rec.hi.style.display = '';
-        const ip1 = this.polar(cfg.rIn + 2, a0), ip2 = this.polar(cfg.rIn + 2, a1);
-        rec.inHi.setAttribute('d', `M${ip1.x} ${ip1.y} A${cfg.rIn + 2} ${cfg.rIn + 2} 0 0 1 ${ip2.x} ${ip2.y}`);
-        rec.inHi.setAttribute('opacity', (0.08 + lf * 0.34).toFixed(2));
-        rec.inHi.style.display = '';
-      } else { rec.hi.style.display = 'none'; rec.inHi.style.display = 'none'; }
 
       const mc = markColor(s.color);
       if (cfg.mode === 'icon') {
@@ -377,7 +275,6 @@
         const scale = s.selected ? 2.25 : 1.7;
         rec.markG.setAttribute('transform', `translate(${ip.x - 12 * scale} ${ip.y - 12 * scale}) scale(${scale})`);
         rec.g.style.transform = s.selected ? `translate(${s.dir.x * (cfg.explode || 18)}px, ${s.dir.y * (cfg.explode || 18)}px)` : '';
-        rec.sideG.style.transform = rec.g.style.transform;
       } else {
         // Nome completo do proprietário direto na fatia, numa fonte que
         // encolhe pra caber na corda da fatia (2·R·sen(ângulo/2)) — fatia
@@ -392,16 +289,12 @@
         } else rec.markG.innerHTML = '';
         const op = this.polar((cfg.rOut + cfg.rIn) / 2, s.mid);
         rec.g.style.transformOrigin = `${op.x}px ${op.y}px`;
-        rec.g.style.transform = s.selected ? 'scale(1.045)' : '';
-        rec.sideG.style.transformOrigin = rec.g.style.transformOrigin;
-        rec.sideG.style.transform = rec.g.style.transform;
-        if (rec.halo) {
-          const grow = cfg.grow || 14;
-          rec.halo.setAttribute('d', this.ringPath(cfg.rOut + grow, Math.max(cfg.rIn - grow * 0.4, 0), s.startA, s.endA));
-          rec.halo.setAttribute('stroke', s.color);
-          rec.halo.setAttribute('fill', s.color);
-          rec.halo.classList.toggle('on', !!s.selected);
-        }
+        // A fatia selecionada cresce um tico. O halo colorido que ficava
+        // atrás dela saiu: ele era desenhado num raio maior e sem a
+        // escala da fatia, então no desenho plano — sem as sombras que
+        // antes o disfarçavam — aparecia como um trapézio solto de um
+        // lado só. O contorno da fatia, o resto esmaecido e a etiqueta
+        // já dizem o que está selecionado.
       }
 
       this._positionTag(cfg, rec, s);
@@ -427,7 +320,7 @@
       rec.tag.querySelector('.sb3d-tag-pct').textContent = s.pct.toFixed(s.pct < 10 ? 1 : 0) + '%';
 
       if (s.selected) {
-        const edgeR = cfg.mode === 'icon' ? cfg.rOut + (cfg.explode || 18) : cfg.rOut + (cfg.grow || 14) * 0.6;
+        const edgeR = cfg.rOut + (cfg.mode === 'icon' ? (cfg.explode || 18) : 8);
         const outerP = this.polar(edgeR, s.mid);
         rec.line.setAttribute('x1', outerP.x); rec.line.setAttribute('y1', outerP.y);
         rec.line.setAttribute('x2', lp.x); rec.line.setAttribute('y2', lp.y);
