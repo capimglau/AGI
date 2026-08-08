@@ -5664,46 +5664,95 @@ function frxEnsureChart(){
     onToggle:(ringId,key)=>frxToggle(ringId,key),
     onOpen:(ringId,key)=>mostrarLancCategoria(ringId,key),
   });
-  // O total no centro do anel já aparece fora, acima do gráfico — em vez
-  // de só repetir a informação, o miolo percorre um item de cada vez:
-  // total do mês → cada proprietário → cada tipo de receita → volta ao
-  // total. Cada parada filtra o gráfico naquele item e mostra o valor
-  // dele no centro.
+  // Clicar no miolo FIXA o que ele estiver mostrando naquele instante:
+  // filtra o gráfico naquele proprietário/tipo e a rotação para ali (o
+  // miolo passa a mostrar o filtro). Clicar de novo limpa e a rotação
+  // volta a correr. No total do mês não há o que fixar.
   frxChart.onHubClick(()=>{
-    const passos=[
-      ...frxSeqKeys('dono').map(key=>({dim:'dono',key})),
-      ...frxSeqKeys('tipo').map(key=>({dim:'tipo',key})),
-    ];
-    if(!passos.length)return;
-    // Onde a volta está: exatamente UM item selecionado, numa única
-    // dimensão. Qualquer outra coisa (nada, ou vários itens escolhidos
-    // nos filtros ao lado) recomeça do primeiro passo.
-    const sel=FR_ORDER.flatMap(d=>[...FRT[d]].map(key=>({dim:d,key})));
-    const atual=sel.length===1?passos.findIndex(p=>p.dim===sel[0].dim&&p.key===sel[0].key):-1;
-    const prox=atual+1;
-    FR_ORDER.forEach(d=>FRT[d].clear());
-    if(prox<passos.length)FRT[passos[prox].dim].add(passos[prox].key);
+    if(FR_ORDER.some(d=>FRT[d].size)){
+      FR_ORDER.forEach(d=>FRT[d].clear());
+    }else{
+      const p=frxHubAtual();
+      if(!p)return;
+      FRT[p.dim].add(p.key);
+    }
     buildFatRingFilters();
     frRenderData();
   });
+  frxHubStart();
   return frxChart;
 }
 
+// ── MIOLO QUE ALTERNA SOZINHO ──
+// O centro do anel fica passando os valores um a um, sem precisar tocar:
+// total do mês → cada proprietário → cada tipo de receita → total de
+// novo. Só o TEXTO do miolo muda a cada volta; o gráfico fica parado,
+// senão a tela inteira piscaria de 4 em 4 segundos.
+const FRX_HUB_MS=4000;
+let frxHubIdx=0, frxHubTimer=null, frxHubPausado=false;
+
+// Os passos da rotação: o total (null) e depois cada item das duas
+// dimensões, sempre da lista completa do mês.
+function frxHubPassos(){
+  return [null,
+    ...frxSeqKeys('dono').map(key=>({dim:'dono',key})),
+    ...frxSeqKeys('tipo').map(key=>({dim:'tipo',key})),
+  ];
+}
+// O passo que está à mostra agora (null = total do mês).
+function frxHubAtual(){
+  const passos=frxHubPassos();
+  return passos[frxHubIdx%passos.length]||null;
+}
+// A rotação só corre com o Resumo aberto (não adianta trocar texto numa
+// aba que ninguém está vendo), sem nenhum filtro ativo — com filtro o
+// miolo tem que mostrar o que o usuário escolheu — e sem o ponteiro em
+// cima dele, pra dar tempo de ler.
+function frxHubPodeRodar(){
+  const pg=document.getElementById('page-resumo');
+  if(!pg||!pg.classList.contains('on'))return false;
+  if(frxHubPausado)return false;
+  return !FR_ORDER.some(d=>FRT[d].size);
+}
+function frxHubStart(){
+  if(frxHubTimer)return;
+  const hub=document.querySelector('#frxStage .sb3d-hub');
+  if(hub){
+    hub.addEventListener('pointerenter',()=>{frxHubPausado=true;});
+    hub.addEventListener('pointerleave',()=>{frxHubPausado=false;});
+  }
+  frxHubTimer=setInterval(()=>{
+    if(!frxHubPodeRodar())return;
+    frxHubIdx=(frxHubIdx+1)%frxHubPassos().length;
+    frxUpdateHub();
+  },FRX_HUB_MS);
+}
+
 function frxUpdateHub(){
-  // O valor já era o total FILTRADO (frFilteredRows aplica FRT inteiro);
-  // o rótulo mostra o que está selecionado: itens da mesma dimensão são
-  // somados entre si ("Eliana + Silvio"), dimensões diferentes aparecem
-  // separadas ("Locação · Eliana + Silvio"). Com muitos itens selecionados
-  // cai para a contagem, pra não estourar o espaço do hub.
+  // COM filtro ativo o miolo mostra o que está filtrado (e a rotação
+  // fica parada): itens da mesma dimensão somados entre si ("Eliana +
+  // Silvio"), dimensões diferentes separadas ("Locação · Eliana +
+  // Silvio"). Com muitos itens cai pra contagem, pra não estourar o
+  // espaço do miolo.
   const groups=FR_ORDER.map(d=>[...FRT[d]]).filter(g=>g.length);
   const selCount=groups.reduce((n,g)=>n+g.length,0);
-  const label = selCount===0 ? 'Total do mês'
-    : selCount>4 ? selCount+' filtros'
-    : groups.map(g=>g.join(' + ')).join(' · ');
-  frxChart.setHub({
-    label,
-    value: frAbbrevR(frSum(frFilteredRows())),
-  });
+  if(selCount){
+    frxChart.setHub({
+      label: selCount>4 ? selCount+' filtros' : groups.map(g=>g.join(' + ')).join(' · '),
+      value: frAbbrevR(frSum(frFilteredRows())),
+    });
+    return;
+  }
+  // SEM filtro, mostra o passo da vez da rotação. O valor de cada passo
+  // é a soma daquele item sozinho — mesma normalização de chave que o
+  // frBreakdown usa, pra "" e espaços caírem no mesmo "—" que ele criou.
+  const p=frxHubAtual();
+  if(!p){
+    frxChart.setHub({label:'Total do mês', value:frAbbrevR(frSum(frBaseRows()))});
+    return;
+  }
+  const rows=frBaseRows().filter(r=>((r[p.dim]||'').trim()||'—')===p.key);
+  frxChart.setHub({label:p.key, value:frAbbrevR(frSum(rows))});
 }
 
 function frUpdateTotal(){

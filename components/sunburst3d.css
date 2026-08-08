@@ -112,6 +112,11 @@
 }
 .sb3d-hub:hover { transform: translate(-50%,-50%) scale(1.03); border-color: var(--ink3); }
 .sb3d-hub:active { transform: translate(-50%,-50%) scale(.98); }
+/* O miolo troca de conteúdo sozinho (quem chama decide o ritmo) — cada
+   troca entra com um fade curto em vez de piscar o texto. */
+@keyframes sb3d-hub-troca { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.sb3d-hub-troca .sb3d-hub-label,
+.sb3d-hub-troca .sb3d-hub-value { animation: sb3d-hub-troca .3s ease both; }
 .sb3d-hub-label { font-size: 8.5px; font-weight: 700; color: var(--ink3); letter-spacing: .04em; text-transform: uppercase; max-width: 88%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb3d-hub-value { font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; margin-top: 2px; max-width: 92%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb3d-hub-sub { display: flex; align-items: center; gap: 4px; font-size: 9.5px; font-weight: 700; color: #16a34a; margin-top: 3px; }
@@ -163,5 +168,6 @@
 
 @media (max-width: 760px) { .sb3d-legends { flex-direction: column; gap: 8px; } }
 @media (prefers-reduced-motion: reduce) {
-  .sb3d-slice, .sb3d-tag, .sb3d-connector, .sb3d-legend-bar { transition: none !important; animation: none !important; }
+  .sb3d-slice, .sb3d-tag, .sb3d-connector, .sb3d-legend-bar,
+  .sb3d-hub-troca .sb3d-hub-label, .sb3d-hub-troca .sb3d-hub-value { transition: none !important; animation: none !important; }
 }
