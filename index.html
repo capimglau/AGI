@@ -680,14 +680,15 @@ button.day-total:active { opacity: .45; }
    verde quando o dia inteiro já foi baixado. */
 .day-total.liq { color: var(--ink); font-size: 15px; }
 .day-total.liq.ok { color: var(--green); }
-/* Dias que já passaram ficam levemente esmaecidos — só o bastante pro olho
-   ir direto no que é de hoje em diante. Volta ao normal ao passar o mouse
+/* Dias que já passaram recuam bem de leve — o suficiente pro olho ir direto
+   no que é de hoje em diante, sem chegar a atrapalhar a leitura de quem
+   está conferindo o que ficou pra trás. Volta ao normal ao passar o mouse
    (ou ao focar algo dentro, no teclado).
    O esmaecido vai no cabeçalho e nos itens, não no .day-group: o grupo tem
    `animation: fadeIn … both`, e o opacity:1 do último keyframe fica valendo
    sobre qualquer opacity declarado no próprio elemento. */
 .day-group.passado > .day-header,
-.day-group.passado > .day-items { opacity: .72; transition: opacity .18s; }
+.day-group.passado > .day-items { opacity: .88; transition: opacity .18s; }
 .day-group.passado:hover > .day-header,
 .day-group.passado:hover > .day-items,
 .day-group.passado:focus-within > .day-header,
